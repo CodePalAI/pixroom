@@ -1,9 +1,13 @@
 {
   "name": "pixroom",
   "version": "0.1.0",
-  "description": "Local-first agent context optimizer with exact query-backed virtualization, transactional integrations, and reproducible quality evidence.",
+  "description": "CodePal's open-source LLM context optimizer for reducing repeated input while preserving exact tool data.",
   "type": "module",
   "license": "Apache-2.0",
+  "author": {
+    "name": "CodePal",
+    "url": "https://codepal.ai"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CodePalAI/pixroom.git"
@@ -120,7 +124,8 @@
     "plugin-system",
     "opentelemetry",
     "pxpipe",
-    "headroom"
+    "headroom",
+    "codepal"
   ],
   "engines": {
     "node": ">=18"

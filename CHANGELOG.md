@@ -19,6 +19,7 @@ All notable changes are documented here. This project follows semantic versionin
 - Content-free bounded OTLP/HTTP optimization spans.
 - Two external integration examples using only public exports.
 - A 36-task exact-QCV breadth suite and isolated three-process latency profile.
+- Public CodePal ownership, product relationship, and support metadata.
 
 ### Changed
 

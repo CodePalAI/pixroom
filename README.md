@@ -4,11 +4,14 @@
 
 <p align="center">A local proxy for coding agents and LLM apps. Pixroom cuts repeated input before it leaves your machine while keeping exact data available when the model needs it.</p>
 
+<p align="center">An open-source part of the internal LLM optimization system developed at <a href="https://codepal.ai"><strong>CodePal</strong></a>.</p>
+
 <p align="center">
   <img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg">
        <a href="https://github.com/CodePalAI/pixroom/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CodePalAI/pixroom/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="node" src="https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg">
        <img alt="status" src="https://img.shields.io/badge/status-experimental-orange.svg">
+         <a href="https://codepal.ai"><img alt="Built by CodePal" src="https://img.shields.io/badge/built%20by-CodePal-2563eb.svg"></a>
 </p>
 
 <p align="center">
@@ -17,7 +20,8 @@
   <a href="#proof">Proof</a> ·
   <a href="#how-it-works">How it works</a> ·
        <a href="#safety-and-privacy">Safety</a> ·
-       <a href="./benchmarks/REPORT.md">Benchmarks</a>
+       <a href="./benchmarks/REPORT.md">Benchmarks</a> ·
+       <a href="https://codepal.ai">CodePal.ai</a>
 </p>
 
 <p align="center"><sub>Local by default | No Pixroom account | Works with your existing provider credentials</sub></p>
@@ -301,6 +305,8 @@ Provider wrappers are exported from `pixroom/anthropic` and `pixroom/openai`. Ot
 
 ## Proof
 
+CodePal publishes Pixroom's raw benchmark artifacts, negative results, and safety checks so people can inspect the claims rather than trust a headline.
+
 ### Paid exact-context pilot
 
 The headline result came from two fixed Haiku 4.5 tasks sent directly to Anthropic and through Pixroom:
@@ -331,6 +337,23 @@ This offline result validates transformation and token accounting, not model qua
 The broader exact-data test suite runs 36 deterministic tasks across JSON lookup, filtered counts, logs, source exports, tabular JSON, and nested projections. It produced 36/36 exact answers, replaced the large old tool output in 36/36 cases, and never exposed model-planned retrieval. The measured tool-output regions fell from 104,018 to 5,964 estimated tokens. It also refused 12/12 ambiguous or multi-dataset controls. This is offline operation coverage, not live-model quality evidence.
 
 The full [benchmark report](./benchmarks/REPORT.md) keeps live, offline, agentic, and simulated evidence separate. It also preserves failed experiments instead of averaging them into successful results.
+
+## Built at CodePal
+
+[CodePal](https://codepal.ai) builds AI-powered development products that help people move from an idea to production software. Pixroom open-sources part of the internal context-optimization algorithms and runtime developed for that work.
+
+Inside CodePal's broader system, this work helps:
+
+- reduce repeated model input and provider cost;
+- preserve exact tool data instead of relying only on summaries;
+- leave more of the model's context window available for useful project information;
+- improve reliability on structured lookups and counts;
+- measure savings, retries, retrievals, and failures before an optimization is accepted;
+- support competitive product pricing without treating maximum token deletion as the goal.
+
+CodePal uses these techniques to pursue better AI development results and lower serving cost together. Pixroom is one public component, not the complete CodePal product, model stack, or internal infrastructure.
+
+To use CodePal's full AI development product, visit [codepal.ai](https://codepal.ai).
 
 ## Compatibility
 
@@ -438,6 +461,8 @@ npm run bench:profile:isolated  # separate load, proxy, and upstream processes
 
 Pixroom is experimental but usable today for local evaluation and API-key traffic.
 
+Pixroom is developed and maintained by [CodePal](https://codepal.ai) with contributions from the open-source community.
+
 - **Implemented:** exact local lookups across providers, streaming support, automatic local retrieval, capture/replay, OpenTelemetry export, Node.js library, MCP server, and agent wrappers.
 - **Still being proved:** repeated live-model quality across larger task sets, real sanitized agent traces, independent adoption, and lower proxy overhead under heavy concurrency.
 
@@ -447,5 +472,5 @@ The [product assessment](./planning/product_assessment.md) explains the evidence
 
 **Apache-2.0.** Third-party attribution is listed in [`NOTICE`](./NOTICE).
 
-Contributions are welcome under [`CONTRIBUTING.md`](./CONTRIBUTING.md). Report vulnerabilities through the private process in [`SECURITY.md`](./SECURITY.md), not a public issue.
+Pixroom is an open-source CodePal project. Contributions are welcome under [`CONTRIBUTING.md`](./CONTRIBUTING.md). Report vulnerabilities through the private process in [`SECURITY.md`](./SECURITY.md), not a public issue.
 

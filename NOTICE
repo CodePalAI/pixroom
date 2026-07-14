@@ -1,8 +1,11 @@
 pixroom
-Copyright 2026 pixroom contributors
+Copyright 2026 CodePal and pixroom contributors
 
-This product includes software developed as an orchestration layer over two
-upstream open-source projects, consumed as unmodified, pinned dependencies:
+Pixroom is developed by CodePal (https://codepal.ai) and released as an
+open-source component of CodePal's internal LLM context-optimization work.
+
+This product includes two upstream open-source projects, consumed as
+unmodified, pinned dependencies:
 
 --------------------------------------------------------------------------------
 pxpipe (npm: pxpipe-proxy)

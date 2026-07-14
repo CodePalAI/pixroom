@@ -3,3 +3,6 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/CodePalAI/pixroom/security/advisories/new
     about: Report vulnerabilities privately. Do not include secrets in a public issue.
+  - name: CodePal product support
+    url: https://help.codepal.ai/
+    about: Get help with CodePal's hosted AI development product.

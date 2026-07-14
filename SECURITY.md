@@ -1,8 +1,10 @@
 # Security policy
 
+Pixroom is maintained by [CodePal](https://codepal.ai).
+
 ## Reporting a vulnerability
 
-Use GitHub's private **Report a vulnerability** flow in the repository Security tab. Do not open a public issue with exploit details, credentials, private prompts, or raw agent traces. If private reporting is unavailable, open a minimal issue asking the maintainers to establish a private channel and omit technical details.
+Use GitHub's private **Report a vulnerability** flow in the repository Security tab. Do not open a public issue with exploit details, credentials, private prompts, or raw agent traces. If private reporting is unavailable, email [support@codepal.ai](mailto:support@codepal.ai) to request a private channel and omit technical details from the first message.
 
 Expect an acknowledgement within seven days. Maintainers will confirm scope, coordinate a fix and disclosure, and credit reporters who want attribution.
 
