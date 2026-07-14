@@ -25,6 +25,7 @@
 - [Raw paid QCV receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/direct-anthropic-virtual.json): two-task Haiku 4.5 pilot with usage, outputs, costs, order, and limitations
 - [Security policy](https://github.com/CodePalAI/pinpoint/blob/main/SECURITY.md): private reporting and deployment boundaries
 - [Contributing](https://github.com/CodePalAI/pinpoint/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
+- [Code of Conduct](https://github.com/CodePalAI/pinpoint/blob/main/CODE_OF_CONDUCT.md): community expectations, private reporting, and enforcement
 - [Upstream attribution](https://github.com/CodePalAI/pinpoint/blob/main/UPSTREAM.md): pinned pxpipe and Headroom contracts
 - [Changelog](https://github.com/CodePalAI/pinpoint/blob/main/CHANGELOG.md): release history
 

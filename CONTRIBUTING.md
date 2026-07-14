@@ -2,6 +2,8 @@
 
 Pinpoint is developed by [CodePal](https://codepal.ai) as an open-source part of its LLM optimization work. The project accepts focused fixes, protocol adapters, optimizer integrations, adversarial fixtures, and reproducible quality evidence. A smaller honest result is more useful than an unsupported compression headline.
 
+Participation is governed by the [Code of Conduct](./CODE_OF_CONDUCT.md). Report conduct concerns privately through the channel listed there.
+
 ## Setup
 
 ```bash

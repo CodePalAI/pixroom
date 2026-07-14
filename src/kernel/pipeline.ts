@@ -11,6 +11,7 @@ import type {
   TransactionResult,
   TransformProposal,
 } from './types.js';
+import type { ReversibleHandle, StageResult } from '../types.js';
 
 export type PipelineErrorCode = TransactionErrorCode | 'proposal_failed' | 'proposal_invalid';
 
@@ -33,6 +34,42 @@ export interface PipelineResult {
   readonly decisions: readonly PlanDecision[];
   readonly transactions: readonly TransactionResult[];
   readonly errors: readonly PipelineError[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isReversibleHandle(value: unknown): value is ReversibleHandle {
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== 'string' || value.id.length === 0) return false;
+  if (!['optical', 'semantic', 'virtual'].includes(String(value.origin))) return false;
+  if (value.original !== undefined && typeof value.original !== 'string') return false;
+  if (value.contentType !== undefined && typeof value.contentType !== 'string') return false;
+  if (value.ratio !== undefined && (typeof value.ratio !== 'number' || !Number.isFinite(value.ratio))) {
+    return false;
+  }
+  return value.regionId === undefined || typeof value.regionId === 'string';
+}
+
+function isStageResult(value: unknown): value is StageResult {
+  if (!isRecord(value)) return false;
+  if (!['optical', 'semantic', 'virtual'].includes(String(value.stage))) return false;
+  if (typeof value.applied !== 'boolean' || typeof value.reason !== 'string') return false;
+  if (value.detail !== undefined && typeof value.detail !== 'string') return false;
+  if (!isRecord(value.counterfactual)) return false;
+  const counterfactual = value.counterfactual;
+  if (
+    !['tokensText', 'tokensCompressed', 'tokensSaved'].every(
+      (key) => typeof counterfactual[key] === 'number' && Number.isFinite(counterfactual[key]),
+    ) ||
+    !['anthropic-count_tokens', 'gpt-tokenizer', 'tiktoken', 'estimate'].includes(
+      String(counterfactual.basis),
+    )
+  ) {
+    return false;
+  }
+  return Array.isArray(value.reversible) && value.reversible.every(isReversibleHandle);
 }
 
 function ownedProposal(
@@ -82,12 +119,29 @@ function ownedProposal(
   }
   if (
     proposal.patch.appendReversible !== undefined &&
-    !Array.isArray(proposal.patch.appendReversible)
+    (!Array.isArray(proposal.patch.appendReversible) ||
+      !proposal.patch.appendReversible.every(isReversibleHandle))
   ) {
-    throw new TypeError('reversible handles must be an array');
+    throw new TypeError('reversible handles must be valid');
   }
-  if (proposal.patch.appendStages !== undefined && !Array.isArray(proposal.patch.appendStages)) {
-    throw new TypeError('stage results must be an array');
+  if (
+    proposal.patch.appendStages !== undefined &&
+    (!Array.isArray(proposal.patch.appendStages) ||
+      !proposal.patch.appendStages.every(isStageResult))
+  ) {
+    throw new TypeError('stage results must be valid');
+  }
+  if (
+    proposal.patch.opticalOwnsCacheControl !== undefined &&
+    typeof proposal.patch.opticalOwnsCacheControl !== 'boolean'
+  ) {
+    throw new TypeError('cache-control ownership must be boolean');
+  }
+  if (
+    proposal.patch.virtualQueryToolNeeded !== undefined &&
+    typeof proposal.patch.virtualQueryToolNeeded !== 'boolean'
+  ) {
+    throw new TypeError('virtual query state must be boolean');
   }
   if (
     proposal.patch.virtualContextIds !== undefined &&
@@ -102,7 +156,9 @@ function ownedProposal(
     proposal.patch.virtualQueryToolNeeded === true ||
     (proposal.patch.virtualContextIds?.length ?? 0) > 0 ||
     (proposal.patch.opticalOwnsCacheControl !== undefined &&
-      proposal.patch.opticalOwnsCacheControl !== ctx.opticalOwnsCacheControl);
+      proposal.patch.opticalOwnsCacheControl !== ctx.opticalOwnsCacheControl) ||
+    (proposal.patch.virtualQueryToolNeeded !== undefined &&
+      proposal.patch.virtualQueryToolNeeded !== ctx.virtualQueryToolNeeded);
   if (mutatesOwnedState && proposal.regions.length === 0) {
     throw new TypeError('state-changing proposal must claim a region');
   }

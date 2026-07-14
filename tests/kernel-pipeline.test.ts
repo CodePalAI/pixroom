@@ -110,6 +110,70 @@ describe('IntegrationRegistry and IntegrationPipeline', () => {
     expect(ctx.reversible).toEqual([]);
   });
 
+  it('rejects malformed stage results before they can corrupt reporting', async () => {
+    const malformed = integration('malformed', 10, 'system', 'changed');
+    const registry = new IntegrationRegistry().register({
+      ...malformed,
+      async propose(ctx) {
+        const proposal = await malformed.propose(ctx);
+        return {
+          ...proposal,
+          patch: { ...proposal.patch, appendStages: [null] as unknown as [] },
+        };
+      },
+    });
+    const ctx = context();
+
+    const result = await new IntegrationPipeline(registry).run(ctx);
+
+    expect(result.errors).toEqual([{ integrationId: 'malformed', error: 'proposal_invalid' }]);
+    expect(ctx.body).toEqual({ value: 'original' });
+    expect(ctx.stages).toEqual([]);
+  });
+
+  it('requires region ownership to clear virtual query state', async () => {
+    const owner: ProcessorIntegration = {
+      id: 'owner',
+      version: 'test',
+      order: 10,
+      capabilities: { regions: ['virtual-context'], fidelity: 'lossless', cacheImpact: 'preserve' },
+      async propose() {
+        return {
+          id: 'owner:1',
+          integrationId: this.id,
+          regions: ['virtual-context'],
+          fidelity: 'lossless',
+          cacheImpact: 'preserve',
+          patch: { virtualQueryToolNeeded: true },
+        };
+      },
+    };
+    const clearer: ProcessorIntegration = {
+      id: 'clearer',
+      version: 'test',
+      order: 20,
+      capabilities: { regions: ['virtual-context'], fidelity: 'lossless', cacheImpact: 'preserve' },
+      async propose() {
+        return {
+          id: 'clearer:1',
+          integrationId: this.id,
+          regions: [],
+          fidelity: 'lossless',
+          cacheImpact: 'preserve',
+          patch: { virtualQueryToolNeeded: false },
+        };
+      },
+    };
+    const ctx = context();
+
+    const result = await new IntegrationPipeline(
+      new IntegrationRegistry().register(owner).register(clearer),
+    ).run(ctx);
+
+    expect(ctx.virtualQueryToolNeeded).toBe(true);
+    expect(result.errors).toContainEqual({ integrationId: 'clearer', error: 'proposal_invalid' });
+  });
+
   it('does not execute integration analysis in audit mode', async () => {
     let proposed = false;
     const candidate = integration('audited', 10, 'system', 'nope');

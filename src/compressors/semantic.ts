@@ -251,23 +251,25 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
     model: string,
     config: Record<string, unknown>,
   ): Promise<CompressResponse> {
-    const res = await this.fetchSidecar(`${this.sidecar.url}/v1/compress`, {
+    const { response, data } = await this.fetchSidecarJson<Partial<CompressResponse>>(
+      `${this.sidecar.url}/v1/compress`,
+      {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ messages, model, config }),
-    });
-    if (!res.ok) {
-      throw new Error(`/v1/compress ${res.status} ${res.statusText}`);
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`/v1/compress ${response.status} ${response.statusText}`);
     }
-    const data = (await res.json()) as Partial<CompressResponse>;
     return {
-      messages: Array.isArray(data.messages) ? data.messages : [],
-      tokens_before: data.tokens_before ?? 0,
-      tokens_after: data.tokens_after ?? 0,
-      tokens_saved: data.tokens_saved ?? 0,
-      compression_ratio: data.compression_ratio ?? 1,
-      transforms_applied: Array.isArray(data.transforms_applied) ? data.transforms_applied : [],
-      ccr_hashes: Array.isArray(data.ccr_hashes) ? data.ccr_hashes : [],
+      messages: Array.isArray(data?.messages) ? data.messages : [],
+      tokens_before: data?.tokens_before ?? 0,
+      tokens_after: data?.tokens_after ?? 0,
+      tokens_saved: data?.tokens_saved ?? 0,
+      compression_ratio: data?.compression_ratio ?? 1,
+      transforms_applied: Array.isArray(data?.transforms_applied) ? data.transforms_applied : [],
+      ccr_hashes: Array.isArray(data?.ccr_hashes) ? data.ccr_hashes : [],
     };
   }
 
@@ -275,25 +277,29 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
   async retrieveHash(hash: string): Promise<string | null> {
     if (!this.sidecar.available) return null;
     try {
-      const res = await this.fetchSidecar(
+      const { response, data } = await this.fetchSidecarJson<{ original_content?: unknown }>(
         `${this.sidecar.url}/v1/retrieve/${encodeURIComponent(hash)}`,
       );
-      if (!res.ok) return null;
-      const data = (await res.json()) as { original_content?: unknown };
-      return typeof data.original_content === 'string' ? data.original_content : null;
+      if (!response.ok) return null;
+      return typeof data?.original_content === 'string' ? data.original_content : null;
     } catch {
       return null;
     }
   }
 
-  private async fetchSidecar(url: string, init?: RequestInit): Promise<Response> {
+  private async fetchSidecarJson<T>(
+    url: string,
+    init?: RequestInit,
+  ): Promise<{ response: Response; data?: T }> {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
       Math.max(1, this.cfg.requestTimeoutMs),
     );
     try {
-      return await fetch(url, { ...init, signal: controller.signal });
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      const data = response.ok ? (await response.json()) as T : undefined;
+      return { response, data };
     } finally {
       clearTimeout(timeout);
     }

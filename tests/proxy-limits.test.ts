@@ -132,4 +132,59 @@ describe('proxy resource limits and lifecycle', () => {
     await expect(proxy.listen()).rejects.toMatchObject({ code: 'EADDRINUSE' });
     await expect(proxy.close()).resolves.toBeUndefined();
   });
+
+  it('does not start after close is requested during warmup', async () => {
+    let releaseHealth!: () => void;
+    const healthGate = new Promise<void>((resolve) => { releaseHealth = resolve; });
+    let healthStarted!: () => void;
+    const healthRequest = new Promise<void>((resolve) => { healthStarted = resolve; });
+    const sidecar = http.createServer((request, response) => {
+      if (request.url !== '/health') return;
+      healthStarted();
+      void healthGate.then(() => {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end('{}');
+      });
+    });
+    servers.push(sidecar);
+    await new Promise<void>((resolve) => sidecar.listen(0, '127.0.0.1', resolve));
+    const sidecarPort = (sidecar.address() as AddressInfo).port;
+    const port = await new Promise<number>((resolve) => {
+      const probe = http.createServer();
+      probe.listen(0, '127.0.0.1', () => {
+        const candidate = (probe.address() as AddressInfo).port;
+        probe.close(() => resolve(candidate));
+      });
+    });
+    const proxy = createProxyServer({
+      host: '127.0.0.1',
+      port,
+      semantic: {
+        enabled: true,
+        autoSpawn: false,
+        sidecarUrl: `http://127.0.0.1:${sidecarPort}`,
+        healthTimeoutMs: 5_000,
+      },
+      optical: { enabled: false },
+      virtualContext: { enabled: false },
+      logLevel: 'silent',
+    });
+    proxies.push(proxy);
+
+    const starting = proxy.listen();
+    await healthRequest;
+    const closing = proxy.close();
+    releaseHealth();
+
+    await expect(starting).rejects.toThrow('proxy closed during startup');
+    await expect(closing).resolves.toBeUndefined();
+    const rebound = http.createServer();
+    servers.push(rebound);
+    await expect(
+      new Promise<void>((resolve, reject) => {
+        rebound.once('error', reject);
+        rebound.listen(port, '127.0.0.1', resolve);
+      }),
+    ).resolves.toBeUndefined();
+  });
 });

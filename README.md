@@ -512,5 +512,5 @@ The [product assessment](./planning/product_assessment.md) explains the evidence
 
 **Apache-2.0.** Third-party attribution is listed in [`NOTICE`](./NOTICE).
 
-Pinpoint is an open-source CodePal project. Contributions are welcome under [`CONTRIBUTING.md`](./CONTRIBUTING.md). Report vulnerabilities through the private process in [`SECURITY.md`](./SECURITY.md), not a public issue.
+Pinpoint is an open-source CodePal project. Contributions are welcome under [`CONTRIBUTING.md`](./CONTRIBUTING.md) and the [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Report vulnerabilities through the private process in [`SECURITY.md`](./SECURITY.md), not a public issue.
 

@@ -42,6 +42,12 @@ export interface CcrStoreOptions {
   readonly now?: () => number;
 }
 
+function positiveFinite(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : fallback;
+}
+
 export class CcrStore {
   /** id → bounded original/metadata entry. Map insertion order is the LRU order. */
   private readonly entries = new Map<string, StoredHandle>();
@@ -56,9 +62,9 @@ export class CcrStore {
     private readonly recorder?: RetrievalRecorder,
     options: CcrStoreOptions = {},
   ) {
-    this.maxEntries = Math.max(1, options.maxEntries ?? 1000);
-    this.maxStoredBytes = Math.max(1, options.maxStoredBytes ?? 64 * 1024 * 1024);
-    this.ttlMs = Math.max(1, options.ttlMs ?? 30 * 60 * 1000);
+    this.maxEntries = positiveFinite(options.maxEntries, 1000);
+    this.maxStoredBytes = positiveFinite(options.maxStoredBytes, 64 * 1024 * 1024);
+    this.ttlMs = positiveFinite(options.ttlMs, 30 * 60 * 1000);
     this.now = options.now ?? Date.now;
   }
 

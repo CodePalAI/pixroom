@@ -52,6 +52,23 @@ describe('CcrStore', () => {
     expect(store.bytes).toBe(0);
   });
 
+  it('falls back to finite CCR bounds when overrides are non-finite', () => {
+    let now = 0;
+    const store = new CcrStore(undefined, undefined, {
+      maxEntries: Number.NaN,
+      maxStoredBytes: Number.NaN,
+      ttlMs: Number.NaN,
+      now: () => now,
+    });
+    for (let index = 0; index < 1_100; index += 1) {
+      store.registerHashes([`hash-${index}`]);
+    }
+
+    expect(store.size).toBe(1_000);
+    now = 30 * 60 * 1000 + 1;
+    expect(store.size).toBe(0);
+  });
+
   it('rejects a transformed request when its reversible batch cannot fit', async () => {
     const integration: ProcessorIntegration = {
       id: 'test.oversized-reversible',

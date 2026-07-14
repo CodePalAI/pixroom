@@ -63,7 +63,7 @@ Recommended tools: VHS for deterministic terminal capture, or Screen Studio/Quic
 - [ ] Pin [Discussion #2](https://github.com/CodePalAI/pinpoint/discussions/2) in the web UI; GitHub exposes no pin-discussion API mutation.
 - [ ] Create 5-10 scoped `good first issue` items before launch. Prefer protocol fixtures, docs, adapters, and adversarial cases over architecture rewrites.
 - [ ] Confirm bug, optimizer, and benchmark-replication issue forms work while logged out of the maintainer account.
-- [ ] Add a Code of Conduct only if CodePal is prepared to enforce it and names a private reporting channel.
+- [x] Add a Code of Conduct with CodePal enforcement and a private reporting channel. Verified 2026-07-14.
 
 ## Gate 5: real-world proof
 

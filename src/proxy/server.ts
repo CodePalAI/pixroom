@@ -1012,9 +1012,11 @@ export function createProxyServer(
 
   let listenPromise: Promise<{ host: string; port: number }> | undefined;
   let shutdownPromise: Promise<void> | undefined;
+  let disposePromise: Promise<void> | undefined;
+  let closeRequested = false;
 
-  const shutdown = (): Promise<void> => {
-    shutdownPromise ??= (async () => {
+  const dispose = (): Promise<void> => {
+    disposePromise ??= (async () => {
       if (server.listening) {
         const closePromise = new Promise<void>((resolve, reject) =>
           server.close((error) => (error ? reject(error) : resolve())),
@@ -1027,14 +1029,31 @@ export function createProxyServer(
       await outputs.flush();
       await pinpoint.shutdown();
     })();
+    return disposePromise;
+  };
+
+  const shutdown = (): Promise<void> => {
+    closeRequested = true;
+    shutdownPromise ??= (async () => {
+      if (listenPromise) {
+        try {
+          await listenPromise;
+        } catch {
+          // Startup failures are surfaced to the listen() caller.
+        }
+      }
+      await dispose();
+    })();
     return shutdownPromise;
   };
 
   return {
     pinpoint,
     listen() {
+      if (closeRequested) return Promise.reject(new Error('proxy is closed'));
       listenPromise ??= (async () => {
         await pinpoint.warmup();
+        if (closeRequested) throw new Error('proxy closed during startup');
         await new Promise<void>((resolve, reject) => {
           const onError = (error: Error): void => {
             server.off('listening', onListening);
@@ -1057,7 +1076,7 @@ export function createProxyServer(
         log.info(`  semantic sidecar: ${pinpoint.sidecar.status} (${pinpoint.sidecar.url})`);
         return { host: config.host, port };
       })().catch(async (error: unknown) => {
-        await shutdown();
+        if (!closeRequested) await dispose();
         throw error;
       });
       return listenPromise;
