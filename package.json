@@ -74,11 +74,13 @@
     }
   },
   "files": [
+    "assets/",
     "bin/",
     "dist/",
     "examples/",
     "!dist/**/*.map",
     "README.md",
+    "llms.txt",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
@@ -86,6 +88,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "assets:readme": "node scripts/render-readme-assets.mjs",
+    "docs:check": "node scripts/check-readme.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc -p tsconfig.json",
     "prepare": "npm run build",
@@ -103,7 +107,7 @@
     "bench:anthropic:preflight": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase preflight",
     "bench:anthropic:canary": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase canary",
     "bench:anthropic": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase benchmark",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run assets:readme && npm run typecheck && npm test && npm run build"
   },
   "publishConfig": {
     "access": "public",

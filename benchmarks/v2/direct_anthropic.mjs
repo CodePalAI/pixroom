@@ -32,6 +32,7 @@ const MAX_REQUESTS = readInteger(
 const MAX_OUTPUT_TOKENS = readInteger('BENCH_MAX_OUTPUT_TOKENS', 32);
 const TIMEOUT_MS = readInteger('BENCH_TIMEOUT_MS', 90_000);
 const ALLOW_PAID = process.env.BENCH_ALLOW_PAID === '1';
+const ARTIFACT_LABEL = artifactLabel(process.env.BENCH_ARTIFACT_LABEL);
 
 const PRICE_TABLE = [
   { pattern: /claude-haiku-4-5/, input: 1, output: 5 },
@@ -58,6 +59,21 @@ function readInteger(name, fallback) {
   const parsed = readNumber(name, fallback);
   if (!Number.isInteger(parsed)) throw new Error(`${name} must be an integer`);
   return parsed;
+}
+
+function artifactLabel(value) {
+  if (value == null || value.trim() === '') return '';
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{0,79}$/.test(normalized)) {
+    throw new Error(
+      'BENCH_ARTIFACT_LABEL must be 1-80 lowercase letters, numbers, dots, underscores, or hyphens',
+    );
+  }
+  return normalized;
+}
+
+function artifactName(base) {
+  return ARTIFACT_LABEL ? base.replace(/\.json$/, `.${ARTIFACT_LABEL}.json`) : base;
 }
 
 function sanitize(value, key = '') {
@@ -609,7 +625,7 @@ async function runCanary({ model, key, pricing }) {
     result: { ...result, correct, text: result.text.slice(0, 100) },
     budget: budget.snapshot(),
   };
-  const path = writeArtifact('direct-anthropic-canary.json', artifact, key);
+  const path = writeArtifact(artifactName('direct-anthropic-canary.json'), artifact, key);
   console.log(
     `canary: correct=${correct} input=${result.usage.input} output=${result.usage.output} ` +
       `cost=$${result.costUSD.toFixed(6)} latency=${result.latencyMs.toFixed(0)}ms`,
@@ -646,9 +662,11 @@ async function runBenchmark({ model, key, pricing }) {
       tasks: preflight.map(publicPreflight),
     };
     const preflightPath = writeArtifact(
-      VIRTUAL_CONTEXT
-        ? 'direct-anthropic-virtual-preflight.json'
-        : 'direct-anthropic-preflight.json',
+      artifactName(
+        VIRTUAL_CONTEXT
+          ? 'direct-anthropic-virtual-preflight.json'
+          : 'direct-anthropic-preflight.json',
+      ),
       preflightArtifact,
       key,
     );
@@ -756,7 +774,7 @@ async function runBenchmark({ model, key, pricing }) {
       runs,
     };
     const path = writeArtifact(
-      VIRTUAL_CONTEXT ? 'direct-anthropic-virtual.json' : 'direct-anthropic.json',
+      artifactName(VIRTUAL_CONTEXT ? 'direct-anthropic-virtual.json' : 'direct-anthropic.json'),
       artifact,
       key,
     );
@@ -796,6 +814,9 @@ function runSelfTest() {
   const tasks = buildTasks('claude-haiku-4-5');
   if (tasks.length !== 3 || tasks.some((task) => !task.expected || !Array.isArray(task.body.messages))) {
     throw new Error('self-test: controlled task construction failed');
+  }
+  if (artifactName('receipt.json') !== (ARTIFACT_LABEL ? `receipt.${ARTIFACT_LABEL}.json` : 'receipt.json')) {
+    throw new Error('self-test: artifact label mismatch');
   }
   console.log('direct Anthropic benchmark self-test: ok (no network calls)');
 }

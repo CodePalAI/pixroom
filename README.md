@@ -1,8 +1,8 @@
 <h1 align="center">Pixroom</h1>
 
-<p align="center"><strong>Your agent asked for one value. Stop sending the other 22,613 tokens.</strong></p>
+<p align="center"><strong>Give the model the answer, not the whole tool output.</strong></p>
 
-<p align="center">Pixroom is a local context optimizer for coding agents and LLM apps. It replaces old JSON, logs, and source output with the exact answer needed now, then sends everything else to the same model unchanged.</p>
+<p align="center">Pixroom is a local context-virtualization layer for coding agents and LLM apps. It keeps old JSON, logs, and source output on your machine, materializes the exact slice needed for the current turn, and forwards everything else to the same model unchanged.</p>
 
 <p align="center">An open-source part of the internal LLM optimization system developed at <a href="https://codepal.ai"><strong>CodePal</strong></a>.</p>
 
@@ -14,45 +14,43 @@
          <a href="https://codepal.ai"><img alt="Built by CodePal" src="https://img.shields.io/badge/built%20by-CodePal-2563eb.svg"></a>
 </p>
 
+<!-- LAUNCH(npm): After `npm view pixroom version` succeeds, add the npm version/download badges here. -->
+
 <p align="center">
-       <a href="#start-in-30-seconds">Start</a> ·
+       <a href="#try-the-exact-path-offline">Start</a> ·
        <a href="#use-it-with-your-agent-or-app">Use it</a> ·
   <a href="#proof">Proof</a> ·
   <a href="#how-it-works">How it works</a> ·
        <a href="#safety-and-privacy">Safety</a> ·
        <a href="./benchmarks/REPORT.md">Benchmarks</a> ·
+       <a href="./llms.txt">LLM index</a> ·
        <a href="https://codepal.ai">CodePal.ai</a>
 </p>
 
+<!-- LAUNCH(community): After enabling GitHub Discussions, add `Community` to the nav and Community section. -->
+
 <p align="center"><sub>Local by default | No Pixroom account | Works with your existing provider credentials</sub></p>
 
----
+<p align="center">
+       <a href="./benchmarks/results/direct-anthropic-virtual.json">
+              <img src="./assets/qcv-paid-pilot.svg" alt="Paid Haiku 4.5 pilot: provider input fell from 22,614 to 594 tokens across two synthetic structured-context tasks; exact score changed from 1/2 to 2/2" width="920">
+       </a>
+</p>
 
-## 22,614 tokens in. 594 tokens out. Exact answer intact.
+<p align="center"><sub>Small controlled pilot: two synthetic structured-context tasks, one run per task. Provider-reported usage, raw responses, costs, and the failed baseline answer are in the linked receipt.</sub></p>
 
-LLM agents routinely resend thousands of lines of old JSON, logs, source code, and tool output on every turn. The model may need one row. It gets billed for the whole pile.
+<!-- LAUNCH(demo-video): Put a 15-25 second terminal recording here after independent replication. Keep the generated receipt card above as the static fallback. -->
 
-Pixroom sits between your app and the provider. The full data stays in bounded local memory; supported lookups and counts are computed exactly on your machine. You keep the same model, SDK, and response format.
+## Try the exact path offline
 
-In controlled paid Haiku 4.5 pilots, measured against sending the same requests directly to the LLM:
-
-| Workload | Raw LLM input | With Pixroom | Input saved | Exact score |
-|---|---:|---:|---:|---:|
-| Mixed long-context tasks (3) | 24,249 | 14,478 | **40.3%** | 2/3 -> 2/3 |
-| Structured JSON and log tasks (2) | 22,614 | 594 | **97.4%** | 1/2 -> 2/2 |
-
-Estimated cost, calculated from provider-reported tokens and published prices, fell 40.1% and 97.1%, respectively. These were small controlled pilots with synthetic fixtures, one model, and one run per task. They show what Pixroom did when requests contained large old tool output. Short prompts and ordinary chat may not change at all.
-
-## Start in 30 seconds
-
-You need Node.js 18 or newer. Install the current release from npm:
+You need Node.js 18 or newer and Git. Until the first npm release is live, install from GitHub:
 
 ```bash
-npm install -g pixroom
+npm install -g git+https://github.com/CodePalAI/pixroom.git
 pixroom demo
 ```
 
-The demo runs the real exact-data path without an API key, model call, or network request. The output calls this path QCV, Pixroom's internal name for storing old tool data locally and sending only the exact answer needed now.
+The demo runs the production exact-data path against 1,000 JSON rows. It needs no API key, model call, or network request:
 
 ```console
 $ pixroom demo
@@ -66,6 +64,8 @@ model-driven fallback: not needed
 network requests: 0
 ```
 
+<!-- LAUNCH(npm): Replace the GitHub install above with `npx pixroom demo` after publishing and verifying pixroom@0.1.0 from a clean machine. -->
+
 <details>
 <summary><strong>Installing from a cloned checkout</strong></summary>
 
@@ -77,6 +77,32 @@ pixroom demo
 ```
 
 </details>
+
+## Why not summarize it?
+
+Summaries are useful when the model needs the gist. They are a bad primitive for exact IDs, counts, paths, and rows.
+
+| Approach | What reaches the provider | Exact structured data | Best fit |
+|---|---|---:|---|
+| Send raw history | The entire old tool result | Yes | Small or recent context |
+| Summarize or compress | A reduced approximation | Depends on the compressor | Prose and gist-heavy context |
+| **Pixroom exact path** | A stable dataset reference plus the exact requested slice | **Yes, for supported operations** | Large old JSON, logs, and source output |
+
+If a question is ambiguous, unsupported, or unsafe to answer locally, Pixroom leaves the original result alone. Optional compression integrations can handle other request regions without touching the bytes owned by the exact path.
+
+## 22,614 tokens in. 594 tokens out.
+
+LLM agents routinely resend thousands of lines of old JSON, logs, source code, and tool output on every turn. The model may need one row. It gets billed for the whole pile.
+
+Pixroom sits between your app and the provider. The full data stays in bounded local memory; supported lookups and counts are computed exactly on your machine. You keep the same model, SDK, and response format.
+
+In a controlled paid Haiku 4.5 pilot, measured against sending the same requests directly to the model:
+
+| Workload | Direct input | Pixroom input | Input saved | Exact score |
+|---|---:|---:|---:|---:|
+| 2 structured JSON/log tasks | 22,614 | 594 | **97.4%** | 1/2 -> 2/2 |
+
+Modeled cost, calculated from provider-reported tokens and published prices, fell 97.1%. This was a small controlled pilot with synthetic fixtures, one model, and one run per task. It shows what Pixroom did when requests contained large old tool output. Short prompts and ordinary chat may not change at all.
 
 ## Use it with your agent or app
 
@@ -98,8 +124,10 @@ pixroom demo
 Install Pixroom in your app, alongside the provider SDK you already use:
 
 ```bash
-npm install pixroom
+npm install git+https://github.com/CodePalAI/pixroom.git
 ```
+
+<!-- LAUNCH(npm): Replace the SDK command above with `npm install pixroom` after registry verification. -->
 
 Wrap an Anthropic client:
 
@@ -176,10 +204,10 @@ By default, the exact-data path considers older tool results between 6,000 and 2
 
 | What the request contains | What the exact-data path does |
 |---|---|
-| JSON plus a clear field/value lookup, such as “email for id 73” | Stores the full JSON locally and sends the one exact matching value |
-| JSON plus a filtered count, such as “how many records have active is true?” | Counts matching records locally and sends the exact number |
-| Logs plus a level count, such as “how many ERROR lines?” | Counts matching log lines locally and sends the exact number |
-| Source code plus “which classes are exported?” | Finds and sends the exact `export class` lines |
+| JSON plus a clear field/value lookup, such as "email for id 73" | Stores the full JSON locally and sends the one exact matching value |
+| JSON plus a filtered count, such as "how many records have active is true?" | Counts matching records locally and sends the exact number |
+| Logs plus a level count, such as "how many ERROR lines?" | Counts matching log lines locally and sends the exact number |
+| Source code plus "which classes are exported?" | Finds and sends the exact `export class` lines |
 | A range, negation, repeated selector, multiple matching datasets, or unclear question | Leaves the original tool result unchanged |
 | A short prompt, normal chat, recent turn, image, or unsupported content | Leaves it unchanged; another installed compression module may still handle a different part of the request |
 | Subscription or OAuth traffic | Keeps the exact-data path off; other safe configured compression may still run |
@@ -320,6 +348,8 @@ On the log task, the raw model answered `5` for a fixture containing seven error
 A separate three-task pilot tested the optional general compression path. Input fell from 24,249 to 14,478 tokens with the same 2/3 exact score. That result validates the integration path rather than Pixroom's exact-context algorithm.
 
 These are small pilots with synthetic fixtures, one model, and one randomized pair per task. They do not establish universal model-quality parity.
+
+Run the offline checks or repeat the paid pilot from a clean machine using the [benchmark reproduction guide](./benchmarks/REPRODUCING.md). Labeled replication runs write separate raw receipts instead of replacing the headline artifact.
 
 ### Broader offline token accounting
 

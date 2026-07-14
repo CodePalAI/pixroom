@@ -1,0 +1,64 @@
+name: Benchmark replication
+description: Submit an independent Pixroom benchmark run with raw receipts and environment metadata.
+title: "replication: "
+labels: [benchmark, replication]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow `benchmarks/REPRODUCING.md`. Keep failed runs, remove credentials and private data, and attach labeled JSON receipts rather than screenshots alone.
+  - type: input
+    id: commit
+    attributes:
+      label: Pixroom commit
+      description: Full Git SHA used for the run.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Exact model ID
+      placeholder: claude-haiku-4-5-20251001
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operator or organization, date, OS, CPU, Node version, Python version, Headroom version, and region if known.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands and configuration
+      description: Include seeds, task filters, caps, repetitions, and all relevant BENCH_* and PIXROOM_* variables. Remove secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Result summary
+      description: Report every task, arm, exact score, provider input/output tokens, cost basis, failures, retries, and exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: receipts
+    attributes:
+      label: Raw receipts
+      description: Drag in the labeled preflight, canary, and benchmark JSON files or link a pull request that adds them.
+    validations:
+      required: true
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Integrity checks
+      options:
+        - label: I kept successful and failed runs and did not select only favorable seeds.
+          required: true
+        - label: I removed API keys, personal data, proprietary prompts, and real user content.
+          required: true
+        - label: I labeled offline estimates separately from provider-reported usage and live correctness.
+          required: true
+        - label: I disclosed any relationship with CodePal or the Pixroom maintainers.
+          required: true

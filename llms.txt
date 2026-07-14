@@ -1,0 +1,35 @@
+# Pixroom
+
+> Pixroom is CodePal's open-source local context-virtualization layer for coding agents and LLM applications. It keeps large old tool results locally, materializes supported exact lookups and counts for the current turn, and forwards the remaining Anthropic or OpenAI request to the same provider.
+
+## Start here
+
+- [README](https://github.com/CodePalAI/pixroom/blob/main/README.md): product overview, offline demo, supported operations, SDK and proxy examples, proof, privacy, and limitations
+- [Benchmark report](https://github.com/CodePalAI/pixroom/blob/main/benchmarks/REPORT.md): generated evidence split by simulation, offline transform, live controlled, and live agent levels
+- [Reproducing benchmarks](https://github.com/CodePalAI/pixroom/blob/main/benchmarks/REPRODUCING.md): no-key checks and capped paid replication workflow
+- [QCV design](https://github.com/CodePalAI/pixroom/blob/main/planning/query_backed_context.md): exact-operation boundaries, threat model, rejected design, and prior art
+- [Product assessment](https://github.com/CodePalAI/pixroom/blob/main/planning/product_assessment.md): evidence limits, competitive position, validation gates, and kill criteria
+
+## Use Pixroom
+
+- [CLI entrypoint](https://github.com/CodePalAI/pixroom/blob/main/src/cli/main.ts): `demo`, `proxy`, `wrap`, `doctor`, `stats`, `replay`, `integration`, `agent`, and `mcp`
+- [Anthropic SDK wrapper](https://github.com/CodePalAI/pixroom/blob/main/src/sdk/anthropic.ts): wrap the official Anthropic TypeScript client
+- [OpenAI SDK wrapper](https://github.com/CodePalAI/pixroom/blob/main/src/sdk/openai.ts): wrap Chat Completions and Responses clients
+- [Integration examples](https://github.com/CodePalAI/pixroom/tree/main/examples/integrations): public integration API examples with built-ins disabled
+- [Configuration](https://github.com/CodePalAI/pixroom/blob/main/src/config.ts): typed runtime settings and environment variables
+
+## Trust and contribution
+
+- [Raw paid QCV receipt](https://github.com/CodePalAI/pixroom/blob/main/benchmarks/results/direct-anthropic-virtual.json): two-task Haiku 4.5 pilot with usage, outputs, costs, order, and limitations
+- [Security policy](https://github.com/CodePalAI/pixroom/blob/main/SECURITY.md): private reporting and deployment boundaries
+- [Contributing](https://github.com/CodePalAI/pixroom/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
+- [Upstream attribution](https://github.com/CodePalAI/pixroom/blob/main/UPSTREAM.md): pinned pxpipe and Headroom contracts
+- [Changelog](https://github.com/CodePalAI/pixroom/blob/main/CHANGELOG.md): release history
+
+## Important boundaries
+
+- Exact QCV is for supported operations over older JSON, logs, and source tool output. Ambiguous or unsupported requests pass through.
+- The model-planned fallback is experimental and disabled by default.
+- OAuth and subscription traffic uses a safer mode where exact QCV is off.
+- "Local" describes optimization and temporary dataset storage. Normal model requests still go to the provider selected by the user.
+- The 97.4% input reduction is a two-task, one-run-per-task controlled pilot, not a universal savings claim.
