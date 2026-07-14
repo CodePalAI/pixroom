@@ -10,7 +10,7 @@ unmodified, pinned dependencies:
 --------------------------------------------------------------------------------
 pxpipe (npm: pxpipe-proxy)
   Optical / pixel context compression.
-  Copyright (c) teamchong and pxpipe contributors.
+  Copyright (c) 2026 claude-image-proxy contributors.
   Licensed under the MIT License.
   https://github.com/teamchong/pxpipe
 

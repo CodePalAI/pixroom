@@ -45,9 +45,9 @@ Recommended tools: VHS for deterministic terminal capture, or Screen Studio/Quic
 - [ ] Confirm Apache-2.0 ownership, `NOTICE`, upstream attribution, and the security contact with counsel or the responsible owner.
 - [x] Add `NPM_TOKEN` to the `release` environment for the bootstrap publication. Verified 2026-07-14.
 - [ ] Publish GitHub Release `v0.1.0`; verify the release workflow publishes `@codepal/pinpoint@0.1.0` with provenance.
-- [ ] On a clean Node 18, 20, and 22 environment, run `npx @codepal/pinpoint@0.1.0 demo`, import every public subpath, and test `pinpoint --help`.
+- [ ] On clean Node 22 and 24 environments across Linux, macOS, and Windows, run `npx @codepal/pinpoint@0.1.0 demo`, import every public subpath, and test `pinpoint --help`.
 - [ ] Confirm `npm view @codepal/pinpoint version repository.url dist.integrity` points to this repository.
-- [ ] After the registry confirms `@codepal/pinpoint@0.1.0`, replace all `LAUNCH(npm)` comments and switch install commands to `npx @codepal/pinpoint demo`, `npm install -g @codepal/pinpoint`, and `npm install @codepal/pinpoint`.
+- [ ] After the registry confirms `@codepal/pinpoint@0.1.0`, verify the prepared `npx @codepal/pinpoint demo`, `npm install -g @codepal/pinpoint`, and `npm install @codepal/pinpoint` commands from clean environments.
 - [ ] Add npm version and weekly-download badges only after the registry data exists.
 - [ ] Create a signed `v0.1.0` tag and attach the npm tarball SHA-512/integrity value to the release notes.
 

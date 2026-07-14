@@ -14,8 +14,6 @@
          <a href="https://codepal.ai"><img alt="Built by CodePal" src="https://img.shields.io/badge/built%20by-CodePal-2563eb.svg"></a>
 </p>
 
-<!-- LAUNCH(npm): After `npm view @codepal/pinpoint version` succeeds, add npm version/download badges here. -->
-
 <p align="center">
        <a href="#try-the-exact-path-offline">Start</a> ·
        <a href="#use-it-with-your-agent-or-app">Use it</a> ·
@@ -42,16 +40,18 @@
 
 ## Try the exact path offline
 
-You need Node.js 22 or newer and Git. Until the first npm release is live, use a cloned checkout:
+You need Node.js 22 or newer. Run the exact-data demo directly from npm:
 
 ```bash
-git clone https://github.com/CodePalAI/pinpoint.git
-cd pinpoint
-npm install && npm link
-pinpoint demo
+npx @codepal/pinpoint demo
 ```
 
-<!-- LAUNCH(npm): Replace the checkout flow above with `npx @codepal/pinpoint demo` after verifying @codepal/pinpoint@0.1.0 from a clean machine. -->
+Or install the CLI globally:
+
+```bash
+npm install -g @codepal/pinpoint
+pinpoint demo
+```
 
 The demo runs the production exact-data path against 1,000 JSON rows. It needs no API key, model call, or network request:
 
@@ -123,15 +123,11 @@ Modeled cost, calculated from provider-reported tokens and published prices, fel
 
 ### TypeScript SDK
 
-Until Pinpoint is on npm, build a cloned checkout and install that local directory in your app:
+Install Pinpoint in your app, alongside the provider SDK you already use:
 
 ```bash
-git clone https://github.com/CodePalAI/pinpoint.git
-cd pinpoint && npm install && npm run build
-cd /path/to/your-app && npm install /path/to/pinpoint
+npm install @codepal/pinpoint
 ```
-
-<!-- LAUNCH(npm): Replace the checkout flow above with `npm install @codepal/pinpoint` after registry verification. -->
 
 Pinpoint is ESM-only. TypeScript projects should use `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`; JavaScript projects should set `"type": "module"` or use `.mjs` files.
 

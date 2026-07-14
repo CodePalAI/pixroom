@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative as relativePath, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,13 +64,18 @@ for (const target of localTargets(readme)) {
   const [relative] = decodeURIComponent(target).split('#');
   if (!relative) continue;
   const absolute = resolve(dirname(readmePath), relative);
-  if (!absolute.startsWith(`${root}/`) && absolute !== root) {
+  const relativeToRoot = relativePath(root, absolute);
+  if (
+    relativeToRoot === '..' ||
+    relativeToRoot.startsWith(`..${sep}`) ||
+    isAbsolute(relativeToRoot)
+  ) {
     fail(`README local target escapes the repository: ${target}`);
   } else if (!existsSync(absolute)) {
     fail(`README local target does not exist: ${target}`);
   } else {
-    const relativePath = absolute.slice(root.length + 1);
-    if (relativePath && !isPackaged(relativePath)) {
+    const packagePath = relativeToRoot.split(sep).join('/');
+    if (packagePath && !isPackaged(packagePath)) {
       fail(`README local target is omitted from package.json files: ${target}`);
     }
   }

@@ -30,6 +30,7 @@ All notable changes are documented here. This project follows semantic versionin
 ### Changed
 
 - Renamed the product, CLI, SDK, environment variables, npm package, and repository to Pinpoint.
+- The minimum supported Node.js version is now 22.
 - Optical model allowlists are now runtime-local, with a reviewed Fable-5-only default.
 - Output integrations now receive events in order and are flushed during proxy shutdown.
 - Safe exact QCV now defaults on. `PINPOINT_VIRTUAL_CONTEXT=0` or `--no-qcv` disables it.

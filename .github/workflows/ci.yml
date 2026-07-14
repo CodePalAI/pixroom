@@ -20,24 +20,54 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [22, 24]
     env:
       PINPOINT_HEADROOM_AUTOSPAWN: "0"
       PINPOINT_LOG: silent
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high
       - run: npm run docs:check
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - if: matrix.node == 22
+      - if: matrix.node == 24
         run: npm run bench:anthropic:self-test
-      - if: matrix.node == 22
+      - if: matrix.node == 24
         run: npm run bench:qcv-quality
       - run: node bin/cli.js --help
+      - run: node bin/cli.js demo
+      - run: npm pack --dry-run
+
+  platform-smoke:
+    name: ${{ matrix.os }} smoke
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    env:
+      PINPOINT_HEADROOM_AUTOSPAWN: "0"
+      PINPOINT_LOG: silent
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run docs:check
+      - run: npm run typecheck
+      - run: npm run build
+      - run: node bin/cli.js --help
+      - run: node bin/cli.js demo
       - run: npm pack --dry-run
