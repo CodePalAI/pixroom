@@ -1,7 +1,5 @@
 import {
-  applyCompressedToolResults,
   collectToolResultTargets,
-  type ToolResultTarget,
 } from '../anthropic.js';
 import type { VirtualContextConfig } from '../config.js';
 import type { ProcessorIntegration, TransformProposal } from '../kernel/types.js';
@@ -18,7 +16,94 @@ import {
 
 export const VIRTUAL_CONTEXT_INTEGRATION_ID = 'pixroom-virtual-context';
 
-function virtualizable(target: ToolResultTarget, maxChars: number): boolean {
+type VirtualTarget =
+  | {
+      readonly format: 'anthropic';
+      readonly messageIndex: number;
+      readonly blockIndex: number;
+      readonly text: string;
+    }
+  | {
+      readonly format: 'openai-chat';
+      readonly messageIndex: number;
+      readonly text: string;
+    }
+  | {
+      readonly format: 'openai-responses';
+      readonly itemIndex: number;
+      readonly text: string;
+    };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function collectVirtualTargets(
+  ctx: Readonly<RequestContext>,
+  options: { readonly protectRecent: number; readonly minChars: number },
+): VirtualTarget[] {
+  if (ctx.provider === 'anthropic') {
+    return collectToolResultTargets(ctx.body, options).map((target) => ({
+      format: 'anthropic',
+      messageIndex: target.messageIndex,
+      blockIndex: target.blockIndex,
+      text: target.text,
+    }));
+  }
+
+  if (Array.isArray(ctx.body.input)) {
+    const cutoff = Math.max(0, ctx.body.input.length - Math.max(0, options.protectRecent));
+    const targets: VirtualTarget[] = [];
+    for (let itemIndex = 0; itemIndex < cutoff; itemIndex += 1) {
+      const item = ctx.body.input[itemIndex];
+      if (!isRecord(item) || item.type !== 'function_call_output') continue;
+      if (typeof item.output !== 'string' || item.output.length < options.minChars) continue;
+      targets.push({ format: 'openai-responses', itemIndex, text: item.output });
+    }
+    return targets;
+  }
+
+  const messages = Array.isArray(ctx.body.messages) ? ctx.body.messages : [];
+  const cutoff = Math.max(0, messages.length - Math.max(0, options.protectRecent));
+  const targets: VirtualTarget[] = [];
+  for (let messageIndex = 0; messageIndex < cutoff; messageIndex += 1) {
+    const message = messages[messageIndex];
+    if (!isRecord(message) || message.role !== 'tool') continue;
+    if (typeof message.content !== 'string' || message.content.length < options.minChars) continue;
+    targets.push({ format: 'openai-chat', messageIndex, text: message.content });
+  }
+  return targets;
+}
+
+function replaceVirtualTargets(
+  body: Record<string, unknown>,
+  targets: readonly VirtualTarget[],
+  replacements: readonly string[],
+): void {
+  if (targets.length !== replacements.length) throw new Error('virtual target replacement mismatch');
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const input = Array.isArray(body.input) ? body.input : [];
+  for (let index = 0; index < targets.length; index += 1) {
+    const target = targets[index]!;
+    const replacement = replacements[index]!;
+    if (target.format === 'openai-responses') {
+      const item = input[target.itemIndex];
+      if (isRecord(item)) item.output = replacement;
+      continue;
+    }
+    const message = messages[target.messageIndex];
+    if (!isRecord(message)) continue;
+    if (target.format === 'openai-chat') {
+      message.content = replacement;
+      continue;
+    }
+    const content = Array.isArray(message.content) ? message.content : [];
+    const block = content[target.blockIndex];
+    if (isRecord(block)) block.content = replacement;
+  }
+}
+
+function virtualizable(target: { readonly text: string }, maxChars: number): boolean {
   if (target.text.length > maxChars) return false;
   const contentType = classifyContent(target.text);
   return contentType === 'json' || contentType === 'log' || contentType === 'code';
@@ -41,6 +126,21 @@ function latestUserText(body: Readonly<Record<string, unknown>>): string {
           !Array.isArray(block) &&
           (block as { type?: unknown }).type === 'text' &&
           typeof (block as { text?: unknown }).text === 'string',
+      )
+      .map((block) => block.text)
+      .join('\n');
+  }
+  if (typeof body.input === 'string') return body.input;
+  const input = Array.isArray(body.input) ? body.input : [];
+  for (let index = input.length - 1; index >= 0; index -= 1) {
+    const item = input[index];
+    if (!isRecord(item) || item.role !== 'user') continue;
+    if (typeof item.content === 'string') return item.content;
+    if (!Array.isArray(item.content)) continue;
+    return item.content
+      .filter(
+        (block): block is { type: 'input_text'; text: string } =>
+          isRecord(block) && block.type === 'input_text' && typeof block.text === 'string',
       )
       .map((block) => block.text)
       .join('\n');
@@ -82,6 +182,22 @@ function appendPrefetches(
       return text;
     }
   }
+  const input = Array.isArray(body.input) ? body.input : [];
+  for (let index = input.length - 1; index >= 0; index -= 1) {
+    const item = input[index];
+    if (!isRecord(item) || item.role !== 'user') continue;
+    if (typeof item.content === 'string') {
+      item.content = [
+        { type: 'input_text', text: item.content },
+        { type: 'input_text', text },
+      ];
+      return text;
+    }
+    if (Array.isArray(item.content)) {
+      item.content.push({ type: 'input_text', text });
+      return text;
+    }
+  }
   return '';
 }
 
@@ -108,14 +224,23 @@ export class VirtualContextIntegration implements ProcessorIntegration {
 
     if (!this.config.enabled) {
       result = passthroughResult('virtual', 'disabled');
-    } else if (ctx.provider !== 'anthropic') {
-      result = passthroughResult('virtual', 'unsupported_model', 'Anthropic Messages only');
+    } else if (ctx.provider !== 'anthropic' && ctx.provider !== 'openai') {
+      result = passthroughResult('virtual', 'unsupported_model', 'unsupported provider');
     } else if (ctx.authMode !== 'payg') {
       result = passthroughResult('virtual', 'stealth', `${ctx.authMode} traffic is passthrough`);
-    } else if (ctx.body.stream === true) {
-      result = passthroughResult('virtual', 'degraded', 'streaming continuation not implemented');
+    } else if (
+      ctx.provider === 'anthropic' &&
+      ctx.body.stream === true &&
+      this.config.queryFallback
+    ) {
+      result = passthroughResult(
+        'virtual',
+        'degraded',
+        'model-driven query fallback is unavailable on streaming requests',
+      );
     } else {
-      const candidates = collectToolResultTargets(ctx.body, {
+      const queryFallback = ctx.provider === 'anthropic' && this.config.queryFallback;
+      const candidates = collectVirtualTargets(ctx, {
         protectRecent: this.config.protectRecent,
         minChars: this.config.minChars,
       }).filter((target) =>
@@ -127,7 +252,7 @@ export class VirtualContextIntegration implements ProcessorIntegration {
         return { target, ...inspection };
       });
       const exact = planned.filter(({ prefetch }) => prefetch !== undefined);
-      const proposed = this.config.queryFallback
+      const proposed = queryFallback
         ? planned
         : exact.length === 1
           ? exact
@@ -164,9 +289,9 @@ export class VirtualContextIntegration implements ProcessorIntegration {
       } else {
         const body = structuredClone(ctx.body);
         const manifests = selected.map(({ descriptor }) =>
-          this.store.manifest(descriptor, this.config.queryFallback),
+          this.store.manifest(descriptor, queryFallback),
         );
-        applyCompressedToolResults(
+        replaceVirtualTargets(
           body,
           selected.map(({ target }) => target),
           manifests,
@@ -177,7 +302,7 @@ export class VirtualContextIntegration implements ProcessorIntegration {
             prefetch ? [{ descriptor, prefetch }] : [],
           ),
         );
-        const queryToolNeeded = this.config.queryFallback;
+        const queryToolNeeded = queryFallback;
         const tokensBefore = selected.reduce(
           (total, { target }) => total + estimateTokens(target.text),
           0,
@@ -216,7 +341,8 @@ export class VirtualContextIntegration implements ProcessorIntegration {
       patch: {
         replaceBody,
         appendStages: [result],
-        virtualQueryToolNeeded: result.applied && this.config.queryFallback,
+        virtualQueryToolNeeded:
+          result.applied && ctx.provider === 'anthropic' && this.config.queryFallback,
         virtualContextIds,
       },
     };
@@ -229,7 +355,7 @@ export class VirtualContextIntegration implements ProcessorIntegration {
   ): void {
     if (candidate.virtualContextIds.length === 0) return;
     const allowedIds = new Set(candidate.virtualContextIds);
-    const targets = collectToolResultTargets(original.body, {
+    const targets = collectVirtualTargets(original, {
       protectRecent: this.config.protectRecent,
       minChars: this.config.minChars,
     })

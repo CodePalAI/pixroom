@@ -64,6 +64,25 @@ export interface CcrConfig {
   readonly injectRetrieveTool: boolean;
 }
 
+export interface CaptureConfig {
+  /** JSONL destination. Empty disables capture. */
+  readonly path: string;
+  /** Include original/transformed request bodies. Required for replay; explicit due sensitivity. */
+  readonly includeBodies: boolean;
+  /** Flush every record to durable storage before returning. */
+  readonly fsync: boolean;
+}
+
+export interface TelemetryConfig {
+  /** OTLP/HTTP traces endpoint. Empty disables export. */
+  readonly endpoint: string;
+  /** Additional collector headers, commonly used for authentication. */
+  readonly headers: Readonly<Record<string, string>>;
+  readonly serviceName: string;
+  readonly timeoutMs: number;
+  readonly maxQueue: number;
+}
+
 export interface VirtualContextConfig {
   /** Replace safely answerable structured tool results with exact local manifests. */
   readonly enabled: boolean;
@@ -114,6 +133,8 @@ export interface PixroomConfig {
   readonly semantic: SemanticConfig;
   readonly virtualContext: VirtualContextConfig;
   readonly ccr: CcrConfig;
+  readonly capture: CaptureConfig;
+  readonly telemetry: TelemetryConfig;
   readonly adaptive: AdaptiveConfig;
   readonly logLevel: LogLevel;
 }
@@ -128,6 +149,8 @@ export interface PixroomConfigOverrides {
   semantic?: Partial<SemanticConfig>;
   virtualContext?: Partial<VirtualContextConfig>;
   ccr?: Partial<CcrConfig>;
+  capture?: Partial<CaptureConfig>;
+  telemetry?: Partial<TelemetryConfig>;
   adaptive?: Partial<AdaptiveConfig>;
   logLevel?: LogLevel;
 }
@@ -154,6 +177,26 @@ function envInt(name: string, fallback: number): number {
 function envStr(name: string, fallback: string): string {
   const raw = process.env[name];
   return raw == null || raw === '' ? fallback : raw;
+}
+
+function envHeaders(name: string, fallbackName: string): Readonly<Record<string, string>> {
+  const raw = process.env[name] ?? process.env[fallbackName] ?? '';
+  const headers: Record<string, string> = {};
+  for (const item of raw.split(',')) {
+    const separator = item.indexOf('=');
+    if (separator <= 0) continue;
+    const key = item.slice(0, separator).trim();
+    const value = item.slice(separator + 1).trim();
+    if (key) headers[key] = value;
+  }
+  return headers;
+}
+
+function resolveOtlpEndpoint(): string {
+  const direct = process.env.PIXROOM_OTLP_ENDPOINT ?? process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+  if (direct?.trim()) return direct.trim();
+  const base = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  return base ? `${base.replace(/\/+$/, '')}/v1/traces` : '';
 }
 
 /**
@@ -235,6 +278,18 @@ export function loadConfig(overrides: PixroomConfigOverrides = {}): PixroomConfi
     ccr: {
       injectRetrieveTool: envBool('PIXROOM_CCR_TOOL', true),
     },
+    capture: {
+      path: envStr('PIXROOM_CAPTURE_PATH', ''),
+      includeBodies: envBool('PIXROOM_CAPTURE_BODIES', false),
+      fsync: envBool('PIXROOM_CAPTURE_FSYNC', true),
+    },
+    telemetry: {
+      endpoint: resolveOtlpEndpoint(),
+      headers: envHeaders('PIXROOM_OTLP_HEADERS', 'OTEL_EXPORTER_OTLP_HEADERS'),
+      serviceName: envStr('PIXROOM_OTLP_SERVICE_NAME', 'pixroom'),
+      timeoutMs: envInt('PIXROOM_OTLP_TIMEOUT_MS', 2_000),
+      maxQueue: envInt('PIXROOM_OTLP_MAX_QUEUE', 1_024),
+    },
     adaptive: {
       enabled: envBool('PIXROOM_ADAPTIVE', false),
       logOnly: envBool('PIXROOM_ADAPTIVE_LOG', false),
@@ -251,6 +306,8 @@ export function loadConfig(overrides: PixroomConfigOverrides = {}): PixroomConfi
     semantic: { ...base.semantic, ...overrides.semantic },
     virtualContext: { ...base.virtualContext, ...overrides.virtualContext },
     ccr: { ...base.ccr, ...overrides.ccr },
+    capture: { ...base.capture, ...overrides.capture },
+    telemetry: { ...base.telemetry, ...overrides.telemetry },
     adaptive: { ...base.adaptive, ...overrides.adaptive },
   };
 }

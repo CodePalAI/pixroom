@@ -18,6 +18,7 @@ import { runWrap, copilotPreflight } from '../wrap/runner.js';
 import { describeAgents, knownAgents } from '../wrap/agents.js';
 import { formatReport } from '../measurement/savings.js';
 import { loadConfig, type PixroomConfigOverrides } from '../config.js';
+import { replayCaptureFile } from '../capture/replay.js';
 import type { RuntimeMode } from '../kernel/types.js';
 
 function version(): string {
@@ -45,6 +46,8 @@ COMMANDS
                    sidecar, or network request.
   export <paths>   Offline: compress the given files and print an honest,
                    per-stage savings report. No upstream calls.
+  replay <jsonl>   Re-run body-enabled capture records through the current
+                   optimizer stack. No provider calls.
   doctor [copilot] Check the toolchain, pxpipe, and the headroom sidecar.
                    'doctor copilot' checks GitHub Copilot readiness.
   stats            Query a running proxy's session savings (GET /stats).
@@ -64,6 +67,8 @@ COMMON ENV
   PIXROOM_OPTICAL / PIXROOM_SEMANTIC on/off master switches
   PIXROOM_VIRTUAL_CONTEXT             exact QCV switch (default on; set 0 to disable)
   PIXROOM_VIRTUAL_QUERY_FALLBACK      model-driven QCV continuation (default off)
+  PIXROOM_CAPTURE_PATH                durable JSONL decision capture (default off)
+  PIXROOM_CAPTURE_BODIES              include sensitive bodies for replay (default off)
   PIXROOM_HEADROOM_URL               headroom sidecar base URL (default http://127.0.0.1:8787)
   PIXROOM_HEADROOM_AUTOSPAWN         auto-start 'headroom proxy' if not reachable (default on)
   PIXROOM_OPTICAL_ON_SUBSCRIPTION    allow lossy optical on oauth/subscription (default off)
@@ -202,6 +207,32 @@ export async function runQcvDemo(): Promise<string> {
 
 async function cmdDemo(): Promise<void> {
   console.log(await runQcvDemo());
+}
+
+export async function runCaptureReplay(
+  path: string,
+  overrides: PixroomConfigOverrides = {},
+): Promise<string> {
+  const summary = await replayCaptureFile(path, overrides);
+  return [
+    'pixroom capture replay (no provider calls)',
+    `records: ${summary.records.toLocaleString()}`,
+    `replayable: ${summary.replayable.toLocaleString()}`,
+    `matched transformed bodies: ${summary.matched.toLocaleString()}`,
+    `changed transformed bodies: ${summary.changed.toLocaleString()}`,
+    `failed: ${summary.failed.toLocaleString()}`,
+    `tokens saved by current stack: ${summary.tokensSaved.toLocaleString()}`,
+    ...(summary.errors.length > 0 ? [`errors:\n${summary.errors.join('\n')}`] : []),
+  ].join('\n');
+}
+
+async function cmdReplay(paths: string[]): Promise<void> {
+  if (paths.length !== 1) {
+    console.error('usage: pixroom replay <capture.jsonl>');
+    process.exitCode = 1;
+    return;
+  }
+  console.log(await runCaptureReplay(paths[0]!));
 }
 
 async function cmdDoctor(rest: string[]): Promise<void> {
@@ -375,6 +406,8 @@ export async function main(argv: string[]): Promise<void> {
       return cmdExport(rest);
     case 'demo':
       return cmdDemo();
+    case 'replay':
+      return cmdReplay(rest);
     case 'doctor':
       return cmdDoctor(rest);
     case 'stats':

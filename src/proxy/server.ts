@@ -155,7 +155,9 @@ export function createProxyServer(
         try {
           if (
             inspection === 'tool-results' &&
-            !Buffer.from(bodyBytes.buffer, bodyBytes.byteOffset, bodyBytes.byteLength).includes('tool_result')
+            !['tool_result', 'function_call_output', '"role":"tool"'].some((marker) =>
+              Buffer.from(bodyBytes.buffer, bodyBytes.byteOffset, bodyBytes.byteLength).includes(marker),
+            )
           ) {
             await forward(
               req,
@@ -506,6 +508,8 @@ export function createProxyServer(
         datasets: pixroom.virtualContext.size,
         bytes: pixroom.virtualContext.bytes,
       },
+      capture: { enabled: pixroom.capture.enabled, ...pixroom.capture.stats() },
+      telemetry: { enabled: pixroom.telemetry.enabled, ...pixroom.telemetry.stats() },
       integrations: pixroom.integrations.list().map((integration) => ({
         id: integration.id,
         version: integration.version,
@@ -521,7 +525,17 @@ export function createProxyServer(
 
   function sendStats(res: http.ServerResponse): void {
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify(pixroom.stats(), null, 2));
+    res.end(
+      JSON.stringify(
+        {
+          ...pixroom.stats(),
+          capture: pixroom.capture.stats(),
+          telemetry: pixroom.telemetry.stats(),
+        },
+        null,
+        2,
+      ),
+    );
   }
 
   return {

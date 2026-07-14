@@ -14,7 +14,7 @@ describe('createRuntime', () => {
       },
     });
 
-    expect(runtime.requestInspection('openai')).toBe('none');
+    expect(runtime.requestInspection('openai')).toBe('tool-results');
     expect(runtime.requestInspection('anthropic')).toBe('tool-results');
     await runtime.shutdown();
   });

@@ -60,6 +60,17 @@ export type {
 export { CcrStore, CCR_TOOL_NAME } from './ccr/store.js';
 export type { CcrRetriever } from './ccr/store.js';
 
+export { CaptureWriter, hashCaptureBody, readCaptureFile, replayCaptureFile } from './capture/index.js';
+export type {
+  CaptureInput,
+  CaptureRecord,
+  CaptureStats,
+  ReplaySummary,
+} from './capture/index.js';
+
+export { OtlpHttpExporter } from './telemetry/index.js';
+export type { OptimizationSpanInput, TelemetryStats } from './telemetry/index.js';
+
 export { OpticalCompressor } from './compressors/optical.js';
 export { SemanticCompressor } from './compressors/semantic.js';
 export {
@@ -92,6 +103,8 @@ export type {
   OpticalConfig,
   SemanticConfig,
   CcrConfig,
+  CaptureConfig,
+  TelemetryConfig,
   VirtualContextConfig,
   AdaptiveConfig,
   LogLevel,

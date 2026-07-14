@@ -560,10 +560,70 @@ describe('virtual-context runtime integration', () => {
     await runtime.shutdown();
   });
 
-  it.each([
-    { name: 'streaming', authMode: 'payg' as const, stream: true, reason: 'degraded' },
-    { name: 'subscription', authMode: 'subscription' as const, stream: false, reason: 'stealth' },
-  ])('passes through $name traffic', async ({ authMode, stream, reason }) => {
+  it('applies deterministic exact prefetch to streaming traffic without injecting fallback', async () => {
+    const runtime = createPixroom({
+      virtualContext: { enabled: true, minChars: 100, protectRecent: 0 },
+      semantic: { enabled: false },
+      optical: { enabled: false },
+      logLevel: 'silent',
+    });
+    const content = JSON.stringify(Array.from({ length: 50 }, (_, id) => ({ id, value: `v-${id}` })));
+    const routed = await runtime.route(
+      'anthropic',
+      'claude-haiku-4-5',
+      {
+        model: 'claude-haiku-4-5',
+        stream: true,
+        messages: [
+          { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu', name: 'read', input: {} }] },
+          { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu', content }] },
+          { role: 'user', content: 'What is value for id 3?' },
+        ],
+      },
+      'payg',
+    );
+
+    expect(routed.virtualized).toBe(true);
+    expect(routed.virtualQueryToolNeeded).toBe(false);
+    expect(JSON.stringify(routed.body)).toContain('v-3');
+    expect(JSON.stringify(routed.body)).not.toContain('"name":"pixroom_query"');
+    await runtime.shutdown();
+  });
+
+  it('passes through streaming traffic when model-driven fallback is enabled', async () => {
+    const runtime = createPixroom({
+      virtualContext: {
+        enabled: true,
+        queryFallback: true,
+        minChars: 100,
+        protectRecent: 0,
+      },
+      semantic: { enabled: false },
+      optical: { enabled: false },
+      logLevel: 'silent',
+    });
+    const content = JSON.stringify(Array.from({ length: 50 }, (_, id) => ({ id, value: `v-${id}` })));
+    const body = {
+      model: 'claude-haiku-4-5',
+      stream: true,
+      messages: [
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu', name: 'read', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu', content }] },
+        { role: 'user', content: 'Analyze unusual values.' },
+      ],
+    };
+
+    const routed = await runtime.route('anthropic', 'claude-haiku-4-5', structuredClone(body), 'payg');
+
+    expect(routed.body).toEqual(body);
+    expect(routed.report.rows.find((row) => row.stage === 'virtual')).toMatchObject({
+      applied: false,
+      reason: 'degraded',
+    });
+    await runtime.shutdown();
+  });
+
+  it('passes through subscription traffic', async () => {
     const runtime = createPixroom({
       virtualContext: { enabled: true, minChars: 100, protectRecent: 0 },
       semantic: { enabled: false },
@@ -573,7 +633,7 @@ describe('virtual-context runtime integration', () => {
     const content = JSON.stringify(Array.from({ length: 50 }, (_, id) => ({ id, value: `v-${id}` })));
     const body = {
       model: 'claude-haiku-4-5',
-      stream,
+      stream: false,
       messages: [
         { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu', name: 'read', input: {} }] },
         { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu', content }] },
@@ -581,12 +641,12 @@ describe('virtual-context runtime integration', () => {
       ],
     };
 
-    const routed = await runtime.route('anthropic', 'claude-haiku-4-5', structuredClone(body), authMode);
+    const routed = await runtime.route('anthropic', 'claude-haiku-4-5', structuredClone(body), 'subscription');
 
     expect(routed.body).toEqual(body);
     expect(routed.report.rows.find((row) => row.stage === 'virtual')).toMatchObject({
       applied: false,
-      reason,
+      reason: 'stealth',
     });
     await runtime.shutdown();
   });

@@ -47,6 +47,14 @@
     "./virtual-context": {
       "types": "./dist/virtual-context/index.d.ts",
       "import": "./dist/virtual-context/index.js"
+    },
+    "./capture": {
+      "types": "./dist/capture/index.d.ts",
+      "import": "./dist/capture/index.js"
+    },
+    "./telemetry": {
+      "types": "./dist/telemetry/index.d.ts",
+      "import": "./dist/telemetry/index.js"
     }
   },
   "files": [

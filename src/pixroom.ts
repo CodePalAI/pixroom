@@ -6,6 +6,8 @@
  */
 
 import { loadConfig, type PixroomConfig, type PixroomConfigOverrides } from './config.js';
+import { CaptureWriter } from './capture/store.js';
+import { OtlpHttpExporter } from './telemetry/otlp.js';
 import { createLogger, type Logger } from './logger.js';
 import { CcrStore } from './ccr/store.js';
 import { OpticalCompressor } from './compressors/optical.js';
@@ -45,6 +47,10 @@ export interface Pixroom {
   readonly log: Logger;
   readonly router: ContentRouter;
   readonly ccr: CcrStore;
+  /** Durable request-decision capture, disabled unless a path is configured. */
+  readonly capture: CaptureWriter;
+  /** Content-free OTLP/HTTP optimization spans, disabled unless configured. */
+  readonly telemetry: OtlpHttpExporter;
   readonly sidecar: HeadroomSidecar;
   /** Exact local datasets offloaded by the virtual-context integration. */
   readonly virtualContext: VirtualContextStore;
@@ -87,6 +93,12 @@ export interface RuntimeOptions {
 export function createRuntime(options: RuntimeOptions = {}): Pixroom {
   const config = loadConfig(options.config);
   const log = createLogger(config.logLevel);
+  const capture = new CaptureWriter(config.capture, (error) =>
+    log.warn(`capture degraded: ${error instanceof Error ? error.message : String(error)}`),
+  );
+  const telemetry = new OtlpHttpExporter(config.telemetry, (error) =>
+    log.warn(`telemetry degraded: ${error instanceof Error ? error.message : String(error)}`),
+  );
 
   const sidecar = new HeadroomSidecar(config.semantic, log.child('sidecar'));
   const semantic = new SemanticCompressor(config.semantic, sidecar, log.child('semantic'));
@@ -132,7 +144,7 @@ export function createRuntime(options: RuntimeOptions = {}): Pixroom {
   const hasCustomIntegrations = (options.integrations?.length ?? 0) > 0;
   function requestInspection(provider: Provider): 'none' | 'tool-results' | 'full' {
     if (hasCustomIntegrations || config.semantic.enabled || config.optical.enabled) return 'full';
-    if (provider === 'anthropic' && config.virtualContext.enabled) return 'tool-results';
+    if (config.virtualContext.enabled) return 'tool-results';
     return 'none';
   }
 
@@ -188,6 +200,8 @@ export function createRuntime(options: RuntimeOptions = {}): Pixroom {
     log,
     router,
     ccr,
+    capture,
+    telemetry,
     sidecar,
     virtualContext,
     integrations,
@@ -195,8 +209,36 @@ export function createRuntime(options: RuntimeOptions = {}): Pixroom {
     requestInspection,
     policy,
     async route(provider, model, body, authMode, validate) {
+      const startedAtUnixMs = Date.now();
+      const started = performance.now();
+      const resolvedAuthMode = authMode ?? 'payg';
+      const originalBody = capture.enabled ? structuredClone(body) : undefined;
       const result = await router.route(provider, model, body, authMode, validate);
       accumulate(result.report);
+      const durationMs = performance.now() - started;
+      telemetry.enqueue({
+        startedAtUnixMs,
+        durationMs,
+        provider,
+        model,
+        authMode: resolvedAuthMode,
+        mode: config.mode,
+        report: result.report,
+        pipeline: result.pipeline,
+      });
+      if (originalBody) {
+        capture.record({
+          durationMs,
+          provider,
+          model,
+          authMode: resolvedAuthMode,
+          mode: config.mode,
+          originalBody,
+          transformedBody: result.body,
+          report: result.report,
+          pipeline: result.pipeline,
+        });
+      }
       return result;
     },
     retrieve: (id) => ccr.retrieve(id),
@@ -207,6 +249,7 @@ export function createRuntime(options: RuntimeOptions = {}): Pixroom {
     stats: () => ({ ...totals }),
     shutdown: async () => {
       policy?.save();
+      await telemetry.flush();
       await sidecar.stop();
     },
   };

@@ -18,6 +18,25 @@ function body(): Record<string, unknown> {
   };
 }
 
+function qcvBody(stream = false): Record<string, unknown> {
+  const rows = Array.from({ length: 60 }, (_, id) => ({
+    id,
+    email: `user${id}@example.com`,
+  }));
+  return {
+    model: 'gpt-5',
+    stream,
+    input: [
+      { type: 'function_call', call_id: 'call_data', name: 'read_data', arguments: '{}' },
+      { type: 'function_call_output', call_id: 'call_data', output: JSON.stringify(rows) },
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: 'What is the email for id 47?' }],
+      },
+    ],
+  };
+}
+
 const proxies: ProxyServer[] = [];
 const upstreams: http.Server[] = [];
 
@@ -31,6 +50,62 @@ afterEach(async () => {
 });
 
 describe('OpenAI Responses support', () => {
+  it('virtualizes exact function_call_output data with native input_text prefetch', async () => {
+    const runtime = createPixroom({
+      virtualContext: { enabled: true, queryFallback: true, minChars: 100, protectRecent: 1 },
+      semantic: { enabled: false },
+      optical: { enabled: false },
+      logLevel: 'silent',
+    });
+
+    const routed = await runtime.route('openai', 'gpt-5', qcvBody(true), 'payg');
+    const input = routed.body.input as Array<Record<string, unknown>>;
+
+    expect(routed.virtualized).toBe(true);
+    expect(routed.virtualQueryToolNeeded).toBe(false);
+    expect(input[1]?.output).toContain('<<pixroom_virtual');
+    expect(JSON.stringify(input[2]?.content)).toContain('user47@example.com');
+    expect(JSON.stringify(input[2]?.content)).toContain('input_text');
+    expect(JSON.stringify(routed.body)).not.toContain('pixroom_query');
+    await runtime.shutdown();
+  });
+
+  it('transforms exact Responses QCV requests before proxy forwarding', async () => {
+    let forwarded: Record<string, unknown> | undefined;
+    const upstream = http.createServer((request, response) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer) => chunks.push(chunk));
+      request.on('end', () => {
+        forwarded = JSON.parse(Buffer.concat(chunks).toString()) as Record<string, unknown>;
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ id: 'resp_qcv', output_text: 'user47@example.com' }));
+      });
+    });
+    upstreams.push(upstream);
+    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+    const upstreamPort = (upstream.address() as AddressInfo).port;
+    const proxy = createProxyServer({
+      port: 0,
+      upstreams: { openai: `http://127.0.0.1:${upstreamPort}` },
+      virtualContext: { enabled: true, minChars: 100, protectRecent: 1 },
+      semantic: { enabled: false },
+      optical: { enabled: false },
+      logLevel: 'silent',
+    });
+    proxies.push(proxy);
+    const { port } = await proxy.listen();
+
+    const response = await fetch(`http://127.0.0.1:${port}/v1/responses`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test', 'content-type': 'application/json' },
+      body: JSON.stringify(qcvBody(false)),
+    });
+
+    expect(await response.json()).toMatchObject({ output_text: 'user47@example.com' });
+    expect(JSON.stringify(forwarded)).toContain('<<pixroom_virtual');
+    expect(JSON.stringify(forwarded)).toContain('user47@example.com');
+  });
+
   it('optimizes a Responses body through the runtime integration pipeline', async () => {
     const runtime = createPixroom({
       semantic: { enabled: false },
