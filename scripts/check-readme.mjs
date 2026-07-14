@@ -8,6 +8,7 @@ const readme = readFileSync(readmePath, 'utf8');
 const receipt = JSON.parse(
   readFileSync(join(root, 'benchmarks', 'results', 'direct-anthropic-virtual.json'), 'utf8'),
 );
+const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const proofAssetPath = join(root, 'assets', 'qcv-paid-pilot.svg');
 const proofAsset = readFileSync(proofAssetPath, 'utf8');
 const failures = [];
@@ -44,6 +45,14 @@ function localTargets(markdown) {
   return targets;
 }
 
+function isPackaged(relativePath) {
+  return packageJson.files.some((entry) => {
+    if (entry.startsWith('!')) return false;
+    const normalized = entry.replace(/\/$/, '');
+    return relativePath === normalized || relativePath.startsWith(`${normalized}/`);
+  });
+}
+
 const slugs = headingSlugs(readme);
 for (const target of localTargets(readme)) {
   if (target.startsWith('#')) {
@@ -59,6 +68,11 @@ for (const target of localTargets(readme)) {
     fail(`README local target escapes the repository: ${target}`);
   } else if (!existsSync(absolute)) {
     fail(`README local target does not exist: ${target}`);
+  } else {
+    const relativePath = absolute.slice(root.length + 1);
+    if (relativePath && !isPackaged(relativePath)) {
+      fail(`README local target is omitted from package.json files: ${target}`);
+    }
   }
 }
 
@@ -81,6 +95,7 @@ if (!readme.includes('./llms.txt')) fail('README does not link llms.txt');
 if (/[]/.test(readme)) fail('README contains control characters');
 if (/[—–“”]/.test(readme)) fail('README contains non-ASCII dash or quote punctuation');
 
+const visibleReadme = readme.replace(/<!--[^]*?-->/g, '');
 const waitingForNpm = readme.includes('LAUNCH(npm)');
 if (waitingForNpm) {
   if (!readme.includes('npm install -g git+https://github.com/CodePalAI/pixroom.git')) {
@@ -90,8 +105,14 @@ if (waitingForNpm) {
     fail('pre-npm README is missing the verified GitHub SDK install');
   }
   for (const unavailable of ['npm install -g pixroom', 'npm install pixroom', 'npx pixroom demo']) {
-    const visibleReadme = readme.replace(/<!--[^]*?-->/g, '');
     if (visibleReadme.includes(unavailable)) fail(`README advertises unpublished npm path: ${unavailable}`);
+  }
+} else {
+  for (const required of ['npm install -g pixroom', 'npm install pixroom', 'npx pixroom demo']) {
+    if (!visibleReadme.includes(required)) fail(`release README is missing npm path: ${required}`);
+  }
+  if (visibleReadme.includes('git+https://github.com/CodePalAI/pixroom.git')) {
+    fail('release README still advertises Git installation');
   }
 }
 

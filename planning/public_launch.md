@@ -2,6 +2,8 @@
 
 This is the manual work that code cannot complete. Do the gates in order. A launch date is not a reason to skip one.
 
+The source review and the line between observed patterns and hypotheses are documented in [oss_adoption_research.md](./oss_adoption_research.md).
+
 ## Why this launch shape
 
 Breakout AI developer projects repeatedly reduce the path from claim to proof to a runnable result:
@@ -39,9 +41,9 @@ Recommended tools: VHS for deterministic terminal capture, or Screen Studio/Quic
 
 ## Gate 3: public package and repository
 
-- [ ] Make `CodePalAI/pixroom` public before publishing npm so provenance and repository links resolve.
+- [x] Make `CodePalAI/pixroom` public before publishing npm so provenance and repository links resolve. Verified public on 2026-07-14.
 - [ ] Confirm Apache-2.0 ownership, `NOTICE`, upstream attribution, and the security contact with counsel or the responsible owner.
-- [ ] Add `NPM_TOKEN` to the protected `release` environment for the bootstrap publication.
+- [x] Add `NPM_TOKEN` to the `release` environment for the bootstrap publication. Verified 2026-07-14.
 - [ ] Publish GitHub Release `v0.1.0`; verify the release workflow publishes `pixroom@0.1.0` with provenance.
 - [ ] On a clean Node 18, 20, and 22 environment, run `npx pixroom@0.1.0 demo`, import every public subpath, and test `pixroom --help`.
 - [ ] Confirm `npm view pixroom version repository.url dist.integrity` points to this repository.

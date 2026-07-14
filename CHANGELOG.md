@@ -9,6 +9,9 @@ All notable changes are documented here. This project follows semantic versionin
 ### Added
 
 - GitHub Release-driven publication to the npm registry.
+- Receipt-generated README proof graphic, executable documentation checks, and an `llms.txt` project index.
+- Independent benchmark reproduction guide and structured replication issue form.
+- Source-backed OSS adoption research and a gated public-launch checklist.
 - Query-Backed Context Virtualization (QCV) for exact historical JSON, log, and source tool results.
 - Deterministic exact current-question prefetch with cache-stable historical manifests across exact selectors.
 - Optional bounded Anthropic `pixroom_query` continuation with aggregate usage accounting.

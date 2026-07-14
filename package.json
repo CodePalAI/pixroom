@@ -75,15 +75,22 @@
   },
   "files": [
     "assets/",
+    "benchmarks/REPORT.md",
+    "benchmarks/REPRODUCING.md",
+    "benchmarks/results/direct-anthropic-virtual.json",
     "bin/",
     "dist/",
     "examples/",
     "!dist/**/*.map",
+    "planning/product_assessment.md",
+    "planning/query_backed_context.md",
     "README.md",
+    "scripts/prepare.mjs",
     "llms.txt",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
+    "UPSTREAM.md",
     "NOTICE",
     "LICENSE"
   ],
@@ -92,7 +99,7 @@
     "docs:check": "node scripts/check-readme.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "prepare": "npm run build",
+    "prepare": "node scripts/prepare.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx src/cli/main.ts",
     "demo:qcv": "npm run build && node bin/cli.js demo",
@@ -107,7 +114,7 @@
     "bench:anthropic:preflight": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase preflight",
     "bench:anthropic:canary": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase canary",
     "bench:anthropic": "npm run build && node benchmarks/v2/direct_anthropic.mjs --phase benchmark",
-    "prepublishOnly": "npm run assets:readme && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run assets:readme && npm run docs:check && npm run typecheck && npm test && npm run build"
   },
   "publishConfig": {
     "access": "public",
@@ -140,7 +147,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
+    "typescript": "5.9.3",
     "vitest": "^2.1.0"
   }
 }

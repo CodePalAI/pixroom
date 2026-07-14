@@ -9,6 +9,8 @@
 - [Reproducing benchmarks](https://github.com/CodePalAI/pixroom/blob/main/benchmarks/REPRODUCING.md): no-key checks and capped paid replication workflow
 - [QCV design](https://github.com/CodePalAI/pixroom/blob/main/planning/query_backed_context.md): exact-operation boundaries, threat model, rejected design, and prior art
 - [Product assessment](https://github.com/CodePalAI/pixroom/blob/main/planning/product_assessment.md): evidence limits, competitive position, validation gates, and kill criteria
+- [OSS adoption research](https://github.com/CodePalAI/pixroom/blob/main/planning/oss_adoption_research.md): source-backed README and launch patterns from high-attention AI developer projects
+- [Public launch checklist](https://github.com/CodePalAI/pixroom/blob/main/planning/public_launch.md): manual evidence, media, npm, GitHub, community, and launch-sequence gates
 
 ## Use Pixroom
 
