@@ -15,9 +15,10 @@ import { createProxyServer } from '../proxy/server.js';
 import { createPixroom } from '../pixroom.js';
 import { runMcpServer } from '../mcp/server.js';
 import { runWrap, copilotPreflight } from '../wrap/runner.js';
-import { knownAgents } from '../wrap/agents.js';
+import { describeAgents, knownAgents } from '../wrap/agents.js';
 import { formatReport } from '../measurement/savings.js';
-import { loadConfig } from '../config.js';
+import { loadConfig, type PixroomConfigOverrides } from '../config.js';
+import type { RuntimeMode } from '../kernel/types.js';
 
 function version(): string {
   try {
@@ -29,20 +30,23 @@ function version(): string {
   }
 }
 
-const HELP = `pixroom ${version()} — unified optical + semantic context compression
+const HELP = `pixroom ${version()} — local-first agent I/O optimization runtime
 
 USAGE
   pixroom <command> [options]
 
 COMMANDS
-  proxy            Start the combined proxy (optical via pxpipe in-process,
-                   semantic via the headroom sidecar). Point your agent's
+  proxy [options]  Start the programmable optimization proxy. Options:
+                   --mode audit|shadow|optimize|enforce, --host, --port.
+                   Point your agent's
                    ANTHROPIC_BASE_URL / OPENAI_BASE_URL at it.
   export <paths>   Offline: compress the given files and print an honest,
                    per-stage savings report. No upstream calls.
   doctor [copilot] Check the toolchain, pxpipe, and the headroom sidecar.
                    'doctor copilot' checks GitHub Copilot readiness.
   stats            Query a running proxy's session savings (GET /stats).
+  integration      List active optimizer integrations and their capabilities.
+  agent             List agent adapters and their actual interception level.
   mcp              MCP server over stdio (tools: pixroom_compress / _retrieve / _stats).
   wrap <agent>     Start pixroom (or delegate) and launch <agent> pointed at it.
                    Agents: claude, codex, aider, goose, openhands, opencode, vibe,
@@ -52,6 +56,7 @@ COMMANDS
 
 COMMON ENV
   PIXROOM_HOST / PIXROOM_PORT        listen interface / port (default 127.0.0.1:8788)
+  PIXROOM_MODE                       audit|shadow|optimize|enforce (default optimize)
   PIXROOM_MODELS                     optical model scope CSV; 'off' disables; unset = pxpipe default
   PIXROOM_OPTICAL / PIXROOM_SEMANTIC on/off master switches
   PIXROOM_HEADROOM_URL               headroom sidecar base URL (default http://127.0.0.1:8787)
@@ -62,8 +67,46 @@ COMMON ENV
   PIXROOM_LOG                        silent|error|warn|info|debug
 `;
 
-async function cmdProxy(): Promise<void> {
-  const server = createProxyServer();
+export type ProxyArgsResult =
+  | { readonly ok: true; readonly overrides: PixroomConfigOverrides }
+  | { readonly ok: false; readonly error: string };
+
+export function parseProxyArgs(args: readonly string[]): ProxyArgsResult {
+  const overrides: PixroomConfigOverrides = {};
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
+    if (arg === '--mode') {
+      const mode = args[++index];
+      if (!mode || !['audit', 'shadow', 'optimize', 'enforce'].includes(mode)) {
+        return { ok: false, error: '--mode must be audit, shadow, optimize, or enforce' };
+      }
+      overrides.mode = mode as RuntimeMode;
+    } else if (arg === '--host') {
+      const host = args[++index];
+      if (!host) return { ok: false, error: '--host requires a value' };
+      overrides.host = host;
+    } else if (arg === '--port' || arg === '-p') {
+      const raw = args[++index];
+      const port = raw == null ? Number.NaN : Number(raw);
+      if (!Number.isInteger(port) || port < 0 || port > 65535) {
+        return { ok: false, error: '--port must be an integer from 0 to 65535' };
+      }
+      overrides.port = port;
+    } else {
+      return { ok: false, error: `unknown proxy option: ${arg}` };
+    }
+  }
+  return { ok: true, overrides };
+}
+
+async function cmdProxy(args: readonly string[]): Promise<void> {
+  const parsed = parseProxyArgs(args);
+  if (!parsed.ok) {
+    console.error(parsed.error);
+    process.exitCode = 2;
+    return;
+  }
+  const server = createProxyServer(parsed.overrides);
   await server.listen();
   const shutdown = async (sig: string) => {
     server.pixroom.log.info(`received ${sig}, shutting down`);
@@ -156,6 +199,46 @@ async function cmdMcp(): Promise<void> {
   await runMcpServer();
 }
 
+async function cmdIntegration(args: string[]): Promise<void> {
+  const action = args[0] ?? 'list';
+  if (action !== 'list') {
+    console.error('usage: pixroom integration list');
+    process.exitCode = 1;
+    return;
+  }
+
+  const pixroom = createPixroom();
+  console.log('ID                  ORDER  FIDELITY    CACHE              REGIONS');
+  for (const integration of pixroom.integrations.ordered()) {
+    const capabilities = integration.capabilities;
+    console.log(
+      [
+        integration.id.padEnd(19),
+        String(integration.order).padEnd(6),
+        capabilities.fidelity.padEnd(11),
+        capabilities.cacheImpact.padEnd(18),
+        capabilities.regions.join(','),
+      ].join(' '),
+    );
+  }
+  await pixroom.shutdown();
+}
+
+function cmdAgent(args: string[]): void {
+  const action = args[0] ?? 'list';
+  if (action !== 'list') {
+    console.error('usage: pixroom agent list');
+    process.exitCode = 1;
+    return;
+  }
+  console.log('ID          INTERCEPTION  PROTOCOLS');
+  for (const descriptor of describeAgents()) {
+    console.log(
+      `${descriptor.id.padEnd(11)} ${descriptor.interception.padEnd(13)} ${descriptor.protocols.join(',')}`,
+    );
+  }
+}
+
 function cmdDoctorCopilot(): void {
   const pf = copilotPreflight();
   const lines: string[] = [`pixroom ${version()} doctor: copilot`, ''];
@@ -226,13 +309,20 @@ export async function main(argv: string[]): Promise<void> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
     case 'proxy':
-      return cmdProxy();
+      return cmdProxy(rest);
     case 'export':
       return cmdExport(rest);
     case 'doctor':
       return cmdDoctor(rest);
     case 'stats':
       return cmdStats();
+    case 'integration':
+    case 'integrations':
+      return cmdIntegration(rest);
+    case 'agent':
+    case 'agents':
+    case 'adapters':
+      return cmdAgent(rest);
     case 'mcp':
       return cmdMcp();
     case 'wrap':

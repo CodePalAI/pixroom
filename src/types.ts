@@ -19,6 +19,14 @@ export type Provider = 'anthropic' | 'openai';
 export type Stage = 'optical' | 'semantic';
 
 /**
+ * Coarse content class of a compressed region, used for cross-modal
+ * rate–distortion attribution: it lets the store answer "which engine distorts
+ * which kind of content?" when the model retrieves an offloaded original. This is
+ * a best-effort label (see src/policy/content-type.ts), never a correctness lever.
+ */
+export type ContentType = 'json' | 'code' | 'log' | 'prose' | 'mixed' | 'unknown';
+
+/**
  * Client auth posture, classified from request headers (mirrors headroom's
  * auth_mode). PAYG (API key) allows aggressive/lossy transforms; OAuth and
  * Subscription are "stealth" — the request must stay native-looking, so the
@@ -62,6 +70,12 @@ export interface ReversibleHandle {
   /** Original text, when the engine returns it inline (pxpipe). Absent for headroom
    *  CCR hashes, whose originals live in the sidecar store and are fetched on demand. */
   readonly original?: string;
+  /** Best-effort content class of the region this handle came from (RD attribution). */
+  readonly contentType?: ContentType;
+  /** Compression ratio for the region (tokensCompressed / tokensText), when known. */
+  readonly ratio?: number;
+  /** Stable id for the region this handle came from (groups handles of one region). */
+  readonly regionId?: string;
 }
 
 /**

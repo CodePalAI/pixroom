@@ -10,7 +10,8 @@
  * verbatim content on demand.
  */
 
-import type { Provider, ReversibleHandle } from '../types.js';
+import type { ContentType, Provider, ReversibleHandle, Stage } from '../types.js';
+import type { RetrievalRecorder } from '../policy/retrieval-recorder.js';
 
 export const CCR_TOOL_NAME = 'headroom_retrieve';
 
@@ -19,13 +20,26 @@ export interface CcrRetriever {
   retrieveHash(hash: string): Promise<string | null>;
 }
 
+/** Per-handle attribution metadata for cross-modal retrieval-regret. */
+interface HandleMeta {
+  readonly engine: Stage;
+  readonly contentType: ContentType;
+  readonly ratio?: number;
+  readonly regionId?: string;
+}
+
 export class CcrStore {
   /** pxpipe `rec_…` id → original text (held in-process). */
   private readonly inline = new Map<string, string>();
   /** headroom CCR hashes seen this session (originals live in the sidecar). */
   private readonly hashes = new Set<string>();
+  /** id → attribution metadata (engine, content type, ratio) for the recorder. */
+  private readonly meta = new Map<string, HandleMeta>();
 
-  constructor(private readonly retriever?: CcrRetriever) {}
+  constructor(
+    private readonly retriever?: CcrRetriever,
+    private readonly recorder?: RetrievalRecorder,
+  ) {}
 
   /** Register pxpipe imaged-block originals (optical stage, inline text). */
   registerReversible(handles: readonly ReversibleHandle[]): void {
@@ -35,12 +49,35 @@ export class CcrStore {
       } else if (h.origin === 'semantic') {
         this.hashes.add(h.id);
       }
+      this.noteOffer(h.id, {
+        engine: h.origin,
+        contentType: h.contentType ?? 'unknown',
+        ratio: h.ratio,
+        regionId: h.regionId,
+      });
     }
   }
 
   /** Register headroom CCR hashes (semantic stage). */
   registerHashes(hashes: readonly string[]): void {
-    for (const h of hashes) if (h) this.hashes.add(h);
+    for (const h of hashes) {
+      if (!h) continue;
+      this.hashes.add(h);
+      this.noteOffer(h, { engine: 'semantic', contentType: 'unknown' });
+    }
+  }
+
+  /** Record an offload once per id (dedup across retries) and notify the recorder. */
+  private noteOffer(id: string, meta: HandleMeta): void {
+    if (this.meta.has(id)) return;
+    this.meta.set(id, meta);
+    this.recorder?.recordOffer({
+      id,
+      engine: meta.engine,
+      contentType: meta.contentType,
+      ratio: meta.ratio,
+      regionId: meta.regionId,
+    });
   }
 
   /** Number of distinct offloaded originals tracked. */
@@ -56,12 +93,32 @@ export class CcrStore {
   /** Resolve an id to its original content. Inline (pxpipe) first, else sidecar (headroom). */
   async retrieve(id: string): Promise<string | null> {
     const local = this.inline.get(id);
-    if (local != null) return local;
-    if (this.hashes.has(id) && this.retriever) {
-      return this.retriever.retrieveHash(id);
+    if (local != null) {
+      this.noteRetrieved(id);
+      return local;
     }
-    // Unknown id: still try the sidecar (hash may have been created out of band).
-    return this.retriever ? this.retriever.retrieveHash(id) : null;
+    // Known hash, or unknown id (a hash may have been created out of band): try the sidecar.
+    const content = this.retriever ? await this.retriever.retrieveHash(id) : null;
+    if (content != null) this.noteRetrieved(id);
+    return content;
+  }
+
+  /**
+   * Record that the model retrieved an offloaded original, WITHOUT fetching it.
+   * The proxy response observer uses this (it only needs the regret signal, not the
+   * bytes); `retrieve()` also calls it on a successful resolve. Safe to call for
+   * unknown ids (no-op).
+   */
+  noteRetrieved(id: string): void {
+    const meta = this.meta.get(id);
+    if (!meta || !this.recorder) return;
+    this.recorder.recordRetrieval({
+      id,
+      engine: meta.engine,
+      contentType: meta.contentType,
+      ratio: meta.ratio,
+      regionId: meta.regionId,
+    });
   }
 
   /**

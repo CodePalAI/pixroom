@@ -1,0 +1,955 @@
+{
+  "evidenceLevel": "unit-simulation",
+  "generatedAt": "2026-07-14T08:18:45.961Z",
+  "rounds": 60,
+  "warmup": 6,
+  "staticSemCurve": [
+    {
+      "round": 1,
+      "regret": 0.1875,
+      "netSaved": 0.28750000000000003
+    },
+    {
+      "round": 2,
+      "regret": 0.125,
+      "netSaved": 0.3499999999999999
+    },
+    {
+      "round": 3,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 4,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 5,
+      "regret": 0.125,
+      "netSaved": 0.3499999999999999
+    },
+    {
+      "round": 6,
+      "regret": 0.28125,
+      "netSaved": 0.19375000000000006
+    },
+    {
+      "round": 7,
+      "regret": 0.09375,
+      "netSaved": 0.38125
+    },
+    {
+      "round": 8,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 9,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 10,
+      "regret": 0.0625,
+      "netSaved": 0.4124999999999999
+    },
+    {
+      "round": 11,
+      "regret": 0.09375,
+      "netSaved": 0.38124999999999987
+    },
+    {
+      "round": 12,
+      "regret": 0.1875,
+      "netSaved": 0.28750000000000003
+    },
+    {
+      "round": 13,
+      "regret": 0.09375,
+      "netSaved": 0.38125
+    },
+    {
+      "round": 14,
+      "regret": 0.125,
+      "netSaved": 0.3499999999999999
+    },
+    {
+      "round": 15,
+      "regret": 0.09375,
+      "netSaved": 0.3812499999999999
+    },
+    {
+      "round": 16,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 17,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 18,
+      "regret": 0.3125,
+      "netSaved": 0.16250000000000006
+    },
+    {
+      "round": 19,
+      "regret": 0.03125,
+      "netSaved": 0.44374999999999987
+    },
+    {
+      "round": 20,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 21,
+      "regret": 0.09375,
+      "netSaved": 0.38124999999999987
+    },
+    {
+      "round": 22,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 23,
+      "regret": 0.21875,
+      "netSaved": 0.2562500000000001
+    },
+    {
+      "round": 24,
+      "regret": 0.0625,
+      "netSaved": 0.4124999999999999
+    },
+    {
+      "round": 25,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 26,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 27,
+      "regret": 0.21875,
+      "netSaved": 0.2562500000000001
+    },
+    {
+      "round": 28,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 29,
+      "regret": 0.09375,
+      "netSaved": 0.38124999999999987
+    },
+    {
+      "round": 30,
+      "regret": 0.0625,
+      "netSaved": 0.4124999999999999
+    },
+    {
+      "round": 31,
+      "regret": 0.21875,
+      "netSaved": 0.25625000000000003
+    },
+    {
+      "round": 32,
+      "regret": 0.15625,
+      "netSaved": 0.31874999999999987
+    },
+    {
+      "round": 33,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 34,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 35,
+      "regret": 0.1875,
+      "netSaved": 0.2875
+    },
+    {
+      "round": 36,
+      "regret": 0.15625,
+      "netSaved": 0.31874999999999987
+    },
+    {
+      "round": 37,
+      "regret": 0.1875,
+      "netSaved": 0.2875
+    },
+    {
+      "round": 38,
+      "regret": 0.1875,
+      "netSaved": 0.2875
+    },
+    {
+      "round": 39,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 40,
+      "regret": 0.09375,
+      "netSaved": 0.38124999999999987
+    },
+    {
+      "round": 41,
+      "regret": 0.1875,
+      "netSaved": 0.2875
+    },
+    {
+      "round": 42,
+      "regret": 0.21875,
+      "netSaved": 0.2562500000000001
+    },
+    {
+      "round": 43,
+      "regret": 0.21875,
+      "netSaved": 0.25625000000000003
+    },
+    {
+      "round": 44,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 45,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 46,
+      "regret": 0.21875,
+      "netSaved": 0.2562500000000001
+    },
+    {
+      "round": 47,
+      "regret": 0.125,
+      "netSaved": 0.34999999999999987
+    },
+    {
+      "round": 48,
+      "regret": 0.09375,
+      "netSaved": 0.38124999999999987
+    },
+    {
+      "round": 49,
+      "regret": 0.0625,
+      "netSaved": 0.4124999999999999
+    },
+    {
+      "round": 50,
+      "regret": 0.1875,
+      "netSaved": 0.2875
+    },
+    {
+      "round": 51,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 52,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 53,
+      "regret": 0.15625,
+      "netSaved": 0.31875
+    },
+    {
+      "round": 54,
+      "regret": 0.0625,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 55,
+      "regret": 0.1875,
+      "netSaved": 0.28750000000000003
+    },
+    {
+      "round": 56,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 57,
+      "regret": 0.125,
+      "netSaved": 0.3499999999999999
+    },
+    {
+      "round": 58,
+      "regret": 0.25,
+      "netSaved": 0.225
+    },
+    {
+      "round": 59,
+      "regret": 0.1875,
+      "netSaved": 0.2875000000000001
+    },
+    {
+      "round": 60,
+      "regret": 0.125,
+      "netSaved": 0.35
+    }
+  ],
+  "staticOptCurve": [
+    {
+      "round": 1,
+      "regret": 0.0625,
+      "netSaved": 0.6124999999999998
+    },
+    {
+      "round": 2,
+      "regret": 0.125,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 3,
+      "regret": 0.28125,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 4,
+      "regret": 0.28125,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 5,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 6,
+      "regret": 0.40625,
+      "netSaved": 0.26874999999999993
+    },
+    {
+      "round": 7,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 8,
+      "regret": 0.34375,
+      "netSaved": 0.33124999999999993
+    },
+    {
+      "round": 9,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 10,
+      "regret": 0.28125,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 11,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 12,
+      "regret": 0.1875,
+      "netSaved": 0.4874999999999999
+    },
+    {
+      "round": 13,
+      "regret": 0.1875,
+      "netSaved": 0.4874999999999999
+    },
+    {
+      "round": 14,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 15,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 16,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 17,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 18,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 19,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 20,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 21,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 22,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 23,
+      "regret": 0.0625,
+      "netSaved": 0.6124999999999998
+    },
+    {
+      "round": 24,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 25,
+      "regret": 0.34375,
+      "netSaved": 0.33124999999999993
+    },
+    {
+      "round": 26,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 27,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 28,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 29,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 30,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 31,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 32,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 33,
+      "regret": 0.21875,
+      "netSaved": 0.4562499999999999
+    },
+    {
+      "round": 34,
+      "regret": 0.125,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 35,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 36,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 37,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 38,
+      "regret": 0.25,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 39,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 40,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 41,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 42,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 43,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 44,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 45,
+      "regret": 0.125,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 46,
+      "regret": 0.125,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 47,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 48,
+      "regret": 0.34375,
+      "netSaved": 0.33125
+    },
+    {
+      "round": 49,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 50,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 51,
+      "regret": 0.375,
+      "netSaved": 0.3
+    },
+    {
+      "round": 52,
+      "regret": 0.28125,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 53,
+      "regret": 0.1875,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 54,
+      "regret": 0.375,
+      "netSaved": 0.3
+    },
+    {
+      "round": 55,
+      "regret": 0.15625,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 56,
+      "regret": 0.3125,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 57,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 58,
+      "regret": 0.1875,
+      "netSaved": 0.4874999999999999
+    },
+    {
+      "round": 59,
+      "regret": 0.1875,
+      "netSaved": 0.4874999999999999
+    },
+    {
+      "round": 60,
+      "regret": 0.21875,
+      "netSaved": 0.45624999999999993
+    }
+  ],
+  "adaptiveCurve": [
+    {
+      "round": 1,
+      "regret": 0.125,
+      "netSaved": 0.4325
+    },
+    {
+      "round": 2,
+      "regret": 0.09375,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 3,
+      "regret": 0.125,
+      "netSaved": 0.35
+    },
+    {
+      "round": 4,
+      "regret": 0.09375,
+      "netSaved": 0.5012499999999996
+    },
+    {
+      "round": 5,
+      "regret": 0.21875,
+      "netSaved": 0.38625
+    },
+    {
+      "round": 6,
+      "regret": 0.3125,
+      "netSaved": 0.3125
+    },
+    {
+      "round": 7,
+      "regret": 0.15625,
+      "netSaved": 0.5062499999999999
+    },
+    {
+      "round": 8,
+      "regret": 0.1875,
+      "netSaved": 0.47499999999999987
+    },
+    {
+      "round": 9,
+      "regret": 0.25,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 10,
+      "regret": 0.125,
+      "netSaved": 0.5374999999999999
+    },
+    {
+      "round": 11,
+      "regret": 0.21875,
+      "netSaved": 0.4437499999999999
+    },
+    {
+      "round": 12,
+      "regret": 0.15625,
+      "netSaved": 0.5062499999999999
+    },
+    {
+      "round": 13,
+      "regret": 0.28125,
+      "netSaved": 0.39374999999999993
+    },
+    {
+      "round": 14,
+      "regret": 0.25,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 15,
+      "regret": 0.15625,
+      "netSaved": 0.5062499999999999
+    },
+    {
+      "round": 16,
+      "regret": 0.15625,
+      "netSaved": 0.5062499999999999
+    },
+    {
+      "round": 17,
+      "regret": 0.1875,
+      "netSaved": 0.4749999999999998
+    },
+    {
+      "round": 18,
+      "regret": 0.1875,
+      "netSaved": 0.47499999999999987
+    },
+    {
+      "round": 19,
+      "regret": 0.25,
+      "netSaved": 0.41249999999999987
+    },
+    {
+      "round": 20,
+      "regret": 0.09375,
+      "netSaved": 0.5687499999999999
+    },
+    {
+      "round": 21,
+      "regret": 0.21875,
+      "netSaved": 0.4437499999999999
+    },
+    {
+      "round": 22,
+      "regret": 0.125,
+      "netSaved": 0.5374999999999999
+    },
+    {
+      "round": 23,
+      "regret": 0.1875,
+      "netSaved": 0.47499999999999987
+    },
+    {
+      "round": 24,
+      "regret": 0.15625,
+      "netSaved": 0.5062499999999999
+    },
+    {
+      "round": 25,
+      "regret": 0.1875,
+      "netSaved": 0.47499999999999987
+    },
+    {
+      "round": 26,
+      "regret": 0.21875,
+      "netSaved": 0.4437499999999998
+    },
+    {
+      "round": 27,
+      "regret": 0.21875,
+      "netSaved": 0.44374999999999987
+    },
+    {
+      "round": 28,
+      "regret": 0.1875,
+      "netSaved": 0.47499999999999987
+    },
+    {
+      "round": 29,
+      "regret": 0.25,
+      "netSaved": 0.4124999999999999
+    },
+    {
+      "round": 30,
+      "regret": 0.21875,
+      "netSaved": 0.4437499999999998
+    },
+    {
+      "round": 31,
+      "regret": 0.03125,
+      "netSaved": 0.5812499999999999
+    },
+    {
+      "round": 32,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 33,
+      "regret": 0,
+      "netSaved": 0.6124999999999999
+    },
+    {
+      "round": 34,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 35,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 36,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 37,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 38,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 39,
+      "regret": 0.25,
+      "netSaved": 0.36249999999999993
+    },
+    {
+      "round": 40,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 41,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 42,
+      "regret": 0.09375,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 43,
+      "regret": 0.09375,
+      "netSaved": 0.5187499999999999
+    },
+    {
+      "round": 44,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 45,
+      "regret": 0.1875,
+      "netSaved": 0.42499999999999993
+    },
+    {
+      "round": 46,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 47,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 48,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 49,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 50,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 51,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 52,
+      "regret": 0.03125,
+      "netSaved": 0.5812499999999999
+    },
+    {
+      "round": 53,
+      "regret": 0.03125,
+      "netSaved": 0.5812499999999999
+    },
+    {
+      "round": 54,
+      "regret": 0.15625,
+      "netSaved": 0.45624999999999993
+    },
+    {
+      "round": 55,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 56,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 57,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 58,
+      "regret": 0.125,
+      "netSaved": 0.48749999999999993
+    },
+    {
+      "round": 59,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    },
+    {
+      "round": 60,
+      "regret": 0.0625,
+      "netSaved": 0.5499999999999999
+    }
+  ],
+  "optimal": {
+    "regret": 0.1125989106472531,
+    "netSaved": 0.499901089352747,
+    "map": {
+      "json": "optical",
+      "log": "optical",
+      "code": "semantic",
+      "prose": "semantic"
+    }
+  },
+  "learned": {
+    "json": "optical",
+    "log": "optical",
+    "code": "semantic",
+    "prose": "semantic"
+  },
+  "summary": {
+    "adaptEarly": {
+      "regret": 0.11458333333333333,
+      "netSaved": 0.39208333333333334
+    },
+    "adaptLate": {
+      "regret": 0.09166666666666666,
+      "netSaved": 0.5208333333333333
+    },
+    "semLate": {
+      "regret": 0.14791666666666667,
+      "netSaved": 0.3270833333333332
+    },
+    "optLate": {
+      "regret": 0.2520833333333333,
+      "netSaved": 0.42291666666666655
+    }
+  },
+  "verdict": {
+    "learns": true,
+    "beatsBoth": true,
+    "notDominated": true,
+    "nearOptimal": true,
+    "recovered": true,
+    "allPass": true
+  },
+  "note": "Regret from the simulated oracle. Replace with live retrieval events for validation."
+}

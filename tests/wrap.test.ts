@@ -3,7 +3,13 @@ import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { WRAP_AGENTS, knownAgents, type LaunchAgent } from '../src/wrap/agents.js';
+import {
+  AgentRegistry,
+  WRAP_AGENTS,
+  describeAgents,
+  knownAgents,
+  type LaunchAgent,
+} from '../src/wrap/agents.js';
 import { runWrap, copilotPreflight } from '../src/wrap/runner.js';
 
 const B = 'http://127.0.0.1:8788';
@@ -66,6 +72,26 @@ describe('wrap agent registry', () => {
         'continue',
       ]),
     );
+  });
+
+  it('reports actual interception capability instead of implying uniform traffic access', () => {
+    const byId = Object.fromEntries(describeAgents().map((descriptor) => [descriptor.id, descriptor]));
+    expect(byId.claude?.interception).toBe('traffic');
+    expect(byId.codex?.protocols).toContain('openai.responses');
+    expect(byId.copilot?.interception).toBe('delegate');
+    expect(byId.cursor?.interception).toBe('config-only');
+  });
+
+  it('supports external agent adapters without editing the built-in record', () => {
+    const registry = new AgentRegistry().register({
+      id: 'custom-agent',
+      displayName: 'Custom Agent',
+      interception: 'traffic',
+      protocols: ['openai.chat-completions'],
+      adapter: { kind: 'launch', command: 'custom-agent', env: (base) => ({ BASE: base }) },
+    });
+    expect(knownAgents(registry)).toEqual(['custom-agent']);
+    expect(registry.get('custom-agent')?.adapter.kind).toBe('launch');
   });
 });
 

@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 
 import { createPixroom } from '../dist/index.js';
 import { buildPayloads, countTokens, effectiveTokens } from './lib.mjs';
+import { EVIDENCE } from './evidence.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..');
@@ -44,7 +45,13 @@ async function run() {
   const payloads = buildPayloads(repoRoot);
   let sidecarStatus = 'unknown';
 
-  const results = { model: MODEL, sidecarUrl, generatedAt: new Date().toISOString(), payloads: [] };
+  const results = {
+    evidenceLevel: EVIDENCE.OFFLINE_REAL_TRANSFORM,
+    model: MODEL,
+    sidecarUrl,
+    generatedAt: new Date().toISOString(),
+    payloads: [],
+  };
 
   for (const p of payloads) {
     const baselineTokens = countTokens(JSON.stringify(p.body));

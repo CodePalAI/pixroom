@@ -8,6 +8,7 @@
  */
 
 import type { Provider } from './types.js';
+import type { RuntimeMode } from './kernel/types.js';
 
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
 
@@ -63,24 +64,46 @@ export interface CcrConfig {
   readonly injectRetrieveTool: boolean;
 }
 
+export interface AdaptiveConfig {
+  /**
+   * Master switch for the adaptive cross-modal controller. When on, the router may
+   * override the fixed region→engine rules using learned per-(contentType × engine)
+   * retrieval-regret. OFF by default: cold-start priors equal today's static rules,
+   * but the path stays opt-in so current flows are untouched unless requested.
+   */
+  readonly enabled: boolean;
+  /**
+   * Observe-only mode: record the retrieval-regret signal (offers + retrievals) and
+   * persist the policy store, but DO NOT change routing. Lets a deployment gather
+   * evidence safely before enabling the controller.
+   */
+  readonly logOnly: boolean;
+  /** Path to the persistent policy-store JSON. Empty ⇒ in-memory only (no persistence). */
+  readonly storePath: string;
+}
+
 export interface PixroomConfig {
+  readonly mode: RuntimeMode;
   readonly host: string;
   readonly port: number;
   readonly upstreams: Readonly<Record<Provider, string>>;
   readonly optical: OpticalConfig;
   readonly semantic: SemanticConfig;
   readonly ccr: CcrConfig;
+  readonly adaptive: AdaptiveConfig;
   readonly logLevel: LogLevel;
 }
 
 /** Shallow-per-section overrides accepted by {@link loadConfig} / embedders. */
 export interface PixroomConfigOverrides {
+  mode?: RuntimeMode;
   host?: string;
   port?: number;
   upstreams?: Partial<Record<Provider, string>>;
   optical?: Partial<OpticalConfig>;
   semantic?: Partial<SemanticConfig>;
   ccr?: Partial<CcrConfig>;
+  adaptive?: Partial<AdaptiveConfig>;
   logLevel?: LogLevel;
 }
 
@@ -130,10 +153,18 @@ function resolveLogLevel(): LogLevel {
   return (allowed as readonly string[]).includes(raw) ? (raw as LogLevel) : 'info';
 }
 
+function resolveMode(): RuntimeMode {
+  const raw = (process.env.PIXROOM_MODE ?? 'optimize').trim().toLowerCase();
+  return ['audit', 'shadow', 'optimize', 'enforce'].includes(raw)
+    ? (raw as RuntimeMode)
+    : 'optimize';
+}
+
 /** Build the pixroom config from the current environment, applying overrides last. */
 export function loadConfig(overrides: PixroomConfigOverrides = {}): PixroomConfig {
   const opticalScope = resolveOpticalScope();
   const base: PixroomConfig = {
+    mode: resolveMode(),
     host: envStr('PIXROOM_HOST', '127.0.0.1'),
     port: envInt('PIXROOM_PORT', 8788),
     upstreams: {
@@ -167,6 +198,11 @@ export function loadConfig(overrides: PixroomConfigOverrides = {}): PixroomConfi
     ccr: {
       injectRetrieveTool: envBool('PIXROOM_CCR_TOOL', true),
     },
+    adaptive: {
+      enabled: envBool('PIXROOM_ADAPTIVE', false),
+      logOnly: envBool('PIXROOM_ADAPTIVE_LOG', false),
+      storePath: envStr('PIXROOM_ADAPTIVE_STORE', ''),
+    },
     logLevel: resolveLogLevel(),
   };
 
@@ -177,5 +213,6 @@ export function loadConfig(overrides: PixroomConfigOverrides = {}): PixroomConfi
     optical: { ...base.optical, ...overrides.optical },
     semantic: { ...base.semantic, ...overrides.semantic },
     ccr: { ...base.ccr, ...overrides.ccr },
+    adaptive: { ...base.adaptive, ...overrides.adaptive },
   };
 }

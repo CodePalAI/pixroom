@@ -30,6 +30,37 @@ export function readModel(body: Record<string, unknown>): string | null {
   return typeof m === 'string' && m.length > 0 ? m : null;
 }
 
+/**
+ * Flatten the static-slab text pixroom's optical stage owns — the `system` prompt
+ * plus tool names/descriptions — into one string for content-type classification.
+ * Cheap and lossy-for-classification-only; never used to mutate the request.
+ */
+export function readSystemText(body: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const sys = body.system;
+  if (typeof sys === 'string') {
+    parts.push(sys);
+  } else if (Array.isArray(sys)) {
+    for (const b of sys) {
+      if (b != null && typeof b === 'object') {
+        const blk = b as { type?: unknown; text?: unknown };
+        if (blk.type === 'text' && typeof blk.text === 'string') parts.push(blk.text);
+      }
+    }
+  }
+  const tools = body.tools;
+  if (Array.isArray(tools)) {
+    for (const t of tools) {
+      if (t != null && typeof t === 'object') {
+        const tool = t as { name?: unknown; description?: unknown };
+        if (typeof tool.name === 'string') parts.push(tool.name);
+        if (typeof tool.description === 'string') parts.push(tool.description);
+      }
+    }
+  }
+  return parts.join('\n');
+}
+
 /** A `tool_result` text block eligible for semantic compression. */
 export interface ToolResultTarget {
   readonly messageIndex: number;

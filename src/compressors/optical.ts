@@ -8,16 +8,22 @@
  * the single Anthropic `ttl:'1h'` `cache_control` breakpoint; pixroom records that it
  * owns it so nothing stacks a second injector (planning/end_product.md §4.4).
  *
- * Anthropic-only in the MVP (optical route only on pxpipe-supported models); OpenAI
- * requests pass through untouched here and are handled by the semantic stage.
+ * OpenAI Chat Completions and Responses use pxpipe's public GPT transformer. They
+ * carry no Anthropic cache-control marker; model scope and stealth gates still apply.
  */
 
+import { transformOpenAIChatCompletions, transformOpenAIResponses } from 'pxpipe-proxy';
 import { transformAnthropicMessages, type PxpipeReason } from 'pxpipe-proxy/transform';
-import { isPxpipeSupportedModel, setAllowedModelBases } from 'pxpipe-proxy/applicability';
+import {
+  isPxpipeSupportedGptModel,
+  isPxpipeSupportedModel,
+  setAllowedModelBases,
+} from 'pxpipe-proxy/applicability';
 
 import type { OpticalConfig } from '../config.js';
 import type { Logger } from '../logger.js';
 import { parseBody, serializeBody } from '../anthropic.js';
+import { classifyContent } from '../policy/content-type.js';
 import { counterfactual, tokensFromChars } from '../measurement/savings.js';
 import {
   passthroughResult,
@@ -57,6 +63,15 @@ function mapReason(reason: PxpipeReason): CompressionReason {
   }
 }
 
+function mapOpenAIReason(reason: string | undefined): CompressionReason {
+  if (reason == null) return 'passthrough';
+  if (reason.startsWith('below_min_')) return 'below_threshold';
+  if (reason.startsWith('not_profitable')) return 'not_profitable';
+  if (reason.startsWith('parse_error')) return 'error';
+  if (reason === 'compress=false') return 'disabled';
+  return 'passthrough';
+}
+
 export class OpticalCompressor implements Compressor {
   readonly stage = 'optical' as const;
   private scopeApplied = false;
@@ -78,9 +93,10 @@ export class OpticalCompressor implements Compressor {
 
   applicable(ctx: RequestContext): boolean {
     if (!this.cfg.enabled) return false;
-    if (ctx.provider !== 'anthropic') return false;
     this.ensureScope();
-    return isPxpipeSupportedModel(ctx.model);
+    return ctx.provider === 'anthropic'
+      ? isPxpipeSupportedModel(ctx.model)
+      : isPxpipeSupportedGptModel(ctx.model);
   }
 
   async run(ctx: RequestContext): Promise<StageOutcome> {
@@ -89,12 +105,6 @@ export class OpticalCompressor implements Compressor {
       ctx.stages.push(result);
       return { context: ctx, result };
     }
-    if (ctx.provider !== 'anthropic') {
-      const result = passthroughResult('optical', 'passthrough', 'optical is anthropic-only');
-      ctx.stages.push(result);
-      return { context: ctx, result };
-    }
-
     // Stealth: lossy imaging rewrites the system prompt into an image — too aggressive
     // for oauth/subscription traffic. Off unless explicitly opted in (§4.4).
     if (ctx.authMode !== 'payg' && !this.cfg.allowOnSubscription) {
@@ -109,13 +119,19 @@ export class OpticalCompressor implements Compressor {
 
     this.ensureScope();
 
-    if (!isPxpipeSupportedModel(ctx.model)) {
+    const supported =
+      ctx.provider === 'anthropic'
+        ? isPxpipeSupportedModel(ctx.model)
+        : isPxpipeSupportedGptModel(ctx.model);
+    if (!supported) {
       const result = passthroughResult('optical', 'unsupported_model', ctx.model ?? undefined);
       ctx.stages.push(result);
       return { context: ctx, result };
     }
 
     try {
+      if (ctx.provider === 'openai') return this.runOpenAI(ctx);
+
       const inputBody = serializeBody(ctx.body);
       const out = await transformAnthropicMessages({
         body: inputBody,
@@ -138,13 +154,14 @@ export class OpticalCompressor implements Compressor {
       ctx.body = parseBody(out.body);
       ctx.opticalOwnsCacheControl = out.cache.ownsCacheControl;
 
-      const reversible = this.collectRecoverable(out.info.recoverable);
-      for (const h of reversible) ctx.reversible.push(h);
-
       const staticChars = out.info.staticChars || out.info.origChars;
       const pixels = out.info.imagePixels ?? out.info.imageCount * MAX_PAGE_PIXELS;
       const tokensText = tokensFromChars(staticChars, SLAB_CHARS_PER_TOKEN);
       const tokensImage = Math.ceil(pixels / PX_PER_TOKEN);
+      const ratio = tokensText > 0 ? tokensImage / tokensText : undefined;
+
+      const reversible = this.collectRecoverable(out.info.recoverable, ratio);
+      for (const h of reversible) ctx.reversible.push(h);
 
       const result: StageResult = {
         stage: 'optical',
@@ -168,10 +185,52 @@ export class OpticalCompressor implements Compressor {
     }
   }
 
+  private async runOpenAI(ctx: RequestContext): Promise<StageOutcome> {
+    const inputBody = serializeBody(ctx.body);
+    const out = Object.hasOwn(ctx.body, 'input')
+      ? await transformOpenAIResponses(inputBody, { compress: true })
+      : await transformOpenAIChatCompletions(inputBody, { compress: true });
+
+    if (!out.info.compressed) {
+      const result = passthroughResult(
+        'optical',
+        mapOpenAIReason(out.info.reason),
+        out.info.reason,
+      );
+      ctx.stages.push(result);
+      return { context: ctx, result };
+    }
+
+    ctx.body = parseBody(out.body);
+    const tokensText =
+      out.info.baselineImagedTokens ??
+      tokensFromChars(out.info.staticChars || out.info.origChars, SLAB_CHARS_PER_TOKEN);
+    const pixels = out.info.imagePixels ?? out.info.imageCount * MAX_PAGE_PIXELS;
+    const tokensImage = out.info.imageTokens ?? Math.ceil(pixels / PX_PER_TOKEN);
+    const result: StageResult = {
+      stage: 'optical',
+      applied: true,
+      reason: 'applied',
+      detail: `openai images=${out.info.imageCount} staticChars=${out.info.staticChars}`,
+      counterfactual: counterfactual(tokensText, tokensImage, 'gpt-tokenizer'),
+      reversible: [],
+    };
+    ctx.stages.push(result);
+    return { context: ctx, result };
+  }
+
   private collectRecoverable(
     recoverable: ReadonlyArray<{ id: string; text: string }> | undefined,
+    ratio?: number,
   ): ReversibleHandle[] {
     if (!recoverable) return [];
-    return recoverable.map((r) => ({ id: r.id, origin: 'optical' as const, original: r.text }));
+    return recoverable.map((r) => ({
+      id: r.id,
+      origin: 'optical' as const,
+      original: r.text,
+      contentType: classifyContent(r.text),
+      ratio,
+      regionId: 'slab',
+    }));
   }
 }

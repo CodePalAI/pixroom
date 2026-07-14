@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { createPixroom } from '../dist/index.js';
+import { EVIDENCE } from './evidence.mjs';
 import {
   countTokens,
   effectiveTokens,
@@ -162,7 +163,13 @@ async function main() {
   if (!ok) console.error('WARNING: headroom sidecar not healthy — prose/tool rows will degrade.');
 
   const scenarios = buildScenarios();
-  const results = { model: MODEL, sidecar: ok, generatedAt: new Date().toISOString(), scenarios: [] };
+  const results = {
+    evidenceLevel: EVIDENCE.OFFLINE_REAL_TRANSFORM,
+    model: MODEL,
+    sidecar: ok,
+    generatedAt: new Date().toISOString(),
+    scenarios: [],
+  };
 
   for (const sc of scenarios) {
     const body = buildBody(sc);

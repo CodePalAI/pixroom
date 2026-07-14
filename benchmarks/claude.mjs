@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { copilotSuite, stripAnsi } from './lib.mjs';
+import { EVIDENCE, liveEvidenceForKind } from './evidence.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..');
@@ -206,6 +207,7 @@ async function main() {
 
   const suite = QUICK ? copilotSuite(repoRoot).slice(0, 1) : copilotSuite(repoRoot);
   const results = {
+    evidenceLevel: EVIDENCE.LIVE_AGENTIC,
     model: MODEL,
     opticalOnSubscription: OPTICAL_ON_SUB === '1',
     generatedAt: new Date().toISOString(),
@@ -214,7 +216,14 @@ async function main() {
   };
 
   for (const item of suite) {
-    const entry = { id: item.id, kind: item.kind, prompt: item.prompt, expected: item.expected, results: {} };
+    const entry = {
+      evidenceLevel: liveEvidenceForKind(item.kind),
+      id: item.id,
+      kind: item.kind,
+      prompt: item.prompt,
+      expected: item.expected,
+      results: {},
+    };
     for (const cfg of CONFIGS) {
       const r = await runClaude(cfg.baseUrl, item.prompt);
       const u = parseUsage(r.out);

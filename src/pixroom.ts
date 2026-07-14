@@ -10,8 +10,19 @@ import { createLogger, type Logger } from './logger.js';
 import { CcrStore } from './ccr/store.js';
 import { OpticalCompressor } from './compressors/optical.js';
 import { SemanticCompressor } from './compressors/semantic.js';
+import {
+  HEADROOM_SEMANTIC_INTEGRATION_ID,
+  LegacyCompressorIntegration,
+  PXPIPE_OPTICAL_INTEGRATION_ID,
+} from './integrations/legacy-compressor.js';
+import { IntegrationPipeline } from './kernel/pipeline.js';
+import { IntegrationRegistry } from './kernel/registry.js';
+import { PolicyStore } from './policy/store.js';
+import { StoreBackedRecorder } from './policy/retrieval-recorder.js';
+import { CrossModalController, DEFAULT_CONTROLLER_CONFIG } from './policy/controller.js';
 import { HeadroomSidecar, type SidecarState } from './sidecar/headroom-sidecar.js';
 import { ContentRouter, type RouteResult } from './router/content-router.js';
+import type { ProcessorIntegration } from './kernel/types.js';
 import type { AuthMode, Provider, SavingsReport } from './types.js';
 
 /** Running session totals for the `stats` view. */
@@ -31,6 +42,12 @@ export interface Pixroom {
   readonly router: ContentRouter;
   readonly ccr: CcrStore;
   readonly sidecar: HeadroomSidecar;
+  /** Request-side optimizer integrations active in this runtime. */
+  readonly integrations: IntegrationRegistry;
+  /** False means the proxy can forward matched request bytes without decoding. */
+  readonly requestOptimizationEnabled: boolean;
+  /** Persistent cross-modal policy store, when the adaptive path is enabled. */
+  readonly policy?: PolicyStore;
   /** Compress + route a parsed provider request body. Never throws (degrades). */
   route(
     provider: Provider,
@@ -48,16 +65,76 @@ export interface Pixroom {
   shutdown(): Promise<void>;
 }
 
-export function createPixroom(overrides: PixroomConfigOverrides = {}): Pixroom {
-  const config = loadConfig(overrides);
+export interface RuntimeOptions {
+  /** Existing environment/config override surface. */
+  readonly config?: PixroomConfigOverrides;
+  /** Additional request-side optimizer integrations. */
+  readonly integrations?: readonly ProcessorIntegration[];
+  /** Disable pxpipe/headroom registration to build a standalone custom runtime. */
+  readonly includeBuiltinIntegrations?: boolean;
+}
+
+/** Generic integration-host assembly. `createPixroom` is the built-in compatibility facade. */
+export function createRuntime(options: RuntimeOptions = {}): Pixroom {
+  const config = loadConfig(options.config);
   const log = createLogger(config.logLevel);
 
   const sidecar = new HeadroomSidecar(config.semantic, log.child('sidecar'));
   const semantic = new SemanticCompressor(config.semantic, sidecar, log.child('semantic'));
   const optical = new OpticalCompressor(config.optical, log.child('optical'));
+  const integrations = new IntegrationRegistry();
+  if (options.includeBuiltinIntegrations !== false) {
+    integrations
+      .register(
+        new LegacyCompressorIntegration(semantic, {
+          id: HEADROOM_SEMANTIC_INTEGRATION_ID,
+          version: 'builtin',
+          order: 10,
+          regions: ['tool-result', 'history', 'current-turn'],
+          fidelity: 'reversible',
+          cacheImpact: 'preserve',
+        }),
+      )
+      .register(
+        new LegacyCompressorIntegration(optical, {
+          id: PXPIPE_OPTICAL_INTEGRATION_ID,
+          version: '0.8.0',
+          order: 20,
+          regions: ['system', 'tools'],
+          fidelity: 'reversible',
+          cacheImpact: 'move-breakpoint',
+        }),
+      );
+  }
+  for (const integration of options.integrations ?? []) {
+    integrations.register(integration);
+  }
+  const requestOptimizationEnabled =
+    (options.includeBuiltinIntegrations !== false &&
+      (config.semantic.enabled || config.optical.enabled)) ||
+    (options.integrations?.length ?? 0) > 0;
+
+  // Cross-modal policy: only stand up the store + recorder when the adaptive path
+  // is enabled or in observe-only mode. Otherwise the recorder is absent and the
+  // store contributes zero overhead — behavior is byte-identical to the static path.
+  const policyActive = config.adaptive.enabled || config.adaptive.logOnly;
+  const policy = policyActive
+    ? new PolicyStore(config.adaptive.storePath || undefined).load()
+    : undefined;
+  const policyLog = log.child('policy');
+  const recorder = policy ? new StoreBackedRecorder(policy, (m) => policyLog.debug(m)) : undefined;
+
+  // The controller only changes routing when the adaptive path is fully enabled.
+  // In log-only mode the recorder still gathers evidence, but routing is untouched.
+  const controller =
+    policy && config.adaptive.enabled && (config.mode === 'optimize' || config.mode === 'enforce')
+      ? new CrossModalController(policy, DEFAULT_CONTROLLER_CONFIG, Math.random, (m) => policyLog.debug(m))
+      : undefined;
+
   // The semantic compressor doubles as the CCR retriever for headroom hashes.
-  const ccr = new CcrStore(semantic);
-  const router = new ContentRouter(semantic, optical, ccr, log.child('router'));
+  const ccr = new CcrStore(semantic, recorder);
+  const pipeline = new IntegrationPipeline(integrations);
+  const router = new ContentRouter(pipeline, ccr, log.child('router'), config.mode, controller);
 
   const totals: SessionStats = {
     requests: 0,
@@ -88,6 +165,9 @@ export function createPixroom(overrides: PixroomConfigOverrides = {}): Pixroom {
     router,
     ccr,
     sidecar,
+    integrations,
+    requestOptimizationEnabled,
+    policy,
     async route(provider, model, body, authMode) {
       const result = await router.route(provider, model, body, authMode);
       accumulate(result.report);
@@ -99,6 +179,13 @@ export function createPixroom(overrides: PixroomConfigOverrides = {}): Pixroom {
       return { sidecar: sidecar.status };
     },
     stats: () => ({ ...totals }),
-    shutdown: () => sidecar.stop(),
+    shutdown: async () => {
+      policy?.save();
+      await sidecar.stop();
+    },
   };
+}
+
+export function createPixroom(overrides: PixroomConfigOverrides = {}): Pixroom {
+  return createRuntime({ config: overrides });
 }

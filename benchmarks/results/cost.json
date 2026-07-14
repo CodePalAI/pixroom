@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-07-14T07:33:24.928Z",
+  "pricing": {
+    "base": 10,
+    "write5m": 12.5,
+    "read": 1
+  },
+  "session": {
+    "turns": 10,
+    "slabTokens": 8000,
+    "toolTokensPerTurn": 1500
+  },
+  "keep": {
+    "opticalSlab": 0.29,
+    "semanticTool": 0.6,
+    "llmlingua": 0.5
+  },
+  "derived": {
+    "slabImaged": 2320,
+    "toolSemantic": 900,
+    "slabLL": 4000,
+    "toolLL": 750
+  },
+  "configs": [
+    {
+      "key": "raw",
+      "label": "raw (native prompt caching)",
+      "cacheSafe": true,
+      "reversible": true,
+      "slab": 0.172,
+      "tools": 0.21750000000000003,
+      "total": 0.3895,
+      "vsRaw": 0
+    },
+    {
+      "key": "llmlingua-naive",
+      "label": "LLMLingua-class, whole-prompt per request",
+      "cacheSafe": false,
+      "reversible": false,
+      "slab": 0.4,
+      "tools": 0.4125,
+      "total": 0.8125,
+      "vsRaw": 1.086007702182285
+    },
+    {
+      "key": "llmlingua-careful",
+      "label": "LLMLingua-class, careful (compress stable prefix once)",
+      "cacheSafe": true,
+      "reversible": false,
+      "slab": 0.086,
+      "tools": 0.10875000000000001,
+      "total": 0.19475,
+      "vsRaw": -0.5
+    },
+    {
+      "key": "headroom-only",
+      "label": "headroom-only (semantic, cache-aware)",
+      "cacheSafe": true,
+      "reversible": true,
+      "slab": 0.172,
+      "tools": 0.13049999999999998,
+      "total": 0.3025,
+      "vsRaw": -0.22336328626444163
+    },
+    {
+      "key": "pxpipe-only",
+      "label": "pxpipe-only (optical slab, cache-aware)",
+      "cacheSafe": true,
+      "reversible": true,
+      "slab": 0.04988,
+      "tools": 0.21750000000000003,
+      "total": 0.26738,
+      "vsRaw": -0.3135301668806162
+    },
+    {
+      "key": "pixroom",
+      "label": "pixroom (optical slab + semantic tools)",
+      "cacheSafe": true,
+      "reversible": true,
+      "slab": 0.04988,
+      "tools": 0.13049999999999998,
+      "total": 0.18037999999999998,
+      "vsRaw": -0.5368934531450579
+    }
+  ],
+  "verdict": {
+    "netNegativeNaive": true,
+    "pixroomCheapest": true,
+    "pixroomBeatsCareful": true,
+    "pixroomReversible": true
+  },
+  "note": "Transparent cache-economics model; inputs grounded in Arm A reductions + Anthropic cache pricing. Live LLMLingua head-to-head deferred (needs torch)."
+}

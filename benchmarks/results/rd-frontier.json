@@ -1,0 +1,370 @@
+{
+  "evidenceLevel": "unit-simulation",
+  "generatedAt": "2026-07-14T08:18:44.731Z",
+  "targetRatio": 0.45,
+  "ratios": [
+    0.9,
+    0.75,
+    0.6,
+    0.45,
+    0.3,
+    0.2,
+    0.12
+  ],
+  "engines": [
+    "optical",
+    "semantic"
+  ],
+  "contentTypes": [
+    "json",
+    "code",
+    "log",
+    "prose"
+  ],
+  "frontier": {
+    "json": {
+      "optical": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.06961963190184049
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.0908851884312007
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.11215074496056093
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.13341630148992115
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.15468185801928133
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.1688588957055215
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.1802005258545136
+        }
+      ],
+      "semantic": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.054367221735319896
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.09718361086765995
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.14
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.18281638913234005
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.2256327782646801
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.2541770376862401
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.27701244522348817
+        }
+      ]
+    },
+    "code": {
+      "optical": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.12351631516116195
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.17861370871468366
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.23371110226820538
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.2888084958217271
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.34390588937524874
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.38063748507759654
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.4100227616394748
+        }
+      ],
+      "semantic": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.04028965380023876
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.0807949661758854
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.12130027855153205
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.1618055909271787
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.2023109033028253
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.22931444488658975
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.2509172781536013
+        }
+      ]
+    },
+    "log": {
+      "optical": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.033066666666666654
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.038666666666666655
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.04426666666666665
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.04986666666666665
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.055466666666666636
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.059199999999999975
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.06218666666666664
+        }
+      ],
+      "semantic": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.0622
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.10110000000000001
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.14
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.17890000000000003
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.2178
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.24373333333333336
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.26448
+        }
+      ]
+    },
+    "prose": {
+      "optical": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.15943575129533677
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.23365155440414506
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.30786735751295335
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.3820831606217617
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.45629896373056994
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.5057761658031089
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.54535792746114
+        }
+      ],
+      "semantic": [
+        {
+          "ratio": 0.9,
+          "savings": 0.09999999999999998,
+          "regret": 0.02271948186528497
+        },
+        {
+          "ratio": 0.75,
+          "savings": 0.25,
+          "regret": 0.05077383419689119
+        },
+        {
+          "ratio": 0.6,
+          "savings": 0.4,
+          "regret": 0.07882818652849741
+        },
+        {
+          "ratio": 0.45,
+          "savings": 0.55,
+          "regret": 0.10688253886010363
+        },
+        {
+          "ratio": 0.3,
+          "savings": 0.7,
+          "regret": 0.13493689119170985
+        },
+        {
+          "ratio": 0.2,
+          "savings": 0.8,
+          "regret": 0.153639792746114
+        },
+        {
+          "ratio": 0.12,
+          "savings": 0.88,
+          "regret": 0.1686021139896373
+        }
+      ]
+    }
+  },
+  "winners": {
+    "json": {
+      "engine": "optical",
+      "idFraction": 0.6455740578439965,
+      "idDensity": 0.11393514460999124,
+      "regret": {
+        "optical": 0.13341630148992115,
+        "semantic": 0.18281638913234005
+      }
+    },
+    "code": {
+      "engine": "semantic",
+      "idFraction": 0.3321528054118583,
+      "idDensity": 0.08038201352964584,
+      "regret": {
+        "optical": 0.2888084958217271,
+        "semantic": 0.1618055909271787
+      }
+    },
+    "log": {
+      "engine": "optical",
+      "idFraction": 0.9066666666666667,
+      "idDensity": 0.26666666666666666,
+      "regret": {
+        "optical": 0.04986666666666665,
+        "semantic": 0.17890000000000003
+      }
+    },
+    "prose": {
+      "engine": "semantic",
+      "idFraction": 0.10041450777202073,
+      "idDensity": 0.0010362694300518134,
+      "regret": {
+        "optical": 0.3820831606217617,
+        "semantic": 0.10688253886010363
+      }
+    }
+  },
+  "crossModal": true,
+  "note": "Regret from the simulated oracle (mechanistic, documented assumptions). Replace with live retrieval events for a validated frontier."
+}

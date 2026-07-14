@@ -18,7 +18,13 @@ import { delimiter, join } from 'node:path';
 
 import type { LogLevel } from '../config.js';
 import { createProxyServer, type ProxyServer } from '../proxy/server.js';
-import { WRAP_AGENTS, knownAgents, type LaunchAgent, type PrintAgent } from './agents.js';
+import {
+  BUILTIN_AGENT_REGISTRY,
+  knownAgents,
+  type AgentRegistry,
+  type LaunchAgent,
+  type PrintAgent,
+} from './agents.js';
 
 export interface WrapOptions {
   readonly agent: string;
@@ -30,13 +36,16 @@ export interface WrapOptions {
   readonly contextTool?: boolean;
   readonly port?: number;
   readonly verbose?: boolean;
+  /** Custom adapter registry for embedders; built-ins by default. */
+  readonly registry?: AgentRegistry;
 }
 
 /** Run `pixroom wrap`. Resolves to the process exit code. Never throws. */
 export async function runWrap(opts: WrapOptions): Promise<number> {
-  const spec = WRAP_AGENTS[opts.agent];
-  if (!spec) {
-    console.error(`unknown agent '${opts.agent}'. Supported: ${knownAgents().join(', ')}.`);
+  const registry = opts.registry ?? BUILTIN_AGENT_REGISTRY;
+  const spec = registry.get(opts.agent)?.adapter;
+  if (spec === undefined) {
+    console.error(`unknown agent '${opts.agent}'. Supported: ${knownAgents(registry).join(', ')}.`);
     console.error("For any compatible client, run 'pixroom proxy' and point its base URL at it.");
     return 1;
   }

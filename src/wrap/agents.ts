@@ -39,6 +39,36 @@ export interface PrintAgent {
 
 export type WrapAgent = LaunchAgent | DelegateAgent | PrintAgent;
 
+export type AgentInterception = 'traffic' | 'delegate' | 'config-only';
+
+export interface AgentDescriptor {
+  readonly id: string;
+  readonly displayName: string;
+  readonly interception: AgentInterception;
+  readonly protocols: readonly string[];
+  readonly adapter: WrapAgent;
+}
+
+export class AgentRegistry {
+  private readonly descriptors = new Map<string, AgentDescriptor>();
+
+  register(descriptor: AgentDescriptor): this {
+    if (this.descriptors.has(descriptor.id)) {
+      throw new Error(`duplicate agent id: ${descriptor.id}`);
+    }
+    this.descriptors.set(descriptor.id, descriptor);
+    return this;
+  }
+
+  get(id: string): AgentDescriptor | undefined {
+    return this.descriptors.get(id);
+  }
+
+  list(): readonly AgentDescriptor[] {
+    return [...this.descriptors.values()];
+  }
+}
+
 /** OpenAI-compatible clients expect the base URL to include `/v1`. */
 const v1 = (base: string): string => `${base}/v1`;
 
@@ -137,6 +167,56 @@ export const WRAP_AGENTS: Record<string, WrapAgent> = {
   },
 };
 
-export function knownAgents(): string[] {
-  return Object.keys(WRAP_AGENTS);
+const PROTOCOLS: Record<string, readonly string[]> = {
+  claude: ['anthropic.messages'],
+  codex: ['openai.responses', 'openai.chat-completions'],
+  aider: ['anthropic.messages', 'openai.chat-completions'],
+  goose: ['anthropic.messages', 'openai.chat-completions'],
+  openhands: ['anthropic.messages', 'openai.chat-completions'],
+  opencode: ['anthropic.messages', 'openai.chat-completions', 'openai.responses'],
+  vibe: ['openai.chat-completions'],
+  copilot: ['delegated-to-headroom'],
+  cursor: ['openai-compatible-config'],
+  cline: ['openai-compatible-config'],
+  continue: ['openai-compatible-config'],
+};
+
+function interception(adapter: WrapAgent): AgentInterception {
+  if (adapter.kind === 'launch') return 'traffic';
+  if (adapter.kind === 'delegate') return 'delegate';
+  return 'config-only';
+}
+
+function displayName(id: string, adapter: WrapAgent): string {
+  if (adapter.kind === 'print') return adapter.displayName;
+  if (id === 'copilot') return 'GitHub Copilot';
+  if (id === 'opencode') return 'OpenCode';
+  if (id === 'openhands') return 'OpenHands';
+  return id[0]!.toUpperCase() + id.slice(1);
+}
+
+export function createBuiltinAgentRegistry(): AgentRegistry {
+  const registry = new AgentRegistry();
+  for (const [id, adapter] of Object.entries(WRAP_AGENTS)) {
+    registry.register({
+      id,
+      displayName: displayName(id, adapter),
+      interception: interception(adapter),
+      protocols: PROTOCOLS[id] ?? [],
+      adapter,
+    });
+  }
+  return registry;
+}
+
+export const BUILTIN_AGENT_REGISTRY = createBuiltinAgentRegistry();
+
+export function knownAgents(registry: AgentRegistry = BUILTIN_AGENT_REGISTRY): string[] {
+  return registry.list().map((descriptor) => descriptor.id);
+}
+
+export function describeAgents(
+  registry: AgentRegistry = BUILTIN_AGENT_REGISTRY,
+): readonly AgentDescriptor[] {
+  return registry.list();
 }

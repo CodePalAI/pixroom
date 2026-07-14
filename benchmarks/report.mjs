@@ -17,6 +17,9 @@ const copilot = load('copilot.json');
 const claudeResults = loadClaudeResults();
 const proof = load('proof.json');
 const prose = load('prose.json');
+const rdFrontier = load('rd-frontier.json');
+const adaptive = load('adaptive.json');
+const proxyProfile = load('proxy-profile.json');
 const out = [];
 
 function loadClaudeResults() {
@@ -34,10 +37,61 @@ out.push('');
 out.push(`_Generated ${new Date().toISOString()}._`);
 out.push('');
 out.push(
-  'Measures token consumption (and, for the live arm, the actual response + correctness) ' +
+  'Measures token consumption (and, for live arms, response correctness) ' +
     'for **headroom-only** (semantic), **pxpipe-only** (optical), and **pixroom** (both), on the ' +
-    'same prompts + system context.',
+    'same prompts + system context. Results are separated by evidence level; simulations are not ' +
+    'presented as product-performance evidence.',
 );
+out.push('');
+
+out.push('## Evidence levels');
+out.push('');
+out.push('- `unit-simulation` — hand-parameterized mechanism/controller checks; useful for unit behavior, not competitive claims.');
+out.push('- `offline-real-transform` — real compressor code over synthetic or fixture inputs; valid for transform/token accounting only.');
+out.push('- `live-controlled` — real model call with a fixed, directly graded prompt; currently single-run unless stated otherwise.');
+out.push('- `live-agentic` — real tool-using agent run; correctness is useful, while tokens/latency are high-variance without paired repetitions.');
+out.push('');
+
+out.push('## Benchmark v2 — no-op proxy profile');
+out.push('');
+if (!proxyProfile) {
+  out.push('_Not run._');
+} else {
+  const cfg = proxyProfile.config;
+  out.push(
+    `Evidence: \`${proxyProfile.evidenceLevel}\`. Local network mock, ${cfg.requests} requests per arm, ` +
+      `${cfg.repetitions} repetitions, randomized direct/proxy arm order after ${cfg.warmupRequests} warmups.`,
+  );
+  out.push('');
+  out.push(
+    mdTable(
+      ['payload', 'concurrency', 'direct mean p95', 'pixroom mean p95', 'added p95'],
+      proxyProfile.comparisons.map((row) => [
+        `${row.payloadBytes} B`,
+        String(row.concurrency),
+        `${row.directMeanP95Ms.toFixed(2)} ms`,
+        `${row.proxyMeanP95Ms.toFixed(2)} ms`,
+        `${row.addedP95Ms.toFixed(2)} ms`,
+      ]),
+    ),
+  );
+  out.push('');
+  out.push(
+    `Zero-error verdict: \`${proxyProfile.verdict.zeroErrors}\`. Raw per-request latency, CPU, RSS, event-loop ` +
+      'delay, machine metadata, Node version, config, and git SHA are in `results/proxy-profile.json`.',
+  );
+  out.push('');
+  out.push(
+    '> This is a local smoke profile, not a 1k-RPS release benchmark. Direct mock and proxy share one ' +
+      'process, so CPU/RSS are diagnostic. The full v2 matrix will isolate containers and add SSE, ' +
+      'WebSocket, 1 MB payloads, soak, and competitor gateways.',
+  );
+}
+out.push('');
+
+out.push('## Legacy benchmark arms');
+out.push('');
+out.push('Retained for transparency while the quality-constrained benchmark v2 is built.');
 out.push('');
 
 // ── Methodology / honest constraints ─────────────────────────────────────────
@@ -80,6 +134,8 @@ out.push('');
 
 // ── Arm A ────────────────────────────────────────────────────────────────────
 out.push('## Arm A — offline 3-way (effective input tokens)');
+out.push('');
+out.push('Evidence: `offline-real-transform`.');
 out.push('');
 if (!offline) {
   out.push('_Not run._');
@@ -160,6 +216,8 @@ out.push('');
 
 // ── Arm B ────────────────────────────────────────────────────────────────────
 out.push('## Arm B — live wrapped Copilot (real subscription)');
+out.push('');
+out.push('Evidence: per row `live-controlled` (exact/reasoning) or `live-agentic` (tool use); single-run, no confidence intervals.');
 out.push('');
 if (!copilot) {
   out.push('_Not run._');
@@ -256,6 +314,8 @@ out.push('');
 
 // ── Arm C ────────────────────────────────────────────────────────────────────
 out.push('## Arm C — live Claude Code 4-way');
+out.push('');
+out.push('Evidence: per row `live-controlled` or `live-agentic`; single-run, fixed-order, and cache-warmth confounded.');
 out.push('');
 if (claudeResults.length === 0) {
   out.push('_Not run._');
@@ -389,11 +449,13 @@ out.push(
 out.push('');
 
 // ── Conclusion ───────────────────────────────────────────────────────────────
-out.push('## Arm E — proof: does pixroom dominate both?');
+out.push('## Arm E — constructed additivity check');
 out.push('');
 if (!proof) {
   out.push('_Not run._');
 } else {
+  out.push('Evidence: `offline-real-transform`. This checks token arithmetic on five constructed, disjoint-region scenarios; it does not establish task-quality, latency, or universal product dominance.');
+  out.push('');
   out.push(
     "Follows headroom's benchmarking route (`benchmarks/comprehensive_eval.py`, " +
       '`real_world_agent_benchmark.py`): named realistic scenarios, savings measured from **input tokens ' +
@@ -443,20 +505,17 @@ if (!proof) {
     out.push('');
   }
   out.push(
-    `**Verdict:** \`dominates-all=${proof.verdict.dominatesAll}\` — pixroom is **never worse** than the ` +
-      'better of the two single engines on any scenario. It **strictly beats both** on mixed workloads where ' +
+    `**Corpus verdict:** \`dominates-all=${proof.verdict.dominatesAll}\` — on these five inputs, pixroom is not worse than the ` +
+      'better single transform and is strictly smaller on mixed workloads where ' +
       'both engines actually compress (json, logs); it **ties** the better engine where only one region is ' +
       'compressible (slab-heavy → =pxpipe; tools-heavy → =headroom; mixed-code → =pxpipe, because headroom\'s ' +
       'code compressor needs the `[code]` extra, not installed here).',
   );
   out.push('');
   out.push(
-    '> This is a **Pareto-domination** proof, not a claim of always-large margins. By construction — disjoint ' +
-      'regions, one engine per region, no double-compression — pixroom\'s output is mathematically ' +
-      '≤ min(headroom-only, pxpipe-only), strict exactly when both regions compress. Real agent traffic (big ' +
-      'static slab + bulky tool outputs) is that case, so pixroom wins there; on degenerate single-region ' +
-      'workloads it safely reduces to the better engine. Correctness under compression is validated live in ' +
-      'Arm C (every retrieval/tool prompt stayed correct across all configs).',
+    '> This is an additivity property of the constructed partition, not a general Pareto proof. Real task ' +
+    'quality, retries/retrievals, cache behavior, model capability, and transform overhead can reverse a ' +
+    'token-only ranking. Those dimensions move to the v2 quality-constrained benchmark.',
   );
 }
 out.push('');
@@ -467,6 +526,8 @@ out.push('');
 if (!prose) {
   out.push('_Not run._');
 } else {
+  out.push('Evidence: `offline-real-transform`.');
+  out.push('');
   out.push(
     "Same input-token methodology as Arm E, on a region the other arms don't exercise: a large " +
       '**plain-prose block in a USER message** (the RAG / pasted-context pattern). pxpipe images only the ' +
@@ -518,6 +579,89 @@ if (!prose) {
 }
 out.push('');
 
+// ── Arm G — controller simulation ───────────────────────────────────────────
+out.push('## Arm G — controller simulation');
+out.push('');
+if (!rdFrontier && !adaptive) {
+  out.push('_Not run._');
+} else {
+  out.push(
+    'Evidence: `unit-simulation`. Both retrieval probabilities and characteristic engine ratios are ' +
+      '**hand-authored**, and the same oracle trains and grades the controller. This arm checks that the ' +
+      'policy/store loop can recover a planted allocation; it is not evidence that the allocation, savings, ' +
+      'or regret values hold on real traffic.',
+  );
+  out.push('');
+  if (rdFrontier) {
+    out.push(`**Simulated RD surface — planted best engine per content type** (at ${pct(1 - rdFrontier.targetRatio)} savings):`);
+    out.push('');
+    out.push(
+      mdTable(
+        ['content type', 'best engine', 'optical regret', 'semantic regret'],
+        rdFrontier.contentTypes.map((ct) => {
+          const w = rdFrontier.winners[ct];
+          return [ct, `**${w.engine}**`, w.regret.optical.toFixed(3), w.regret.semantic.toFixed(3)];
+        }),
+      ),
+    );
+    out.push('');
+    out.push(
+      `\`cross-modal=${rdFrontier.crossModal}\` confirms that the configured oracle contains multiple winners. ` +
+        'It does not validate those winners against a model.',
+    );
+    out.push('');
+  }
+  if (adaptive) {
+    const s = adaptive.summary;
+    out.push(
+      '**Closed-loop self-consistency.** The controller starts at the static rule and learns from simulated ' +
+        'retrieval-regret. Net token saving is the internal objective (`saved − regret`: a retrieval ' +
+        'wastes the compressed copy):',
+    );
+    out.push('');
+    out.push(
+      mdTable(
+        ['policy', 'netSaved', 'regret'],
+        [
+          ['static semantic-only (today)', pct(s.semLate.netSaved), s.semLate.regret.toFixed(3)],
+          ['static optical-only', pct(s.optLate.netSaved), s.optLate.regret.toFixed(3)],
+          ['**adaptive (learned)**', `**${pct(s.adaptLate.netSaved)}**`, `**${s.adaptLate.regret.toFixed(3)}**`],
+          ['optimal (offline ceiling)', pct(adaptive.optimal.netSaved), adaptive.optimal.regret.toFixed(3)],
+        ],
+      ),
+    );
+    out.push('');
+    out.push('**Learned routing vs offline-optimal:**');
+    out.push('');
+    out.push(
+      mdTable(
+        ['content type', 'optimal', 'learned', 'match'],
+        Object.keys(adaptive.optimal.map).map((ct) => [
+          ct,
+          adaptive.optimal.map[ct],
+          adaptive.learned[ct],
+          adaptive.optimal.map[ct] === adaptive.learned[ct] ? '✓' : '✗',
+        ]),
+      ),
+    );
+    out.push('');
+    const v = adaptive.verdict;
+    out.push(
+      `**Simulation verdict:** \`learns=${v.learns}\`, \`beats-both-single-engines=${v.beatsBoth}\`, ` +
+        `\`pareto-not-dominated=${v.notDominated}\`, \`recovered-cross-modal-map=${v.recovered}\`. The ` +
+        `controller recovers the allocation planted by its oracle. The percentages are simulated outputs, ` +
+        `not observed product savings.`,
+    );
+    out.push('');
+    out.push(
+      '> The current runtime controller is also not yet genuine same-region cross-modal routing: on the slab, ' +
+        'selecting semantic means skipping optical and forwarding raw text. It remains **off by default**. ' +
+        'Real adaptive claims are gated on shadow proposals and held-out task benchmarks.',
+    );
+  }
+}
+out.push('');
+
 out.push('## Findings');
 out.push('');
 if (offline) {
@@ -555,10 +699,9 @@ if (claudeResults.find((c) => c.model.includes('fable'))) {
 if (proof) {
   const strictMixed = proof.scenarios.filter((e) => e.category === 'mixed' && e.strictWin).map((e) => e.name);
   out.push(
-    `- **Proof (Arm E): pixroom dominates** — \`dominates-all=${proof.verdict.dominatesAll}\`, never worse ` +
-      `than the better single engine, and **strictly better on ${strictMixed.join(' + ') || 'mixed'}** ` +
-      '(savings are additive across the disjoint optical/semantic regions). It ties the better engine only ' +
-      'on single-region workloads. So: **better than both where it matters, never worse anywhere.**',
+    `- **Constructed additivity (Arm E):** \`dominates-all=${proof.verdict.dominatesAll}\` on five ` +
+      `synthetic disjoint-region inputs; strict token wins on ${strictMixed.join(' + ') || 'mixed'}. ` +
+      'This is transform arithmetic, not a task-quality or universal product claim.',
   );
 }
 if (prose) {
@@ -567,6 +710,12 @@ if (prose) {
       'pxpipe, headroom-tools, and default pixroom, but `PIXROOM_SEMANTIC_PROSE=1` routes it to headroom\'s ' +
       'Kompress for a real, reversible cut (~6–21% of prose tokens by redundancy), **additive** with the ' +
       'optical + tool_result regions and a **no-op** when there\'s no prose.',
+  );
+}
+if (rdFrontier || adaptive) {
+  out.push(
+    '- **Controller simulation (Arm G):** the policy loop recovers a hand-authored 2×2 allocation under ' +
+      'its own oracle. It is retained as a deterministic mechanism test and excluded from competitive claims.',
   );
 }
 out.push(
@@ -582,8 +731,11 @@ out.push('~/repos-pixroom/.headroom-venv/bin/headroom proxy --port 8787 &   # se
 out.push('node benchmarks/offline.mjs           # Arm A (3-way, offline)');
 out.push('BENCH_MODEL=claude-opus-4.8 node benchmarks/copilot.mjs   # Arm B (live Copilot)');
 out.push('PIXROOM_OPTICAL_ON_SUBSCRIPTION=1 BENCH_MODEL=claude-fable-5 node benchmarks/claude.mjs  # Arm C (live Claude 4-way, optical on)');
-out.push('node benchmarks/proof.mjs             # Arm E (input-token domination proof)');
+out.push('node benchmarks/proof.mjs             # Arm E (constructed additivity check)');
 out.push('node benchmarks/prose.mjs             # Arm F (prose region, needs transformers in the sidecar)');
+out.push('node benchmarks/rd_frontier.mjs       # Arm G (simulated RD surface)');
+out.push('node benchmarks/adaptive.mjs          # Arm G (controller simulation)');
+out.push('npm run bench:profile                 # v2 local proxy overhead profile');
 out.push('node benchmarks/report.mjs            # regenerate this file');
 out.push('```');
 out.push('');

@@ -15,14 +15,22 @@
 
 import type { Logger } from '../logger.js';
 import { CCR_TOOL_NAME, type CcrStore } from '../ccr/store.js';
+import { PXPIPE_OPTICAL_INTEGRATION_ID } from '../integrations/legacy-compressor.js';
+import type { IntegrationPipeline } from '../kernel/pipeline.js';
+import type { PipelineResult } from '../kernel/pipeline.js';
+import type { RuntimeMode } from '../kernel/types.js';
 import { buildReport, summarizeReport } from '../measurement/savings.js';
-import type {
-  AuthMode,
-  Compressor,
-  Provider,
-  RequestContext,
-  ReversibleHandle,
-  SavingsReport,
+import { classifyContent } from '../policy/content-type.js';
+import { readSystemText } from '../anthropic.js';
+import type { CrossModalController, EngineDecision } from '../policy/controller.js';
+import {
+  passthroughResult,
+  type AuthMode,
+  type ContentType,
+  type Provider,
+  type RequestContext,
+  type ReversibleHandle,
+  type SavingsReport,
 } from '../types.js';
 
 export interface RouteResult {
@@ -32,6 +40,13 @@ export interface RouteResult {
   readonly reversible: readonly ReversibleHandle[];
   /** True when pxpipe pinned the single Anthropic `cache_control` breakpoint. */
   readonly opticalOwnsCacheControl: boolean;
+  /** Proposal/transaction trace for audit, shadow, and explain surfaces. */
+  readonly pipeline: PipelineResult;
+  /** Cross-modal controller decision for the slab region, when the adaptive path is on. */
+  readonly adaptive?: {
+    readonly slabContentType: ContentType;
+    readonly decision: EngineDecision;
+  };
 }
 
 function toolName(tool: unknown): string | undefined {
@@ -44,10 +59,12 @@ function toolName(tool: unknown): string | undefined {
 
 export class ContentRouter {
   constructor(
-    private readonly semantic: Compressor,
-    private readonly optical: Compressor,
+    private readonly pipeline: IntegrationPipeline,
     private readonly ccr: CcrStore,
     private readonly log: Logger,
+    private readonly mode: RuntimeMode = 'optimize',
+    /** Optional adaptive controller; when present, may defer optical for a slab type. */
+    private readonly controller?: CrossModalController,
   ) {}
 
   async route(
@@ -66,9 +83,32 @@ export class ContentRouter {
       opticalOwnsCacheControl: false,
     };
 
-    // §4.3: semantic first (content), then optical (static slab + cache_control).
-    await this.semantic.run(ctx);
-    await this.optical.run(ctx);
+    let adaptive: RouteResult['adaptive'];
+    const pipelineResult = await this.pipeline.run(ctx, {
+      mode: this.mode,
+      beforeIntegration: (integration) => {
+        if (integration.id !== PXPIPE_OPTICAL_INTEGRATION_ID || !this.controller) return true;
+
+        const slabContentType = classifyContent(readSystemText(ctx.body));
+        const decision = this.controller.chooseEngine({
+          contentType: slabContentType,
+          eligible: ['optical', 'semantic'],
+          defaultEngine: 'optical',
+          fallbackSaved: { optical: 0.7, semantic: 0.4 },
+        });
+        adaptive = { slabContentType, decision };
+        if (decision.engine === 'optical') return true;
+
+        ctx.stages.push(
+          passthroughResult('optical', 'not_profitable', `adaptive: deferred slab (${slabContentType})`),
+        );
+        this.log.debug(`adaptive: optical deferred for slab content=${slabContentType}`);
+        return false;
+      },
+    });
+    for (const failure of pipelineResult.errors) {
+      this.log.warn(`integration ${failure.integrationId} degraded: ${failure.error}`);
+    }
 
     // Unify reversibility: both engines' handles live in one store (§5.2).
     this.ccr.registerReversible(ctx.reversible);
@@ -86,6 +126,8 @@ export class ContentRouter {
       report,
       reversible: ctx.reversible,
       opticalOwnsCacheControl: ctx.opticalOwnsCacheControl,
+      pipeline: pipelineResult,
+      adaptive,
     };
   }
 

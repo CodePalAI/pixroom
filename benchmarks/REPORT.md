@@ -1,8 +1,36 @@
 # pixroom compression benchmark
 
-_Generated 2026-07-12T10:48:25.308Z._
+_Generated 2026-07-14T08:48:00.085Z._
 
-Measures token consumption (and, for the live arm, the actual response + correctness) for **headroom-only** (semantic), **pxpipe-only** (optical), and **pixroom** (both), on the same prompts + system context.
+Measures token consumption (and, for live arms, response correctness) for **headroom-only** (semantic), **pxpipe-only** (optical), and **pixroom** (both), on the same prompts + system context. Results are separated by evidence level; simulations are not presented as product-performance evidence.
+
+## Evidence levels
+
+- `unit-simulation` — hand-parameterized mechanism/controller checks; useful for unit behavior, not competitive claims.
+- `offline-real-transform` — real compressor code over synthetic or fixture inputs; valid for transform/token accounting only.
+- `live-controlled` — real model call with a fixed, directly graded prompt; currently single-run unless stated otherwise.
+- `live-agentic` — real tool-using agent run; correctness is useful, while tokens/latency are high-variance without paired repetitions.
+
+## Benchmark v2 — no-op proxy profile
+
+Evidence: `offline-real-transform`. Local network mock, 150 requests per arm, 3 repetitions, randomized direct/proxy arm order after 20 warmups.
+
+| payload | concurrency | direct mean p95 | pixroom mean p95 | added p95 |
+| --- | --- | --- | --- | --- |
+| 1024 B | 1 | 0.58 ms | 1.16 ms | 0.58 ms |
+| 1024 B | 10 | 4.88 ms | 5.55 ms | 0.67 ms |
+| 1024 B | 100 | 12.71 ms | 32.82 ms | 20.12 ms |
+| 102400 B | 1 | 0.59 ms | 0.81 ms | 0.22 ms |
+| 102400 B | 10 | 5.89 ms | 8.32 ms | 2.43 ms |
+| 102400 B | 100 | 22.36 ms | 57.45 ms | 35.09 ms |
+
+Zero-error verdict: `true`. Raw per-request latency, CPU, RSS, event-loop delay, machine metadata, Node version, config, and git SHA are in `results/proxy-profile.json`.
+
+> This is a local smoke profile, not a 1k-RPS release benchmark. Direct mock and proxy share one process, so CPU/RSS are diagnostic. The full v2 matrix will isolate containers and add SSE, WebSocket, 1 MB payloads, soak, and competitor gateways.
+
+## Legacy benchmark arms
+
+Retained for transparency while the quality-constrained benchmark v2 is built.
 
 ## Methodology & constraints
 
@@ -18,6 +46,8 @@ So the benchmark has two valid arms:
 - **Arm B — live wrapped Copilot:** baseline `copilot` vs `pixroom wrap copilot` on the real subscription (no API key), measuring Copilot-reported tokens, the actual response, and correctness. pxpipe is N/A; pixroom == headroom.
 
 ## Arm A — offline 3-way (effective input tokens)
+
+Evidence: `offline-real-transform`.
 
 Model: `claude-fable-5` (pxpipe-supported, so optical engages). headroom sidecar: `external`.
 
@@ -46,6 +76,8 @@ _Caveat:_ headroom's source-code compressor needs the `headroom-ai[code]` extra 
 </details>
 
 ## Arm B — live wrapped Copilot (real subscription)
+
+Evidence: per row `live-controlled` (exact/reasoning) or `live-agentic` (tool use); single-run, no confidence intervals.
 
 Requested model: `claude-opus-4.8`. Effective model: `claude-opus-4.8`.
 
@@ -97,6 +129,8 @@ Requested model: `claude-opus-4.8`. Effective model: `claude-opus-4.8`.
 > Note: Copilot's reported input-token count may reflect its own pre-send tokenization rather than the compressed payload headroom forwards. If `Δ in-tok ≈ 0`, the compression still occurred on the wire (see Arm A for the measured reduction); Copilot just isn't surfacing the post-proxy count.
 
 ## Arm C — live Claude Code 4-way
+
+Evidence: per row `live-controlled` or `live-agentic`; single-run, fixed-order, and cache-warmth confounded.
 
 `baseline` = native `claude`; the other three route Claude Code through each proxy via `ANTHROPIC_BASE_URL` (no API key). Ground-truth usage from `claude --output-format json`, including the prompt-cache breakdown. Unlike Copilot, pxpipe and pixroom are the **real front door** here.
 
@@ -185,7 +219,9 @@ Requested model: `claude-opus-4.8`. Effective model: `claude-opus-4.8`.
 
 _An API key is present in the environment, so this arm is **runnable** — but it makes **paid** direct-API calls (unlike the Copilot subscription), so it was not run autonomously. On request I can run the full direct-API 3-way (headroom vs pxpipe vs pixroom) on opus 4.8 with provider-reported `usage` — the one arm that puts all three on the exact same live model._
 
-## Arm E — proof: does pixroom dominate both?
+## Arm E — constructed additivity check
+
+Evidence: `offline-real-transform`. This checks token arithmetic on five constructed, disjoint-region scenarios; it does not establish task-quality, latency, or universal product dominance.
 
 Follows headroom's benchmarking route (`benchmarks/comprehensive_eval.py`, `real_world_agent_benchmark.py`): named realistic scenarios, savings measured from **input tokens before/after** — which headroom notes is a *pure function* (`proxy/output_savings.py`), so it needs no live model and is free of the cache / agentic / base-URL confounds. One consistent basis across all configs: gpt-tokenizer for text + Anthropic's exact image formula (ceil(w*h/750)). Savings are vs `raw`, derived from summed token counts.
 
@@ -205,11 +241,13 @@ Follows headroom's benchmarking route (`benchmarks/comprehensive_eval.py`, `real
 | mixed-logs | 3353 | 3591 | 6944 | 6944 | exact ✓ |
 | mixed-code | 3353 | 0 | 3353 | 3353 | exact ✓ |
 
-**Verdict:** `dominates-all=true` — pixroom is **never worse** than the better of the two single engines on any scenario. It **strictly beats both** on mixed workloads where both engines actually compress (json, logs); it **ties** the better engine where only one region is compressible (slab-heavy → =pxpipe; tools-heavy → =headroom; mixed-code → =pxpipe, because headroom's code compressor needs the `[code]` extra, not installed here).
+**Corpus verdict:** `dominates-all=true` — on these five inputs, pixroom is not worse than the better single transform and is strictly smaller on mixed workloads where both engines actually compress (json, logs); it **ties** the better engine where only one region is compressible (slab-heavy → =pxpipe; tools-heavy → =headroom; mixed-code → =pxpipe, because headroom's code compressor needs the `[code]` extra, not installed here).
 
-> This is a **Pareto-domination** proof, not a claim of always-large margins. By construction — disjoint regions, one engine per region, no double-compression — pixroom's output is mathematically ≤ min(headroom-only, pxpipe-only), strict exactly when both regions compress. Real agent traffic (big static slab + bulky tool outputs) is that case, so pixroom wins there; on degenerate single-region workloads it safely reduces to the better engine. Correctness under compression is validated live in Arm C (every retrieval/tool prompt stayed correct across all configs).
+> This is an additivity property of the constructed partition, not a general Pareto proof. Real task quality, retries/retrievals, cache behavior, model capability, and transform overhead can reverse a token-only ranking. Those dimensions move to the v2 quality-constrained benchmark.
 
 ## Arm F — prose region (PIXROOM_SEMANTIC_PROSE)
+
+Evidence: `offline-real-transform`.
 
 Same input-token methodology as Arm E, on a region the other arms don't exercise: a large **plain-prose block in a USER message** (the RAG / pasted-context pattern). pxpipe images only the system slab and the tool_result stage only touches tool_result blocks, so **every other config passes that block through raw**. The prose path routes it to headroom's **Kompress** (ModernBERT prose token-drop), reversibly via CCR.
 
@@ -224,13 +262,51 @@ Same input-token methodology as Arm E, on a region the other arms don't exercise
 
 > **Honest scope.** Kompress is lossy prose token-drop with a must-keep guard (numbers, ALLCAPS, paths, CamelCase are never dropped) and every offload is CCR-recoverable. Realized savings scale with prose redundancy: measured **directly** on varied prose, Kompress cuts **~6% (dense) / 15% (natural) / 18% (redundant)** of prose tokens; the synthetic corpus here is moderately redundant (~21%). It is **opt-in** and needs the sidecar to have the Kompress tokenizer (`pip install transformers` — the lightweight ONNX path, no torch); pixroom sends `compress_user_messages` automatically. Without Kompress the sidecar no-ops prose and these rows tie their baselines.
 
+## Arm G — controller simulation
+
+Evidence: `unit-simulation`. Both retrieval probabilities and characteristic engine ratios are **hand-authored**, and the same oracle trains and grades the controller. This arm checks that the policy/store loop can recover a planted allocation; it is not evidence that the allocation, savings, or regret values hold on real traffic.
+
+**Simulated RD surface — planted best engine per content type** (at 55.0% savings):
+
+| content type | best engine | optical regret | semantic regret |
+| --- | --- | --- | --- |
+| json | **optical** | 0.133 | 0.183 |
+| code | **semantic** | 0.289 | 0.162 |
+| log | **optical** | 0.050 | 0.179 |
+| prose | **semantic** | 0.382 | 0.107 |
+
+`cross-modal=true` confirms that the configured oracle contains multiple winners. It does not validate those winners against a model.
+
+**Closed-loop self-consistency.** The controller starts at the static rule and learns from simulated retrieval-regret. Net token saving is the internal objective (`saved − regret`: a retrieval wastes the compressed copy):
+
+| policy | netSaved | regret |
+| --- | --- | --- |
+| static semantic-only (today) | 32.7% | 0.148 |
+| static optical-only | 42.3% | 0.252 |
+| **adaptive (learned)** | **52.1%** | **0.092** |
+| optimal (offline ceiling) | 50.0% | 0.113 |
+
+**Learned routing vs offline-optimal:**
+
+| content type | optimal | learned | match |
+| --- | --- | --- | --- |
+| json | optical | optical | ✓ |
+| log | optical | optical | ✓ |
+| code | semantic | semantic | ✓ |
+| prose | semantic | semantic | ✓ |
+
+**Simulation verdict:** `learns=true`, `beats-both-single-engines=true`, `pareto-not-dominated=true`, `recovered-cross-modal-map=true`. The controller recovers the allocation planted by its oracle. The percentages are simulated outputs, not observed product savings.
+
+> The current runtime controller is also not yet genuine same-region cross-modal routing: on the slab, selecting semantic means skipping optical and forwarding raw text. It remains **off by default**. Real adaptive claims are gated on shadow proposals and held-out task benchmarks.
+
 ## Findings
 
 - **Offline (claude-fable-5):** pxpipe-only 21.2%, headroom-only 20.5%, **pixroom 41.7%** overall input-token reduction. The two engines target disjoint regions (optical→system slab, semantic→tool outputs), so composing them beats either alone.
 - **Live Copilot (claude-opus-4.8):** wrapping works end-to-end on the real subscription; correctness is preserved. For Copilot specifically, pixroom's value is headroom's semantic engine (optical is out of scope for these models).
 - **Live Claude Code (fable-5):** optical genuinely engages — pxpipe/pixroom image the static slab for a **net total-input cut vs native** despite the proxy's request inflation, correctness preserved (except a base-URL arithmetic quirk that hits *all* proxies, not compression). On opus (out of optical scope) the same proxying nets *more* tokens. The decisive subscription concern is the **prompt cache**: aggressive/lossy restructuring interacts with Claude Code's cache, so pixroom goes stealth there. See Arm C; the full optical+semantic composition is Arm A.
-- **Proof (Arm E): pixroom dominates** — `dominates-all=true`, never worse than the better single engine, and **strictly better on mixed-json + mixed-logs** (savings are additive across the disjoint optical/semantic regions). It ties the better engine only on single-region workloads. So: **better than both where it matters, never worse anywhere.**
+- **Constructed additivity (Arm E):** `dominates-all=true` on five synthetic disjoint-region inputs; strict token wins on mixed-json + mixed-logs. This is transform arithmetic, not a task-quality or universal product claim.
 - **Prose (Arm F): fills the gap** — a large user-message prose block is compressed **0%** by pxpipe, headroom-tools, and default pixroom, but `PIXROOM_SEMANTIC_PROSE=1` routes it to headroom's Kompress for a real, reversible cut (~6–21% of prose tokens by redundancy), **additive** with the optical + tool_result regions and a **no-op** when there's no prose.
+- **Controller simulation (Arm G):** the policy loop recovers a hand-authored 2×2 allocation under its own oracle. It is retained as a deterministic mechanism test and excluded from competitive claims.
 - **Right-sizing:** use optical where you control an Anthropic model in pxpipe's scope; use headroom (semantic) everywhere, including Copilot; use pixroom to get both automatically where both apply.
 
 ## Reproduce
@@ -241,7 +317,10 @@ npm run build
 node benchmarks/offline.mjs           # Arm A (3-way, offline)
 BENCH_MODEL=claude-opus-4.8 node benchmarks/copilot.mjs   # Arm B (live Copilot)
 PIXROOM_OPTICAL_ON_SUBSCRIPTION=1 BENCH_MODEL=claude-fable-5 node benchmarks/claude.mjs  # Arm C (live Claude 4-way, optical on)
-node benchmarks/proof.mjs             # Arm E (input-token domination proof)
+node benchmarks/proof.mjs             # Arm E (constructed additivity check)
 node benchmarks/prose.mjs             # Arm F (prose region, needs transformers in the sidecar)
+node benchmarks/rd_frontier.mjs       # Arm G (simulated RD surface)
+node benchmarks/adaptive.mjs          # Arm G (controller simulation)
+npm run bench:profile                 # v2 local proxy overhead profile
 node benchmarks/report.mjs            # regenerate this file
 ```

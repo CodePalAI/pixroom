@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { copilotSuite, parseTokens, stripAnsi, extractAnswer } from './lib.mjs';
+import { EVIDENCE, liveEvidenceForKind } from './evidence.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..');
@@ -94,6 +95,7 @@ async function run() {
   console.log(`using model '${model}'${picked.fallback ? ` (fallback from ${REQUESTED_MODEL})` : ''}`);
 
   const results = {
+    evidenceLevel: EVIDENCE.LIVE_AGENTIC,
     requestedModel: REQUESTED_MODEL,
     effectiveModel: model,
     modelFallback: picked.fallback,
@@ -116,6 +118,7 @@ async function run() {
     console.log(`  in=${wrapped.tokensIn} out=${wrapped.tokensOut} correct=${wrapped.correct} ${wrapped.ms}ms`);
 
     results.runs.push({
+      evidenceLevel: liveEvidenceForKind(item.kind),
       id: item.id,
       kind: item.kind,
       prompt: item.prompt,

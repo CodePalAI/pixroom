@@ -28,10 +28,12 @@ import {
   type ToolResultTarget,
 } from '../anthropic.js';
 import { counterfactual, tokensFromChars } from '../measurement/savings.js';
+import { dominantContentType } from '../policy/content-type.js';
 import type { HeadroomSidecar } from '../sidecar/headroom-sidecar.js';
 import {
   passthroughResult,
   type Compressor,
+  type ContentType,
   type ReversibleHandle,
   type RequestContext,
   type StageOutcome,
@@ -165,6 +167,7 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
 
     // Only rewrite the body when headroom actually helped; a no-op stays byte-exact.
     const applied = resp.tokens_saved > 0 || resp.ccr_hashes.length > 0;
+    let reversible: ReversibleHandle[] = [];
     if (applied) {
       const nTool = toolTargets.length;
       if (nTool > 0) {
@@ -173,7 +176,16 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
       if (proseTargets.length > 0) {
         applyCompressedProse(ctx.body, proseTargets, compressed.slice(nTool));
       }
-      this.registerHashes(ctx, resp.ccr_hashes);
+      // Attribute the offloaded hashes to the dominant content type of the region
+      // they came from (hashes are opaque, so this is best-effort — a bucketing key
+      // for RD learning, never a correctness lever).
+      const contentType = dominantContentType([
+        ...toolTargets.map((t) => t.text),
+        ...proseTargets.map((t) => t.text),
+      ]);
+      const ratio = resp.tokens_before > 0 ? resp.tokens_after / resp.tokens_before : undefined;
+      reversible = this.hashHandles(resp.ccr_hashes, contentType, ratio);
+      for (const h of reversible) ctx.reversible.push(h);
     }
 
     return {
@@ -182,7 +194,7 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
       reason: applied ? 'applied' : 'not_profitable',
       detail: resp.transforms_applied.join(',') || undefined,
       counterfactual: counterfactual(resp.tokens_before, resp.tokens_after, 'tiktoken'),
-      reversible: applied ? this.hashHandles(resp.ccr_hashes) : [],
+      reversible,
     };
   }
 
@@ -198,9 +210,17 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
     }
 
     const applied = resp.tokens_saved > 0 || resp.ccr_hashes.length > 0;
+    let reversible: ReversibleHandle[] = [];
     if (applied) {
       ctx.body.messages = resp.messages;
-      this.registerHashes(ctx, resp.ccr_hashes);
+      const contentType = dominantContentType(
+        messages
+          .map((m) => flattenContent((m as { content?: unknown }).content) ?? '')
+          .filter((s) => s.length > 0),
+      );
+      const ratio = resp.tokens_before > 0 ? resp.tokens_after / resp.tokens_before : undefined;
+      reversible = this.hashHandles(resp.ccr_hashes, contentType, ratio);
+      for (const h of reversible) ctx.reversible.push(h);
     }
 
     return {
@@ -209,16 +229,18 @@ export class SemanticCompressor implements Compressor, CcrRetriever {
       reason: applied ? 'applied' : 'not_profitable',
       detail: resp.transforms_applied.join(',') || undefined,
       counterfactual: counterfactual(resp.tokens_before, resp.tokens_after, 'tiktoken'),
-      reversible: applied ? this.hashHandles(resp.ccr_hashes) : [],
+      reversible,
     };
   }
 
-  private hashHandles(hashes: readonly string[]): ReversibleHandle[] {
-    return hashes.filter(Boolean).map((id) => ({ id, origin: 'semantic' as const }));
-  }
-
-  private registerHashes(ctx: RequestContext, hashes: readonly string[]): void {
-    for (const h of this.hashHandles(hashes)) ctx.reversible.push(h);
+  private hashHandles(
+    hashes: readonly string[],
+    contentType: ContentType = 'unknown',
+    ratio?: number,
+  ): ReversibleHandle[] {
+    return hashes
+      .filter(Boolean)
+      .map((id) => ({ id, origin: 'semantic' as const, contentType, ratio, regionId: 'semantic' }));
   }
 
   private async postCompress(
