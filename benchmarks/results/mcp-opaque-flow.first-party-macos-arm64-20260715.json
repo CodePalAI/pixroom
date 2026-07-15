@@ -14,11 +14,12 @@
     "description": "Production gateway and an unmodified deterministic stdio MCP fixture; no model or provider call.",
     "persistedData": "Synthetic values are not persisted in this receipt. Only counts, byte sizes, source fingerprints, and commitment receipts are retained.",
     "fingerprints": {
-      "src/mcp/flow.ts": "d84efa59c06d99436ddaea0fd1eda828a30b60f6e43fc018ee0447751aa000ee",
-      "src/mcp/gateway.ts": "a0b79694595ca7d2cfb0b0238b45dcd53f10c14946ac0982e3f665bdbe5ded2b",
+      "src/mcp/flow.ts": "f5d1d4ecdaab509f5dc97803e1bbabb4b88540c807a51699ba01c2a465ec5a72",
+      "src/mcp/gateway.ts": "82f9984b2df643780f2054706fd2b68388a19fdd420b51327cd83402f49c5c69",
       "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
       "src/cli/main.ts": "c9d2677e188b197be550448073e8e02a49db04dd7642203d27372c198ba1f22b",
-      "benchmarks/v2/mcp_opaque_flow_gate.mjs": "044ce31735a248be9ea453bece32f7efe6add8522ed930e5d399586d4106071c",
+      "benchmarks/v2/mcp_opaque_flow_gate.mjs": "c3b4de7451bcdcaca4acd236aecf74f81f70010c13cfd4e7ff629ede07405a04",
+      "benchmarks/fixtures/opaque_flow_data.mjs": "af3b9cdde4f9a025acc1d8dade13dec080025072edd2d3483dbde7226d11b263",
       "benchmarks/fixtures/opaque_flow_server.mjs": "1a70a6162a7b30ae71f72616d611b7e3e0081806ee666ef64db1dc9bd006d603",
       "benchmarks/fixtures/opaque_flow_config.json": "22932fa0db79f426e2e17ddc2258c05ddc9b7ec8738a7584fa9665d6ae9bc77c"
     }
@@ -56,23 +57,23 @@
     "destinationAcceptedExactProjection": true,
     "receiptChain": {
       "count": 30,
-      "signingKeyId": "886b0ca3ba918fad327cbf16a53f71b01e37869c4cd21cf5f1716cd76db4cc77",
-      "firstReceiptHash": "154de3f525aa04ffbd42d7048037b1807c0fbd6f07646f3e3f58e96caebf8874",
-      "lastReceiptHash": "153467a6b192a274dc49b7047ceb065512c4d5c803a984e2bf796955483ca28b"
+      "signingKeyId": "235c87cf025005bbefad93cb15f517cea3aa781b28a7816eebb38f07c275f705",
+      "firstReceiptHash": "92bf88ff119bde49ec7e596875b22aea011f32169b3bbc4ac46ae478e78f86a1",
+      "lastReceiptHash": "21283e8caf0195d07863f97a26ff4398e69ac2cdab458d318d97a74debf25bb1"
     }
   },
   "latencyMs": {
     "samples": 30,
-    "p50": 0.2703329999999937,
-    "p95": 0.9145419999999831,
-    "p99": 1.082790999999986,
-    "max": 1.082790999999986
+    "p50": 0.24304100000000517,
+    "p95": 0.9108750000000043,
+    "p99": 1.2150410000000136,
+    "max": 1.2150410000000136
   },
   "firstReceipt": {
     "receiptVersion": 1,
     "sequence": 1,
     "flow": "validate_renewal_projection",
-    "artifactId": "vctx_32c70e1263b52c5b4fcd53cbc659ccaf",
+    "artifactId": "vctx_9a23fee150f50ac67cd0af1f9c814cf3",
     "sourceTool": "synthetic_accounts_list",
     "destinationTool": "synthetic_projection_validate",
     "destinationArgument": "projectedRecords",
@@ -94,20 +95,20 @@
     "items": 40,
     "payloadBytes": 1739,
     "commitmentAlgorithm": "HMAC-SHA256",
-    "payloadCommitment": "hmac-sha256:b7e87856f164fc95b8586ff934a941444271c25cbf436b491b565c80fa8b06b8",
-    "queryCommitment": "hmac-sha256:576d0e4eb2a1514b081b4dc5d370b91d32646f3b5943b3284bed9941c4110615",
+    "payloadCommitment": "hmac-sha256:fa1c6b45294883049e36475538b26c6305e9e0ae74ebc07d2716aa96eea618b5",
+    "queryCommitment": "hmac-sha256:928e7c868f5648ec6922014f258fb899a965dec699c0d1975f3fe191831c963f",
     "destinationSucceeded": true,
     "destinationResultBytes": 120,
-    "destinationResultCommitment": "hmac-sha256:db7c8c0adcd831aae7bb2598ed3f9accc8c9fa7c4af826321ecb909b78d94249",
+    "destinationResultCommitment": "hmac-sha256:f97cacadb7882464a54b179dbf52bd669850c96b1ab25ccf6c8287437ddee7cc",
     "previousReceiptHash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "signingKeyId": "886b0ca3ba918fad327cbf16a53f71b01e37869c4cd21cf5f1716cd76db4cc77",
+    "signingKeyId": "235c87cf025005bbefad93cb15f517cea3aa781b28a7816eebb38f07c275f705",
     "disclosure": "receipt",
-    "receiptHash": "154de3f525aa04ffbd42d7048037b1807c0fbd6f07646f3e3f58e96caebf8874",
+    "receiptHash": "92bf88ff119bde49ec7e596875b22aea011f32169b3bbc4ac46ae478e78f86a1",
     "verifier": {
       "algorithm": "Ed25519",
-      "publicKey": "MCowBQYDK2VwAyEACezwN3_IywqsuRwBcOSdrLCrA5c36azkfB6cVzf43dA"
+      "publicKey": "MCowBQYDK2VwAyEA28WN1dJHyxqbMei2LmtI6n7IV_Tib9XnNOf0NTBL3aw"
     },
-    "signature": "l_oJXtWOiRd_L0S5QRzudnb_l1Anc1h4dp0b4UjDOvP7YO60TXV0F3oe2Rxk7lJ_-5fhrrPeFU33y0rYdpWuBQ"
+    "signature": "J3D1Qgso6bqUyXRiUrQGarD7SVjw4HhwsVx66QJmyxF2IGNXxgfniL7Fmi62EuBaKkgZyxRaNUwO07UDpctQBA"
   },
   "limitations": [
     "This is a deterministic first-party protocol integration, not a model-quality or production-demand measurement.",

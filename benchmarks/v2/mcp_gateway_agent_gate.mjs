@@ -92,7 +92,7 @@ function runClaude() {
     'stream-json',
     '--no-session-persistence',
     '--permission-mode',
-    'plan',
+    'dontAsk',
     '--strict-mcp-config',
     '--mcp-config',
     config,

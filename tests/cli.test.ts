@@ -127,5 +127,28 @@ describe('parseMcpArgs', () => {
         allowedFields: ['value'],
       }],
     })).toThrow('destination argument policy overlaps');
+    expect(() => parseMcpOpaqueFlowConfig({
+      version: 1,
+      flows: [{
+        name: 'typo',
+        sourceTool: 'source',
+        destinationTool: 'destination',
+        destinationArgument: 'payload',
+        allowedOps: ['json_select'],
+        allowedFields: ['value'],
+        maxItem: 1,
+      }],
+    })).toThrow('unknown opaque flow policy field: maxItem');
+    expect(() => parseMcpOpaqueFlowConfig({
+      version: 1,
+      flows: [{
+        name: 'wrong_type',
+        sourceTool: 'source',
+        destinationTool: 'destination',
+        destinationArgument: 'payload',
+        allowedOps: ['json_select'],
+        allowedFields: 'value',
+      }],
+    })).toThrow('allowedFields must contain 1 to 64 unique values');
   });
 });

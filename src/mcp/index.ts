@@ -24,4 +24,5 @@ export type {
   McpOpaqueFlowConfig,
   McpOpaqueFlowOperation,
   McpOpaqueFlowReceipt,
+  McpOpaqueFlowReceiptVerifier,
 } from './flow.js';

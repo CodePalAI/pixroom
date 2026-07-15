@@ -45,6 +45,10 @@ validated before the upstream process starts. Unknown top-level fields, unsuppor
 versions, duplicate flow names, missing projection allowlists, overlapping fixed and
 dynamic destination arguments, invalid limits, and missing upstream tools fail closed.
 
+Do not place provider credentials or long-lived secrets in
+`fixedDestinationArguments`; the policy is a plaintext operator configuration file.
+Keep authentication in the upstream server's normal credential mechanism.
+
 See `examples/mcp-opaque-flow.json` for a complete policy and
 `examples/mcp-opaque-flow.schema.json` for the editor/tooling schema. Runtime
 validation remains authoritative because it also checks semantic constraints such as
@@ -137,8 +141,10 @@ It includes:
 The HMAC key never leaves the gateway. Including the sequence in each commitment
 prevents equal payloads from producing linkable public commitments. The Ed25519
 verification key and key id are pinned in the MCP `initialize` result before any
-receipt is emitted. `verifyMcpOpaqueFlowReceipt()` verifies key identity, receipt
-hash, and signature. A receipt chain verifier must additionally check monotonically
+receipt is emitted. `verifyMcpOpaqueFlowReceipt(receipt, initializedVerifier)` verifies
+the pinned key identity, receipt hash, and signature. Omitting the second argument
+checks only the receipt's self-contained signature. A receipt chain verifier must
+additionally check monotonically
 increasing sequence numbers and each `previousReceiptHash`.
 
 These are session attestations, not operator identity certificates, remote
@@ -223,7 +229,7 @@ called only the visible source and `pinpoint_flow`; neither model called the hid
 destination or `pinpoint_query`. Both signed receipts verified, both destinations
 accepted the exact 40-record projection, both clients returned exactly `VALIDATED`,
 and no fixture value or public value hash appeared in either retained event-stream
-grade. The aggregate scan covered 800 canaries. Claude observed $0.014894 in provider
+grade. The aggregate scan covered 800 canaries. Claude observed $0.045451 in provider
 cost; Copilot reported zero premium requests and zero file changes.
 
 This proves the same contract is usable by two host/model families for one synthetic

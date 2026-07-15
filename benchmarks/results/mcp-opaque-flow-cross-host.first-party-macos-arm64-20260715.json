@@ -8,11 +8,12 @@
     "description": "Two installed unmodified agent hosts independently executed the same synthetic value-opaque flow through the production CLI gateway.",
     "persistedData": "Only content-free grading summaries and receipt identifiers are retained. Event streams, debug logs, synthetic values, credentials, and personal paths are not persisted.",
     "fingerprints": {
-      "src/mcp/flow.ts": "d84efa59c06d99436ddaea0fd1eda828a30b60f6e43fc018ee0447751aa000ee",
-      "src/mcp/gateway.ts": "a0b79694595ca7d2cfb0b0238b45dcd53f10c14946ac0982e3f665bdbe5ded2b",
+      "src/mcp/flow.ts": "f5d1d4ecdaab509f5dc97803e1bbabb4b88540c807a51699ba01c2a465ec5a72",
+      "src/mcp/gateway.ts": "82f9984b2df643780f2054706fd2b68388a19fdd420b51327cd83402f49c5c69",
       "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
       "src/cli/main.ts": "c9d2677e188b197be550448073e8e02a49db04dd7642203d27372c198ba1f22b",
-      "benchmarks/v2/mcp_opaque_flow_cross_host_gate.mjs": "9cc7d34a2819cc2eb880e19d36d4250068196441bde30ee9463bc36cd8e2ca95",
+      "benchmarks/v2/mcp_opaque_flow_cross_host_gate.mjs": "040cee6aea8f680572963076972d4fd328fd5284afe341bcaf861487f0a81a50",
+      "benchmarks/fixtures/opaque_flow_data.mjs": "af3b9cdde4f9a025acc1d8dade13dec080025072edd2d3483dbde7226d11b263",
       "benchmarks/fixtures/opaque_flow_server.mjs": "1a70a6162a7b30ae71f72616d611b7e3e0081806ee666ef64db1dc9bd006d603",
       "benchmarks/fixtures/opaque_flow_config.json": "22932fa0db79f426e2e17ddc2258c05ddc9b7ec8738a7584fa9665d6ae9bc77c"
     }
@@ -62,15 +63,15 @@
         "whereFields": [
           "segment"
         ],
-        "artifactId": "vctx_eef5916d37fdb9d17eb76ae8b2d5868e",
-        "receiptHash": "a02e3174c63fc2198388a0472161741b1899a33a22c6261663555ab03f417e3f",
-        "signingKeyId": "731fcb59a73af30089f55f5595598a6b93548e6cf1d366221084e791056734f2"
+        "artifactId": "vctx_b4f495505dd6d8441e5ad887079db23f",
+        "receiptHash": "7be72518d105ebcb9754571416e8cc09c9ce47b2eb98a61d49ae80ba5e89dbef",
+        "signingKeyId": "026c5f7adc4f355f8406f1a062e2a54ee8f2ce85a9cc8abb8eaaf06a8bcde821"
       },
       "privateCanariesLeaked": 0,
       "publicValueHashesLeaked": false,
       "answer": "VALIDATED",
-      "turns": 4,
-      "observedCostUSD": 0.0148942,
+      "turns": 9,
+      "observedCostUSD": 0.045450550000000006,
       "exceededOutputCap": false,
       "diagnostic": null
     },
@@ -97,17 +98,17 @@
         "whereFields": [
           "segment"
         ],
-        "artifactId": "vctx_b07a16fb2247622342fb8cb3bddef139",
-        "receiptHash": "7e367ccef52678925dbc11ae7251576ebeac73dedcadf94a815115fefe4f14d2",
-        "signingKeyId": "3c10fa0c987a91cc1466d628a03c6521d5d47773dff86f77321ecb955697800b"
+        "artifactId": "vctx_73e45026d079673f2fc7621e85c5efb8",
+        "receiptHash": "3d1e0c3805f49709bdbd43600b26bffc41be84cbcbeebce1245af991c7754435",
+        "signingKeyId": "bca386b6a86edb2813c2d7740109accf2d9165ed89ad48c2fc79859ee4188645"
       },
       "privateCanariesLeaked": 0,
       "publicValueHashesLeaked": false,
       "answer": "VALIDATED",
       "usage": {
         "premiumRequests": 0,
-        "totalApiDurationMs": 8069,
-        "sessionDurationMs": 12146,
+        "totalApiDurationMs": 6697,
+        "sessionDurationMs": 11174,
         "codeChanges": {
           "linesAdded": 0,
           "linesRemoved": 0,

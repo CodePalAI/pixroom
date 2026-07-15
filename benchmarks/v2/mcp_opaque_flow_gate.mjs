@@ -267,6 +267,7 @@ const result = {
       'src/virtual-context/store.ts',
       'src/cli/main.ts',
       'benchmarks/v2/mcp_opaque_flow_gate.mjs',
+      'benchmarks/fixtures/opaque_flow_data.mjs',
       'benchmarks/fixtures/opaque_flow_server.mjs',
       'benchmarks/fixtures/opaque_flow_config.json',
     ].map((path) => [path, sourceFingerprint(path)])),

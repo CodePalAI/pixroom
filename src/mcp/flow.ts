@@ -100,6 +100,12 @@ export interface McpOpaqueFlowReceipt {
   readonly disclosure: 'receipt';
 }
 
+export interface McpOpaqueFlowReceiptVerifier {
+  readonly algorithm: 'Ed25519';
+  readonly publicKey: string;
+  readonly signingKeyId: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -156,7 +162,10 @@ function receiptAttestation(receipt: McpOpaqueFlowReceipt): Omit<
   return attestation;
 }
 
-export function verifyMcpOpaqueFlowReceipt(value: unknown): value is McpOpaqueFlowReceipt {
+export function verifyMcpOpaqueFlowReceipt(
+  value: unknown,
+  expectedVerifier?: McpOpaqueFlowReceiptVerifier,
+): value is McpOpaqueFlowReceipt {
   if (!isRecord(value) || !isRecord(value.verifier)) return false;
   try {
     const receipt = value as unknown as McpOpaqueFlowReceipt;
@@ -173,6 +182,16 @@ export function verifyMcpOpaqueFlowReceipt(value: unknown): value is McpOpaqueFl
     const publicKeyBytes = Buffer.from(receipt.verifier.publicKey, 'base64url');
     const keyId = createHash('sha256').update(publicKeyBytes).digest('hex');
     if (keyId !== receipt.signingKeyId) return false;
+    if (
+      expectedVerifier != null &&
+      (
+        expectedVerifier.algorithm !== 'Ed25519' ||
+        expectedVerifier.publicKey !== receipt.verifier.publicKey ||
+        expectedVerifier.signingKeyId !== receipt.signingKeyId
+      )
+    ) {
+      return false;
+    }
     const attestation = canonicalJson(receiptAttestation(receipt));
     if (sha256(attestation) !== receipt.receiptHash) return false;
     const publicKey = createPublicKey({ key: publicKeyBytes, format: 'der', type: 'spki' });
@@ -215,7 +234,12 @@ function validateName(value: string, field: string, pattern: RegExp): void {
 
 function uniqueStrings(values: readonly string[] | undefined, field: string): readonly string[] | undefined {
   if (values == null) return undefined;
-  if (values.length === 0 || values.length > 64 || new Set(values).size !== values.length) {
+  if (
+    !Array.isArray(values) ||
+    values.length === 0 ||
+    values.length > 64 ||
+    new Set(values).size !== values.length
+  ) {
     throw new TypeError(`${field} must contain 1 to 64 unique values`);
   }
   for (const value of values) validateName(value, field, /^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/);
@@ -224,6 +248,27 @@ function uniqueStrings(values: readonly string[] | undefined, field: string): re
 
 function normalizePolicy(policy: McpOpaqueFlowPolicy): McpOpaqueFlowPolicy {
   if (!isRecord(policy)) throw new TypeError('each opaque flow policy must be an object');
+  const allowedKeys = new Set([
+    'name',
+    'description',
+    'sourceTool',
+    'sourceKind',
+    'destinationTool',
+    'destinationArgument',
+    'fixedDestinationArguments',
+    'allowedDestinationArguments',
+    'allowedOps',
+    'allowedWhereFields',
+    'allowedFields',
+    'maxItems',
+    'maxBytes',
+    'maxDestinationArgumentBytes',
+    'hideDestinationTool',
+  ]);
+  const unknownKeys = Object.keys(policy).filter((key) => !allowedKeys.has(key));
+  if (unknownKeys.length > 0) {
+    throw new TypeError(`unknown opaque flow policy field: ${unknownKeys.join(', ')}`);
+  }
   if (policy.description != null && (typeof policy.description !== 'string' || policy.description.length > 512)) {
     throw new TypeError(`flow ${String(policy.name)} description must be at most 512 characters`);
   }
@@ -236,6 +281,9 @@ function normalizePolicy(policy: McpOpaqueFlowPolicy): McpOpaqueFlowPolicy {
   }
   if (policy.sourceTool === MCP_FLOW_TOOL_NAME || policy.destinationTool === MCP_FLOW_TOOL_NAME) {
     throw new TypeError(`${MCP_FLOW_TOOL_NAME} cannot be a flow source or destination`);
+  }
+  if (policy.sourceTool === policy.destinationTool) {
+    throw new TypeError(`flow ${policy.name} source and destination tools must differ`);
   }
   if (
     !Array.isArray(policy.allowedOps) ||
@@ -410,7 +458,7 @@ export class McpOpaqueFlowEngine {
     return `hmac-sha256:${digest}`;
   }
 
-  get receiptVerifier(): { algorithm: 'Ed25519'; publicKey: string; signingKeyId: string } {
+  get receiptVerifier(): McpOpaqueFlowReceiptVerifier {
     return {
       algorithm: 'Ed25519',
       publicKey: this.publicKey,

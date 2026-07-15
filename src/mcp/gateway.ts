@@ -761,8 +761,16 @@ export async function runMcpGateway(
       return;
     }
 
-    if (message.method === 'tools/call' && message.id !== undefined) {
+    if (message.method === 'tools/call') {
       const call = callParams(message.params);
+      if (message.id === undefined) {
+        error.write('[pinpoint mcp gateway] ignored tools/call notification without a request id\n');
+        return;
+      }
+      if (!call) {
+        writeRpc(output, rpcError(message.id, -32602, 'tools/call requires a tool name and object arguments'));
+        return;
+      }
       if (flowEngine && !flowPoliciesValidated) {
         writeRpc(output, rpcError(message.id, -32003, 'opaque flow policies require a successful tools/list first'));
         return;
@@ -840,7 +848,12 @@ export async function runMcpGateway(
     if (message.id !== undefined && message.method) {
       const call = message.method === 'tools/call' ? callParams(message.params) : undefined;
       const protectedSource = call != null && firewall.isProtectedSourceTool(call.name);
-      pending.set(rpcKey(message.id), {
+      const key = rpcKey(message.id);
+      if (pending.has(key)) {
+        writeRpc(output, rpcError(message.id, -32600, 'duplicate outstanding JSON-RPC request id'));
+        return;
+      }
+      pending.set(key, {
         method: message.method,
         ...(call ? { toolName: call.name } : {}),
         ...(protectedSource ? { protectedSource: true } : {}),
@@ -859,7 +872,11 @@ export async function runMcpGateway(
   const handleUpstream = async (line: string): Promise<void> => {
     const message = parseRpc(line.trim());
     if (!message) {
-      error.write(`[pinpoint mcp gateway] ignored non-JSON upstream stdout: ${line.slice(0, 200)}\n`);
+      error.write(
+        protectedDataHandled
+          ? '[pinpoint mcp gateway] suppressed non-JSON upstream stdout after protected dataflow\n'
+          : `[pinpoint mcp gateway] ignored non-JSON upstream stdout: ${line.slice(0, 200)}\n`,
+      );
       return;
     }
     if (message.method && (sensitiveOperationActive() || protectedDataHandled)) {
@@ -869,12 +886,14 @@ export async function runMcpGateway(
       return;
     }
     if (message.id === undefined || message.method) {
+      if (protectedDataHandled) return;
       writeRpc(output, message);
       return;
     }
 
     const request = pending.get(rpcKey(message.id));
     if (!request) {
+      if (protectedDataHandled) return;
       writeRpc(output, message);
       return;
     }
@@ -931,7 +950,11 @@ export async function runMcpGateway(
         result = mergeResourceTemplates(result, firewall, request.firstPage === true);
       } else if (request.method === 'tools/call' && request.toolName) {
         const toolResult = asToolResult(result);
-        if (toolResult) result = firewall.transformResult(request.toolName, toolResult).result;
+        if (toolResult) {
+          result = firewall.transformResult(request.toolName, toolResult).result;
+        } else if (request.protectedSource) {
+          result = errorResult('Pinpoint blocked an invalid protected source result');
+        }
       }
       writeRpc(output, rpcResult(message.id, result));
     } catch (cause) {
@@ -948,7 +971,11 @@ export async function runMcpGateway(
     upstreamQueue = queueLine(
       upstreamQueue,
       () => handleUpstream(line),
-      (cause) => error.write(`[pinpoint mcp gateway] ${cause instanceof Error ? cause.message : String(cause)}\n`),
+      (cause) => error.write(
+        protectedDataHandled
+          ? '[pinpoint mcp gateway] suppressed upstream processing error after protected dataflow\n'
+          : `[pinpoint mcp gateway] ${cause instanceof Error ? cause.message : String(cause)}\n`,
+      ),
     );
   });
   clientLines.once('close', () => child.stdin.end());

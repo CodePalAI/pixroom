@@ -44,7 +44,7 @@ Evidence: `live-agentic`. One authorized synthetic flow, independently executed 
 | Claude Code 2.1.197 / Haiku 4.5 | Yes | No | Valid | Accepted 40 | 0/400 canaries | `VALIDATED` |
 | GitHub Copilot CLI 1.0.71-2 / GPT-5.3 Codex | Yes | No | Valid | Accepted 40 | 0/400 canaries | `VALIDATED` |
 
-Claude completed in four turns with $0.014894 observed cost. Copilot reported zero premium requests and no file changes. Neither public source nor selected-payload hash appeared in either event stream. This proves two-host protocol usability for one first-party fixture, not organic prevalence or general model quality. See `results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json`.
+Claude completed in nine turns with $0.045451 observed cost. Copilot reported zero premium requests and no file changes. Neither public source nor selected-payload hash appeared in either event stream. This proves two-host protocol usability for one first-party fixture, not organic prevalence or general model quality. See `results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json`.
 
 ## Benchmark v2 — no-op proxy profile
 

@@ -403,6 +403,111 @@ describe('McpResultFirewall', () => {
     expect(await running).toBeNull();
   });
 
+  it('blocks malformed and unsolicited protocol paths around protected sources', async () => {
+    const upstream = String.raw`
+      import { createInterface } from 'node:readline';
+      const reply = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+      const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
+      for await (const line of lines) {
+        const message = JSON.parse(line);
+        if (message.method === 'initialize') {
+          reply(message.id, {
+            protocolVersion: '2024-11-05',
+            capabilities: { tools: {} },
+            serverInfo: { name: 'hostile-protocol-fixture', version: '1.0.0' },
+          });
+        } else if (message.method === 'tools/list') {
+          reply(message.id, { tools: [
+            { name: 'protected_read', inputSchema: { type: 'object', properties: {} } },
+            {
+              name: 'hidden_write',
+              inputSchema: {
+                type: 'object',
+                properties: { records: { type: 'array' } },
+                required: ['records'],
+              },
+            },
+          ] });
+        } else if (message.method === 'tools/call' && message.params.name === 'hidden_write') {
+          process.stderr.write('notification-destination-canary\n');
+          reply(message.id, { content: [{ type: 'text', text: 'unexpected direct destination' }] });
+        } else if (message.method === 'tools/call' && message.params.name === 'protected_read') {
+          reply(message.id, { structuredContent: { secret: 'malformed-source-canary' } });
+          process.stdout.write('late-non-json-canary\n');
+          process.stdout.write(JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'unknown-response',
+            result: { secret: 'unknown-response-canary' },
+          }) + '\n');
+        }
+      }
+    `;
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const error = new PassThrough();
+    const next = responses(output);
+    const visible: string[] = [];
+    const diagnostics: string[] = [];
+    output.on('data', (chunk) => visible.push(String(chunk)));
+    error.on('data', (chunk) => diagnostics.push(String(chunk)));
+    const running = runMcpGateway(process.execPath, ['--input-type=module', '--eval', upstream], {
+      input,
+      output,
+      error,
+      flows: [{
+        name: 'hostile_flow',
+        sourceTool: 'protected_read',
+        destinationTool: 'hidden_write',
+        destinationArgument: 'records',
+        allowedOps: ['json_select'],
+        allowedFields: ['value'],
+      }],
+    });
+
+    send(input, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
+    await next();
+    send(input, { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    await next();
+    send(input, {
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: { name: 'hidden_write', arguments: { records: [] } },
+    });
+    send(input, {
+      jsonrpc: '2.0',
+      id: 3,
+      method: 'tools/call',
+      params: { name: 'protected_read', arguments: {} },
+    });
+    send(input, { jsonrpc: '2.0', id: 3, method: 'tools/list', params: {} });
+    const collided = [await next(), await next()];
+    expect(collided.some((response) =>
+      response.id === 3 &&
+      (response.error as { code?: number } | undefined)?.code === -32600,
+    )).toBe(true);
+    expect(collided.some((response) =>
+      response.id === 3 &&
+      (response.result as { isError?: boolean } | undefined)?.isError === true,
+    )).toBe(true);
+
+    send(input, { jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} });
+    expect(await next()).toMatchObject({ id: 4, result: { tools: expect.any(Array) } });
+    const allVisible = visible.join('');
+    const allDiagnostics = diagnostics.join('');
+    for (const canary of [
+      'notification-destination-canary',
+      'malformed-source-canary',
+      'late-non-json-canary',
+      'unknown-response-canary',
+    ]) {
+      expect(allVisible).not.toContain(canary);
+      expect(allDiagnostics).not.toContain(canary);
+    }
+
+    input.end();
+    expect(await running).toBe(0);
+  });
+
   it('moves an exact projection into an allowlisted tool without exposing values to the client', async () => {
     const secretRows = Array.from({ length: 100 }, (_, id) => ({
       id,
@@ -627,7 +732,16 @@ describe('McpResultFirewall', () => {
       publicKey: initializedVerifier.publicKey,
     });
     expect(receipt.signingKeyId).toBe(initializedVerifier.signingKeyId);
-    expect(verifyMcpOpaqueFlowReceipt(receipt)).toBe(true);
+    expect(verifyMcpOpaqueFlowReceipt(receipt, initializedVerifier as {
+      algorithm: 'Ed25519';
+      publicKey: string;
+      signingKeyId: string;
+    })).toBe(true);
+    expect(verifyMcpOpaqueFlowReceipt(receipt, {
+      algorithm: 'Ed25519',
+      publicKey: String(initializedVerifier.publicKey),
+      signingKeyId: '0'.repeat(64),
+    })).toBe(false);
     expect(verifyMcpOpaqueFlowReceipt({ ...receipt, items: receipt.items + 1 })).toBe(false);
 
     send(input, {
@@ -684,7 +798,7 @@ describe('McpResultFirewall', () => {
       receipt.payloadCommitment,
       ...concurrentReceipts.map(({ payloadCommitment }) => payloadCommitment),
     ]).size).toBe(3);
-    expect(concurrentReceipts.every(verifyMcpOpaqueFlowReceipt)).toBe(true);
+    expect(concurrentReceipts.every((candidate) => verifyMcpOpaqueFlowReceipt(candidate))).toBe(true);
 
     const clientVisible = visible.join('');
     for (const row of secretRows) {

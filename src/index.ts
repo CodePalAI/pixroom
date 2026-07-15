@@ -52,6 +52,7 @@ export type {
   McpOpaqueFlowOperation,
   McpOpaqueFlowPolicy,
   McpOpaqueFlowReceipt,
+  McpOpaqueFlowReceiptVerifier,
 } from './mcp/index.js';
 
 export {
