@@ -145,6 +145,6 @@ Focused automated coverage validates:
 - capacity fail-open behavior;
 - small/error pass-through.
 
-The cross-host receipt records the same task on Claude Code and GitHub Copilot CLI. Both clients called the unfilterable upstream tool, received the same SHA-derived artifact id, called `pinpoint_query`, and returned the exact requested email. Claude's 81,665-character structured result became a 513-character model-visible artifact result; Copilot's complete tool-completion event stayed at 2,965 characters including metadata and used zero premium requests. This proves compatibility across two host/model families for one task, not organic prevalence.
+The cross-host receipt records the same task on Claude Code and GitHub Copilot CLI. Both clients called the unfilterable upstream tool, received the same SHA-derived artifact id, called `pinpoint_query`, and returned the exact requested email. Claude's 81,665-character structured result became a 508-character model-visible artifact result; Copilot's complete tool-completion event stayed at 2,840 characters including metadata and used zero premium requests. This proves compatibility across two host/model families for one task, not organic prevalence.
 
 See `benchmarks/results/mcp-gateway-cross-host.first-party-macos-arm64-20260715.json`.

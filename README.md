@@ -2,7 +2,7 @@
 
 <p align="center"><strong>The policy gateway for sensitive MCP data.</strong></p>
 
-<p align="center">Let AI agents act on exact business data without placing the values in model context.</p>
+<p align="center">Let AI agents act on structured business data without placing selected values in model context.</p>
 
 <p align="center"><sub>Move exact data between MCP tools without putting the values in model context.</sub></p>
 
@@ -10,36 +10,40 @@
   <a href="LICENSE"><img alt="Apache 2.0 license" src="https://img.shields.io/badge/license-Apache%202.0-1f6feb.svg"></a>
   <a href="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Node.js 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-2f855a.svg">
-  <a href="./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json"><img alt="Opaque flow gate passed on two hosts" src="https://img.shields.io/badge/opaque%20flow%20gate-2%2F2%20hosts-2ea44f.svg"></a>
+  <a href="./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json"><img alt="Opaque flow gate passed on two clients for one synthetic flow" src="https://img.shields.io/badge/opaque%20flow%20gate-2%20clients%20%2F%201%20synthetic%20flow-2ea44f.svg"></a>
   <img alt="Experimental status" src="https://img.shields.io/badge/status-experimental-c2410c.svg">
 </p>
 
 <p align="center">
   <a href="#the-business-problem">Business case</a> ·
   <a href="#who-it-is-for">Who it is for</a> ·
-  <a href="#proof-not-promises">Evidence</a> ·
+  <a href="#evidence">Evidence</a> ·
   <a href="#get-started-60-seconds">Evaluate</a> ·
-  <a href="#safety-and-privacy">Security</a> ·
+  <a href="#security-boundary">Security</a> ·
   <a href="./planning/value_opaque_mcp_dataflow.md">Technical brief</a>
 </p>
 
-<p align="center"><sub>Open source · Local or VPC-side · Provider-independent · Subscription-compatible</sub></p>
+<p align="center"><sub>Open source · Local or VPC-side · MCP-layer control · Host keeps its provider, model, and login</sub></p>
 
 <p align="center"><sub><strong>AI agents / LLMs:</strong> read <a href="./llms.txt"><code>/llms.txt</code></a> for the compact project index.</sub></p>
+
+<p align="center">
+  <img src="./assets/pinpoint-policy-flow.svg" alt="Pinpoint controls an exact local projection from an existing source MCP tool into an existing destination MCP tool while the AI agent receives only a random capability and signed receipt" width="1100">
+</p>
 
 ---
 
 ## The business problem
 
-Your AI agent needs customer records from a warehouse and must create approved records in a CRM. In a conventional tool loop, the source rows enter the model context before they become arguments to the next tool.
+Your AI agent needs customer records from a warehouse and must create approved records in a CRM. In a conventional MCP loop, the source response becomes a tool result in the agent conversation and typically becomes input to the next model turn, even when only the destination tool needs the values.
 
 That creates four problems for an enterprise team:
 
 | Risk | What the organization inherits |
 |---|---|
-| **Unnecessary model exposure** | Values the model does not need still cross the model-facing tool boundary |
+| **Tool values enter the agent conversation** | A full CRM, database, or analytics result can become model input even when the next tool is its only consumer |
 | **Prompt-based control** | A system prompt asks the model to follow data-handling rules that should be enforced in code |
-| **Weak execution evidence** | Logs show tool calls, but rarely prove the exact policy, projection, and destination used |
+| **Weak execution evidence** | A tool log may show that a destination ran without binding the event to a policy shape, source, projected fields, item bound, and receipt chain |
 | **Context growth and copy errors** | Large payloads consume context and the model may reproduce or transform values incorrectly |
 
 Pinpoint moves that control into the MCP gateway. The operator declares which source may feed which destination, which fields may move, which filters may run, and the maximum payload size. Pinpoint executes the exact projection locally, invokes the destination tool internally, and returns a signed receipt instead of the values.
@@ -47,16 +51,6 @@ Pinpoint moves that control into the MCP gateway. The operator declares which so
 > **The model chooses an approved flow. The operator defines its authority.**
 
 ## What it does
-
-```mermaid
-flowchart LR
-    S[Source MCP tool] -->|exact result| P[Pinpoint policy gateway]
-    P -->|random capability| A[AI agent]
-    A -->|approved flow + query| P
-    P -->|allowlisted projection| D[Hidden destination tool]
-    D -->|result| P
-    P -->|signed receipt, no values| A
-```
 
 Pinpoint has two operating modes in one gateway:
 
@@ -93,23 +87,23 @@ Pinpoint is most relevant when your team owns the MCP deployment boundary and ha
 
 Pinpoint does not make these systems compliant by itself. It gives security and platform teams a concrete enforcement point and an auditable execution record to evaluate inside their own control framework.
 
-## Proof, not promises
+## Evidence
 
 The committed evidence uses deterministic synthetic fixtures and real installed clients. Raw event streams are graded and deleted; content-free receipts remain in the repository.
 
-| Gate | Result | What it establishes |
+| Gate | Result | Scope |
 |---|---:|---|
-| Cross-host value-opaque flow | **2/2 hosts passed** | Claude Code and GitHub Copilot CLI both completed the hidden destination flow |
-| Client event-stream scan | **0 / 800 canary occurrences** | None of the fixture values appeared in the retained client grades |
-| Hidden destination control | **0 model destination calls** | The gateway, not the model, invoked the destination |
-| Protocol integration | **30 / 30 exact destination acceptances** | The selected projection arrived exactly at the unmodified destination tool |
-| Adversarial protocol gate | **7 / 7 bypasses denied** | Direct query, resource, destination, field, operation, capability, and argument bypasses were blocked |
-| Constructed visible traffic | **31,013 → 2,628 bytes** | 91.5% lower client-visible bytes for the same source and destination payload |
-| Local flow latency | **0.91 ms p95** | 30 local protocol samples on the recorded machine |
+| Cross-host value-opaque flow | **2/2 test clients passed** | One first-party synthetic 40-record flow on Claude Code and GitHub Copilot CLI |
+| Client event-stream scan | **0 / 800 canary occurrences** | Exact string checks across the two retained synthetic client grades |
+| Hidden destination control | **0 model destination calls** | The gateway invoked the destination in those two traces |
+| Protocol integration | **30 / 30 correct destination invocations** | One deterministic local stdio fixture and policy |
+| Adversarial protocol gate | **7 / 7 bypasses denied** | Direct query, resource read, destination call, forbidden field, operation switch, forged capability, fixed-argument override |
+| Constructed visible traffic | **31,013 -> 2,628 bytes** | Same synthetic source and destination payload; character bytes, not provider tokens or bill |
+| Local flow latency | **0.91 ms p95** | 30 local protocol samples on the recorded machine; not a production load test |
 
 Read the [cross-host receipt](./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json), [protocol receipt](./benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json), or [full evidence methodology](./benchmarks/REPORT.md).
 
-**Evidence boundary:** these are first-party synthetic tests, not customer production traces, a formal noninterference proof, or a compliance certification. Tool names, field names, counts, byte sizes, timing, and success status remain observable. The wrapped MCP process is trusted with the values.
+**Evidence boundary:** these are first-party synthetic tests, not customer production traces, a formal noninterference proof, a prevalence estimate, or a compliance certification. Tool names, field names, counts, byte sizes, timing, and success status remain observable. The wrapped MCP process is trusted with the values.
 
 ## Why this is different
 
@@ -131,6 +125,14 @@ git clone https://github.com/CodePalAI/pinpoint.git
 cd pinpoint
 npm install && npm link
 ```
+
+Run the committed no-model protocol gate before connecting a host:
+
+```bash
+npm run bench:mcp-opaque-flow
+```
+
+It executes 30 exact hidden-destination calls, seven blocked bypass attempts, receipt verification, transcript canary scanning, and local latency measurement against a synthetic stdio MCP fixture.
 
 Run an existing stdio MCP server behind Pinpoint:
 
@@ -193,7 +195,26 @@ With this policy loaded:
 4. Pinpoint calls `campaign_deliver` internally with the exact selected values.
 5. The model receives a signed receipt containing policy facts, bounds, commitments, and success status, but not the values.
 
+The client receives a receipt shaped like this:
+
+```json
+{
+  "flow": "deliver_active_accounts",
+  "sourceTool": "accounts_list",
+  "destinationTool": "campaign_deliver",
+  "whereFields": ["active"],
+  "projectionFields": ["email"],
+  "items": 42,
+  "destinationSucceeded": true,
+  "policyShapeSha256": "...",
+  "receiptHash": "...",
+  "signature": "..."
+}
+```
+
 The session verification key is pinned in the MCP `initialize` response. SDK users should call `verifyMcpOpaqueFlowReceipt(receipt, initializedVerifier)` so a valid receipt from another session is rejected.
+
+Pinpoint returns the receipt through MCP but does not persist it. If your audit policy requires durable retention, the host or an existing collector must store the value-free receipt. Do not enable body capture merely to retain receipts; body capture can persist sensitive prompts and tool values.
 
 Do not put provider credentials in `fixedDestinationArguments`; the policy is a plaintext operator file. Keep authentication in the upstream server's existing credential mechanism.
 
@@ -235,6 +256,18 @@ Use [GitHub Discussions](https://github.com/CodePalAI/pinpoint/discussions) for 
 | **Not yet supported** | Cross-server flows with separate auth domains, durable operator identity keys, remote attestation, or formal compliance claims |
 | **Maturity** | Experimental; suitable for controlled evaluation and contribution, not an automatic enterprise approval |
 
+## Security boundary
+
+| Pinpoint is designed to control | Pinpoint does not provide |
+|---|---|
+| Selected source and destination values on the client-facing MCP path | Isolation from a malicious or compromised wrapped MCP process |
+| Operator-declared source, destination, operation, fields, arguments, and limits | Protection from the upstream process's own network, files, subprocesses, or timing channels |
+| Direct query, resource, hidden-destination, capability, and argument bypasses covered by the committed protocol gate | Secrecy for tool names, field names, operation, counts, sizes, limits, timing, or success status |
+| Receipt integrity under the session key pinned during MCP initialization | Durable operator identity, approval provenance, remote attestation, or cross-restart receipt continuity |
+| Bounded process-local artifact retention | A DLP suite, identity provider, zero-retention guarantee, or compliance certification |
+
+The trusted computing base includes Pinpoint, the reviewed flow policy, the wrapped MCP process, and the operating-system boundary. Read [SECURITY.md](./SECURITY.md) and the [full threat model](./planning/value_opaque_mcp_dataflow.md#threat-model) before a controlled deployment.
+
 ## Works with your stack
 
 | Surface | Integration | Current evidence |
@@ -245,7 +278,7 @@ Use [GitHub Discussions](https://github.com/CodePalAI/pinpoint/discussions) for 
 | VS Code, Codex, Cursor, other MCP hosts | Same stdio wrapper pattern | Protocol-compatible; independent host replication remains open |
 | Node.js applications | Import `@codepal/pinpoint/mcp` | Packed consumer type and runtime smoke |
 
-Pinpoint does not require a new Provider API key. The host keeps its current API key, OAuth, or subscription login.
+Pinpoint does not require a new Provider API key. **Subscription-compatible at the MCP layer:** the host keeps its current model, API key, OAuth, or subscription login. The older provider-wire optimizer has separate API-key-only rules documented in the technical appendix.
 
 <details>
 <summary><strong>Developer integrations and secondary optimization engine</strong></summary>
@@ -751,7 +784,7 @@ If that background process is unavailable, its stage does nothing while the exac
 
 ## Built at CodePal
 
-Pinpoint open-sources one part of the context-optimization system developed at [CodePal](https://codepal.ai). It is the exact-context runtime and evidence harness, not CodePal's complete product, model stack, or infrastructure.
+Pinpoint open-sources the MCP policy gateway and evidence harness developed at [CodePal](https://codepal.ai). It is not CodePal's complete product, identity layer, model stack, or hosted infrastructure.
 
 CodePal builds AI development tools for moving from an idea to production software. Visit [codepal.ai](https://codepal.ai) for the full product.
 
@@ -762,6 +795,8 @@ Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md). The main local checks are:
 ```bash
 npm run typecheck
 npm test                        # offline test suite
+npm run bench:mcp-opaque-flow   # 30 flows + 7 bypasses, no provider call
+npm run bench:mcp-opaque-flow:cross-host # Claude Code + Copilot live gate
 node benchmarks/proof.mjs       # constructed additivity check
 node benchmarks/rd_frontier.mjs # simulated RD surface
 node benchmarks/adaptive.mjs    # controller simulation
@@ -775,12 +810,12 @@ Questions, integration ideas, independent benchmark runs, and sanitized field re
 
 ## Status
 
-Pinpoint is experimental but usable today for local evaluation and API-key traffic.
+Pinpoint is experimental and available today for controlled local or VPC-side evaluation.
 
 Pinpoint is developed and maintained by [CodePal](https://codepal.ai) with contributions from the open-source community.
 
-- **Validated first-party:** one exact MCP task replicated across Claude Code and GitHub Copilot CLI, 150 independently parameterized provider-wire variants across two models and three protocols, plus 10 historical Claude Code/Codex proxy sessions with retries, cache shape, long turns, and hash-matched replay.
-- **Still being proved:** independent replication, the eligible share of organic traffic, external adoption, customer demand, and lower proxy overhead under heavy concurrency.
+- **Validated first-party:** the value-opaque flow passed on Claude Code and GitHub Copilot CLI; the protocol gate completed 30/30 exact destinations, denied 7/7 bypasses, and found zero of 400 canaries in its client transcript.
+- **Still being proved:** independent security review, broader host replication, externally sourced workflows, multi-server authority boundaries, operator identity keys, formal confinement analysis, and customer demand.
 
 The [product assessment](./planning/product_assessment.md) explains the evidence and current limits without marketing shortcuts.
 

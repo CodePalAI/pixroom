@@ -2,7 +2,10 @@ blank_issues_enabled: false
 contact_links:
   - name: Questions and ideas
     url: https://github.com/CodePalAI/pinpoint/discussions
-    about: Ask usage questions, share integration ideas, or discuss benchmark replications.
+    about: Ask architecture questions, discuss enterprise evaluation, or share sanitized field results.
+  - name: Enterprise evaluation and design partners
+    url: https://github.com/CodePalAI/pinpoint/discussions/2
+    about: Evaluate a policy-controlled MCP workflow with the maintainers. Never post real records, credentials, or private policies.
   - name: Security vulnerability
     url: https://github.com/CodePalAI/pinpoint/security/advisories/new
     about: Report vulnerabilities privately. Do not include secrets in a public issue.

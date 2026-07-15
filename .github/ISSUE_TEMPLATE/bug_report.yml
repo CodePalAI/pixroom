@@ -18,6 +18,9 @@ body:
     attributes:
       label: Surface
       options:
+        - Opaque flow policy or enforcement
+        - Receipt signing or verification
+        - MCP gateway or result firewall
         - QCV exact prefetch
         - QCV query fallback
         - Proxy transport
@@ -61,4 +64,6 @@ body:
       label: Data safety
       options:
         - label: I removed credentials, personal data, and proprietary context.
+          required: true
+        - label: I did not include a real flow policy containing confidential values or fixed credentials.
           required: true

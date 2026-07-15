@@ -1,5 +1,5 @@
-name: Benchmark replication
-description: Submit an independent Pinpoint benchmark run with raw receipts and environment metadata.
+name: Evidence replication
+description: Submit an independent protocol, host, security, or optimizer replication with content-free receipts.
 title: "replication: "
 labels: [benchmark, replication]
 body:
@@ -15,38 +15,45 @@ body:
     validations:
       required: true
   - type: input
-    id: model
+    id: surface
     attributes:
-      label: Exact model ID
-      placeholder: claude-haiku-4-5-20251001
+      label: Evidence surface
+      description: Opaque-flow protocol gate, cross-host opaque flow, result firewall, provider-wire QCV, or another named gate.
+      placeholder: Opaque-flow protocol gate (no model)
     validations:
       required: true
+  - type: input
+    id: host_model
+    attributes:
+      label: Host and model, if applicable
+      description: Leave blank for a no-model protocol replication. Otherwise include the exact client version and model ID.
+      placeholder: Claude Code 2.1.197 / claude-haiku-4-5-20251001
   - type: textarea
     id: environment
     attributes:
       label: Environment
-      description: Operator or organization, date, OS, CPU, Node version, Python version, Headroom version, and region if known.
+      description: Operator or organization, date, OS, CPU, Node version, and any host, model, sidecar, or region metadata relevant to this gate.
     validations:
       required: true
   - type: textarea
     id: commands
     attributes:
       label: Commands and configuration
-      description: Include seeds, task filters, caps, repetitions, and all relevant BENCH_* and PINPOINT_* variables. Remove secrets.
+      description: Include the flow-policy shape without confidential values, task filters, caps, repetitions, and relevant BENCH_* or PINPOINT_* variables. Remove secrets.
     validations:
       required: true
   - type: textarea
     id: result
     attributes:
       label: Result summary
-      description: Report every task, arm, exact score, provider input/output tokens, cost basis, failures, retries, and exclusions.
+      description: Report destination success, denied bypasses, transcript-canary results, receipt verification, visible bytes, latency, host calls, failures, retries, and exclusions as applicable.
     validations:
       required: true
   - type: textarea
     id: receipts
     attributes:
       label: Raw receipts
-      description: Drag in the labeled preflight, canary, and benchmark JSON files or link a pull request that adds them.
+      description: Drag in content-free protocol, host, preflight, canary, or benchmark JSON receipts, or link a pull request that adds them. Never attach raw event streams containing business data.
     validations:
       required: true
   - type: checkboxes
@@ -59,6 +66,8 @@ body:
         - label: I removed API keys, personal data, proprietary prompts, and real user content.
           required: true
         - label: I labeled offline estimates separately from provider-reported usage and live correctness.
+          required: true
+        - label: I disclosed whether this was a no-model protocol gate, first-party fixture, sanitized workload, or real production workload.
           required: true
         - label: I disclosed any relationship with CodePal or the Pinpoint maintainers.
           required: true

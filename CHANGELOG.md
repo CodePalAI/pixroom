@@ -10,7 +10,7 @@ All notable changes are documented here. This project follows semantic versionin
 - A lossless MCP result firewall that replaces eligible oversized text or structured results with a compact `pinpoint://artifact/...` resource link and deterministic `pinpoint_query` access.
 - Protocol-native artifact resources, bounded previews, exact schema/select/count/grep/slice/join operations, and a public `@codepal/pinpoint/mcp` API.
 - Deterministic discovery of one unambiguous nested record array under structured wrappers such as `data.accounts`, while retaining the complete wrapper payload.
-- A real Claude Code MCP gate in which an 81,665-character, 1,000-row result became a 513-character handle and Claude autonomously queried the exact email through the expected SHA-derived artifact.
+- A real Claude Code MCP gate in which an 81,665-character, 1,000-row result became a 508-character handle and Claude autonomously queried the exact email through the expected SHA-derived artifact.
 - A matching GitHub Copilot CLI gate using auto-routed GPT-5.3 Codex: the same artifact id, upstream call, exact query, and final email passed with zero premium requests and no file changes.
 - A content-free cross-host receipt that counts 2/2 executed clients and explicitly excludes unauthenticated Cursor and blocked Codex cells.
 - Operator-configured `pinpoint_flow` dataflow: exact local projections can enter a hidden unmodified destination tool without source or destination values crossing the client-facing MCP transcript.

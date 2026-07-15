@@ -1,24 +1,27 @@
 # Pinpoint
 
-> Pinpoint is CodePal's open-source value-opaque MCP dataflow and lossless result-firewall runtime. It wraps an unmodified stdio MCP server, retains exact results locally, exposes bounded deterministic queries, and can pass policy-approved projections into hidden destination tools without placing values in model context.
+> Pinpoint is CodePal's open-source policy gateway for sensitive MCP data. It wraps an unmodified stdio MCP server, executes operator-approved exact projections into hidden destination tools without placing values in model context, and returns signed disclosure-bounded receipts. It also retains oversized results locally for bounded exact queries.
 
 ## Start here
 
-- [README](https://github.com/CodePalAI/pinpoint/blob/main/README.md): product overview, offline demo, supported operations, SDK and proxy examples, proof, privacy, and limitations
+- [README](https://github.com/CodePalAI/pinpoint/blob/main/README.md): enterprise business case, target owners, evaluation path, deployment fit, evidence, quickstart, and technical appendix
+- [Security policy](https://github.com/CodePalAI/pinpoint/blob/main/SECURITY.md): deployment trust boundaries, private reporting, and claims Pinpoint does not make
+- [Value-opaque MCP dataflow](https://github.com/CodePalAI/pinpoint/blob/main/planning/value_opaque_mcp_dataflow.md): flow policy, fail-closed source capture, random capabilities, signed receipts, evidence, prior art, and remaining security gates
 - [Benchmark report](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/REPORT.md): generated evidence split by simulation, offline transform, live controlled, and live agent levels
 - [Reproducing benchmarks](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/REPRODUCING.md): no-key checks and capped paid replication workflow
 - [QCV design](https://github.com/CodePalAI/pinpoint/blob/main/planning/query_backed_context.md): exact-operation boundaries, threat model, rejected design, and prior art
 - [Product assessment](https://github.com/CodePalAI/pinpoint/blob/main/planning/product_assessment.md): evidence limits, competitive position, validation gates, and kill criteria
 - [MCP result firewall design](https://github.com/CodePalAI/pinpoint/blob/main/planning/mcp_result_firewall.md): upstream interception, exact artifact protocol, invariants, limits, and threat model
-- [Value-opaque MCP dataflow](https://github.com/CodePalAI/pinpoint/blob/main/planning/value_opaque_mcp_dataflow.md): flow policy, fail-closed source capture, random capabilities, signed receipts, evidence, prior art, and breakthrough gates
 - [OSS adoption research](https://github.com/CodePalAI/pinpoint/blob/main/planning/oss_adoption_research.md): source-backed README and launch patterns from high-attention AI developer projects
 - [Public launch checklist](https://github.com/CodePalAI/pinpoint/blob/main/planning/public_launch.md): manual evidence, media, npm, GitHub, community, and launch-sequence gates
 
-## Use Pinpoint
+## Primary product path
 
 - [CLI entrypoint](https://github.com/CodePalAI/pinpoint/blob/main/src/cli/main.ts): `mcp gateway`, standalone `mcp`, `demo`, `proxy`, `wrap`, `doctor`, `stats`, `replay`, `integration`, and `agent`
 - [MCP gateway](https://github.com/CodePalAI/pinpoint/blob/main/src/mcp/gateway.ts): transparent stdio JSON-RPC forwarding, exact result virtualization, resources, `pinpoint_query`, and internal opaque destination dispatch
 - [Opaque flow engine](https://github.com/CodePalAI/pinpoint/blob/main/src/mcp/flow.ts): versioned policy validation, exact projection confinement, HMAC commitments, Ed25519 receipts, chaining, and verification
+- [Flow policy example](https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-flow.json): source, destination, filter, projection, fixed arguments, and limits
+- [Flow policy schema](https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-flow.schema.json): editor and deployment-tooling schema; runtime validation remains authoritative
 - [Anthropic SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/anthropic.ts): wrap the official Anthropic TypeScript client
 - [OpenAI SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/openai.ts): wrap Chat Completions and Responses clients
 - [Integration examples](https://github.com/CodePalAI/pinpoint/tree/main/examples/integrations): public integration API examples with built-ins disabled
@@ -31,7 +34,6 @@
 - [Cross-host MCP gateway receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-gateway-cross-host.first-party-macos-arm64-20260715.json): the same exact task passed on Claude Code and GitHub Copilot CLI with a shared artifact id; Cursor and Codex blocks are explicitly uncounted
 - [Opaque-flow protocol receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json): 30 exact hidden calls, seven denied bypasses, zero of 400 canaries leaked, signed chain verification, and local latency
 - [Opaque-flow cross-host receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json): Claude Code and Copilot each completed the same hidden destination flow with valid receipts and zero event-stream fixture values
-- [Security policy](https://github.com/CodePalAI/pinpoint/blob/main/SECURITY.md): private reporting and deployment boundaries
 - [Contributing](https://github.com/CodePalAI/pinpoint/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
 - [Code of Conduct](https://github.com/CodePalAI/pinpoint/blob/main/CODE_OF_CONDUCT.md): community expectations, private reporting, and enforcement
 - [Upstream attribution](https://github.com/CodePalAI/pinpoint/blob/main/UPSTREAM.md): pinned pxpipe and Headroom contracts
@@ -39,9 +41,11 @@
 
 ## Important boundaries
 
+- Best fit: a local or VPC-side wrapper around an existing stdio MCP server, owned jointly by AI platform and security engineering.
 - The MCP gateway is the primary path and does not require provider API-key interception. It handles eligible successful text and structured MCP results before host truncation.
 - Loading a flow policy changes configured sources from optimization/fail-open semantics to confidentiality/fail-closed semantics at every result size. Query/resources are hidden and artifact ids are random by default.
 - Opaque-flow receipts hide values, not metadata: tool/field names, operation, counts, sizes, timing, policy limits, and success remain visible. The wrapped process is trusted with values.
+- Pinpoint returns flow receipts through MCP but does not persist them. Durable receipt retention belongs in the host or an existing collector; body capture may contain sensitive values.
 - Errors, media, mixed content, ambiguous nested collections, small results, and capacity failures pass through unchanged.
 - Gateway artifacts are bounded, process-scoped, and queryable only through capped exact operations or bounded resource previews.
 - Provider-wire QCV remains a secondary path for supported operations over older JSON, logs, and source tool output. Ambiguous or unsupported requests pass through.
@@ -49,3 +53,4 @@
 - OAuth and subscription traffic keeps provider-wire QCV off, but can use the MCP gateway because it operates before provider authentication.
 - "Local" describes optimization and temporary dataset storage. Normal model requests still go to the provider selected by the user.
 - The cross-host MCP receipt is one first-party synthetic task replicated across two clients, not a prevalence estimate. The 96.8% provider-wire result used deliberately eligible synthetic prompts, not normal coding traffic.
+- Not yet supported: cross-server flows with separate authentication domains, durable operator identity keys, remote attestation, or formal compliance claims.

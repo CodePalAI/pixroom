@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title description">
+  <title id="title">Pinpoint policy-controlled MCP dataflow</title>
+  <desc id="description">Business data moves from an existing source MCP tool through Pinpoint policy enforcement into an existing destination MCP tool. The AI agent receives a random capability and signed receipt instead of selected values.</desc>
+  <rect width="1200" height="560" fill="#0b1117"/>
+
+  <text x="64" y="40" fill="#42d392" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="800">PINPOINT</text>
+  <text x="64" y="80" fill="#f7fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="700">Business data moves. The model gets the receipt.</text>
+  <text x="64" y="116" fill="#9fb0bf" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18">Operator-owned policy controls the exact source, fields, destination, and limits.</text>
+
+  <rect x="64" y="205" width="250" height="170" rx="8" fill="#121c25" stroke="#344450" stroke-width="2"/>
+  <text x="88" y="244" fill="#8da2b2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700">SOURCE MCP TOOL</text>
+  <text x="88" y="284" fill="#f7fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="700">Existing system</text>
+  <text x="88" y="319" fill="#becbd5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Records, logs, traces,</text>
+  <text x="88" y="344" fill="#becbd5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">documents, API results</text>
+
+  <rect x="408" y="170" width="384" height="240" rx="8" fill="#16261f" stroke="#42d392" stroke-width="3"/>
+  <text x="438" y="212" fill="#42d392" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="700">PINPOINT POLICY GATEWAY</text>
+  <text x="438" y="255" fill="#f7fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="27" font-weight="700">Exact, bounded authority</text>
+  <line x1="438" y1="278" x2="762" y2="278" stroke="#365247" stroke-width="2"/>
+  <circle cx="447" cy="309" r="5" fill="#42d392"/>
+  <text x="463" y="315" fill="#d5e2db" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Allowlisted filter and projection</text>
+  <circle cx="447" cy="342" r="5" fill="#42d392"/>
+  <text x="463" y="348" fill="#d5e2db" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Item and byte bounds</text>
+  <circle cx="447" cy="375" r="5" fill="#42d392"/>
+  <text x="463" y="381" fill="#d5e2db" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Fail-closed protected source</text>
+
+  <rect x="886" y="205" width="250" height="170" rx="8" fill="#121c25" stroke="#344450" stroke-width="2"/>
+  <text x="910" y="244" fill="#8da2b2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700">DESTINATION MCP TOOL</text>
+  <text x="910" y="284" fill="#f7fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="700">Existing system</text>
+  <text x="910" y="319" fill="#becbd5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Receives only the exact</text>
+  <text x="910" y="344" fill="#becbd5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">approved projection</text>
+
+  <path d="M314 290 H392" fill="none" stroke="#42d392" stroke-width="4"/>
+  <path d="M382 280 L400 290 L382 300" fill="#42d392"/>
+
+  <path d="M792 290 H870" fill="none" stroke="#42d392" stroke-width="4"/>
+  <path d="M860 280 L878 290 L860 300" fill="#42d392"/>
+
+  <rect x="408" y="444" width="384" height="64" rx="8" fill="#172331" stroke="#4f7cac" stroke-width="2"/>
+  <text x="430" y="471" fill="#8eb6dc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700">AI AGENT</text>
+  <text x="430" y="494" fill="#f7fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">Random capability in. Signed receipt out. No selected values.</text>
+  <path d="M600 444 V424" fill="none" stroke="#f0b35a" stroke-width="3"/>
+  <path d="M592 431 L600 417 L608 431" fill="#f0b35a"/>
+
+  <text x="64" y="530" fill="#718392" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14">Unmodified tools  |  No generated code  |  Local or VPC-side  |  Apache-2.0</text>
+</svg>
