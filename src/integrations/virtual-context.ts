@@ -116,9 +116,12 @@ function latestUserText(body: Readonly<Record<string, unknown>>): string {
     if (message == null || typeof message !== 'object' || Array.isArray(message)) continue;
     const record = message as { role?: unknown; content?: unknown };
     if (record.role !== 'user') continue;
-    if (typeof record.content === 'string') return record.content;
+    if (typeof record.content === 'string') {
+      if (record.content.trim()) return record.content;
+      continue;
+    }
     if (!Array.isArray(record.content)) continue;
-    return record.content
+    const text = record.content
       .filter(
         (block): block is { type: 'text'; text: string } =>
           block != null &&
@@ -129,21 +132,26 @@ function latestUserText(body: Readonly<Record<string, unknown>>): string {
       )
       .map((block) => block.text)
       .join('\n');
+    if (text.trim()) return text;
   }
   if (typeof body.input === 'string') return body.input;
   const input = Array.isArray(body.input) ? body.input : [];
   for (let index = input.length - 1; index >= 0; index -= 1) {
     const item = input[index];
     if (!isRecord(item) || item.role !== 'user') continue;
-    if (typeof item.content === 'string') return item.content;
+    if (typeof item.content === 'string') {
+      if (item.content.trim()) return item.content;
+      continue;
+    }
     if (!Array.isArray(item.content)) continue;
-    return item.content
+    const text = item.content
       .filter(
         (block): block is { type: 'input_text'; text: string } =>
           isRecord(block) && block.type === 'input_text' && typeof block.text === 'string',
       )
       .map((block) => block.text)
       .join('\n');
+    if (text.trim()) return text;
   }
   return '';
 }

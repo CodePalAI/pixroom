@@ -235,6 +235,36 @@ describe('VirtualContextStore', () => {
 });
 
 describe('virtual-context runtime integration', () => {
+  it('recovers the question before a final Claude Code tool-result turn', async () => {
+    const runtime = createPinpoint({
+      virtualContext: { enabled: true, minChars: 100, protectRecent: 0 },
+      semantic: { enabled: false },
+      optical: { enabled: false },
+      logLevel: 'silent',
+    });
+    const rows = Array.from({ length: 80 }, (_, id) => ({
+      id,
+      email: `user${id}@example.com`,
+      padding: 'claude code tool output '.repeat(3),
+    }));
+    const body = {
+      model: 'claude-haiku-4-5',
+      messages: [
+        { role: 'user', content: [{ type: 'text', text: 'What is the email for id 47?' }] },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'read_data', name: 'Read', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'read_data', content: JSON.stringify(rows) }] },
+      ],
+    };
+
+    const routed = await runtime.route('anthropic', 'claude-haiku-4-5', body, 'payg');
+    const serialized = JSON.stringify(routed.body);
+
+    expect(routed.virtualized).toBe(true);
+    expect(serialized).toContain('user47@example.com');
+    expect(serialized).not.toContain('user46@example.com');
+    await runtime.shutdown();
+  });
+
   it('materializes an unambiguous exact join across two JSON tool results', async () => {
     const runtime = createPinpoint({
       virtualContext: { enabled: true, minChars: 100, protectRecent: 0 },

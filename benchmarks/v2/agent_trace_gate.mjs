@@ -375,6 +375,24 @@ function structuralDiagnostics(records) {
     return {
       provider: record.provider,
       maxStringChars: Math.max(0, ...strings),
+      conversation: (Array.isArray(body.messages) ? body.messages : Array.isArray(body.input) ? body.input : [])
+        .map((item) => ({
+          role: item?.role ?? null,
+          type: item?.type ?? null,
+          content: Array.isArray(item?.content)
+            ? item.content.map((block) => ({
+                type: block?.type ?? null,
+                textChars: typeof block?.text === 'string' ? block.text.length : null,
+                contentChars: typeof block?.content === 'string' ? block.content.length : null,
+                contentPrefix: typeof block?.content === 'string' && block.content.length >= MIN_CHARS
+                  ? block.content.slice(0, 300)
+                  : null,
+              }))
+            : typeof item?.content === 'string'
+              ? [{ type: 'string', contentChars: item.content.length }]
+              : null,
+          outputChars: typeof item?.output === 'string' ? item.output.length : null,
+        })),
       virtual: record.report?.rows
         ?.filter((row) => row.stage === 'virtual')
         .map((row) => ({ applied: row.applied, reason: row.reason })) ?? [],
