@@ -4,6 +4,29 @@ All notable changes are documented here. This project follows semantic versionin
 
 ## Unreleased
 
+### Added
+
+- A transparent stdio MCP gateway: `pinpoint mcp gateway -- <server> [args...]` starts an unmodified upstream server without a shell and forwards bidirectional JSON-RPC traffic.
+- A lossless MCP result firewall that replaces eligible oversized text or structured results with a compact `pinpoint://artifact/...` resource link and deterministic `pinpoint_query` access.
+- Protocol-native artifact resources, bounded previews, exact schema/select/count/grep/slice/join operations, and a public `@codepal/pinpoint/mcp` API.
+- Deterministic discovery of one unambiguous nested record array under structured wrappers such as `data.accounts`, while retaining the complete wrapper payload.
+- A real Claude Code MCP gate in which an 81,665-character, 1,000-row result became a 513-character handle and Claude autonomously queried the exact email in four turns.
+
+### Changed
+
+- The primary product boundary moved from the model API proxy to the MCP tool boundary, before host truncation and provider context ingestion. Provider-wire QCV remains a secondary path for eligible API-key traffic.
+- Upstream MCP output schemas are advertised as an object union accepting either the original structured result or Pinpoint's artifact envelope.
+
+### Safety
+
+- MCP errors, media, mixed blocks, small results, ambiguous nested collections, unsupported values, and unprofitable transformations pass through unchanged.
+- Artifact capacity is reserved atomically before a handle is emitted; insufficient storage fails open with the original result.
+- Gateway query and resource outputs are bounded independently, artifacts are process-scoped, and upstream commands use `shell: false`.
+
+### Fixed
+
+- Generated output schemas retain root `type: "object"`, as required by Claude Code's strict MCP tool validator even when `oneOf` is present.
+
 ## 0.1.1 - 2026-07-15
 
 ### Added

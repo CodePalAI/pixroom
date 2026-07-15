@@ -1,6 +1,6 @@
 # Pinpoint
 
-> Pinpoint is CodePal's open-source local context-virtualization layer for coding agents and LLM applications. It keeps large old tool results locally, materializes supported exact lookups and counts for the current turn, and forwards the remaining Anthropic or OpenAI request to the same provider.
+> Pinpoint is CodePal's open-source lossless MCP result firewall and exact context-virtualization runtime. It wraps an unmodified stdio MCP server, retains eligible oversized results locally before the host or model sees them, and exposes bounded deterministic queries plus protocol-native resource handles.
 
 ## Start here
 
@@ -9,12 +9,14 @@
 - [Reproducing benchmarks](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/REPRODUCING.md): no-key checks and capped paid replication workflow
 - [QCV design](https://github.com/CodePalAI/pinpoint/blob/main/planning/query_backed_context.md): exact-operation boundaries, threat model, rejected design, and prior art
 - [Product assessment](https://github.com/CodePalAI/pinpoint/blob/main/planning/product_assessment.md): evidence limits, competitive position, validation gates, and kill criteria
+- [MCP result firewall design](https://github.com/CodePalAI/pinpoint/blob/main/planning/mcp_result_firewall.md): upstream interception, exact artifact protocol, invariants, limits, and threat model
 - [OSS adoption research](https://github.com/CodePalAI/pinpoint/blob/main/planning/oss_adoption_research.md): source-backed README and launch patterns from high-attention AI developer projects
 - [Public launch checklist](https://github.com/CodePalAI/pinpoint/blob/main/planning/public_launch.md): manual evidence, media, npm, GitHub, community, and launch-sequence gates
 
 ## Use Pinpoint
 
-- [CLI entrypoint](https://github.com/CodePalAI/pinpoint/blob/main/src/cli/main.ts): `demo`, `proxy`, `wrap`, `doctor`, `stats`, `replay`, `integration`, `agent`, and `mcp`
+- [CLI entrypoint](https://github.com/CodePalAI/pinpoint/blob/main/src/cli/main.ts): `mcp gateway`, standalone `mcp`, `demo`, `proxy`, `wrap`, `doctor`, `stats`, `replay`, `integration`, and `agent`
+- [MCP gateway](https://github.com/CodePalAI/pinpoint/blob/main/src/mcp/gateway.ts): transparent stdio JSON-RPC forwarding, exact result virtualization, resources, and `pinpoint_query`
 - [Anthropic SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/anthropic.ts): wrap the official Anthropic TypeScript client
 - [OpenAI SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/openai.ts): wrap Chat Completions and Responses clients
 - [Integration examples](https://github.com/CodePalAI/pinpoint/tree/main/examples/integrations): public integration API examples with built-ins disabled
@@ -23,6 +25,7 @@
 ## Trust and contribution
 
 - [Raw paid QCV receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/direct-anthropic-virtual.json): two-task Haiku 4.5 pilot with usage, outputs, costs, order, and limitations
+- [Real-agent MCP gateway receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-gateway-agent.first-party-macos-arm64-20260715.json): one synthetic Claude Code tool-to-artifact-to-query flow with source fingerprints and explicit limitations
 - [Security policy](https://github.com/CodePalAI/pinpoint/blob/main/SECURITY.md): private reporting and deployment boundaries
 - [Contributing](https://github.com/CodePalAI/pinpoint/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
 - [Code of Conduct](https://github.com/CodePalAI/pinpoint/blob/main/CODE_OF_CONDUCT.md): community expectations, private reporting, and enforcement
@@ -31,8 +34,11 @@
 
 ## Important boundaries
 
-- Exact QCV is for supported operations over older JSON, logs, and source tool output. Ambiguous or unsupported requests pass through.
+- The MCP gateway is the primary path and does not require provider API-key interception. It handles eligible successful text and structured MCP results before host truncation.
+- Errors, media, mixed content, ambiguous nested collections, small results, and capacity failures pass through unchanged.
+- Gateway artifacts are bounded, process-scoped, and queryable only through capped exact operations or bounded resource previews.
+- Provider-wire QCV remains a secondary path for supported operations over older JSON, logs, and source tool output. Ambiguous or unsupported requests pass through.
 - The model-planned fallback is experimental and disabled by default.
-- OAuth and subscription traffic uses a safer mode where exact QCV is off.
+- OAuth and subscription traffic keeps provider-wire QCV off, but can use the MCP gateway because it operates before provider authentication.
 - "Local" describes optimization and temporary dataset storage. Normal model requests still go to the provider selected by the user.
-- The 97.4% input reduction is a two-task, one-run-per-task controlled pilot, not a universal savings claim.
+- The MCP receipt is one first-party synthetic task, not a prevalence estimate. The 96.8% provider-wire result used deliberately eligible synthetic prompts, not normal coding traffic.

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "evidenceLevel": "live-agentic",
+  "kind": "mcp-result-firewall-agent-gate",
+  "date": "2026-07-15",
+  "source": {
+    "description": "One real Claude Code session against a disposable synthetic stdio MCP server wrapped by the production Pinpoint CLI gateway.",
+    "persistedData": "Only this content-free receipt is retained. The Claude stream, debug log, provider credentials, and temporary MCP state are not persisted.",
+    "fingerprints": {
+      "src/mcp/gateway.ts": "9d3a171f885062e71d9b2b77e7ea2e217dd05168110f373b34c7aefbdce32411",
+      "src/virtual-context/store.ts": "7f62deaedcef3e5cd1c0650facc84b61d32cfa28ac12d585b6dd42f5b9952c2c",
+      "src/cli/main.ts": "ee9f86a97d7e1004f72a46c45b6a37fcbe2b5b3e0204880ae380b999fcda5224",
+      "benchmarks/v2/mcp_gateway_agent_gate.mjs": "edf5d91313ddd8c8fdfa78ffedd27964302af3fe5a6b7593eb206c3589d71325"
+    }
+  },
+  "environment": {
+    "os": "macOS 26.5.1 arm64",
+    "node": "v26.0.0",
+    "client": "Claude Code 2.1.197",
+    "model": "claude-haiku-4-5-20251001"
+  },
+  "method": {
+    "task": "Find one email by accountId through an MCP server and return only the value.",
+    "upstreamTool": "accounts_list",
+    "upstreamConstraint": "The synthetic upstream tool intentionally exposes no filtering parameter and returns 1,000 records under structuredContent.data.accounts.",
+    "gatewayCommand": "pinpoint mcp gateway --min-chars 1000 -- <upstream stdio command>",
+    "allowedMcpTools": [
+      "mcp__accounts__accounts_list",
+      "mcp__accounts__pinpoint_query"
+    ],
+    "deniedEscapeHatches": [
+      "Bash",
+      "Read",
+      "Grep",
+      "Glob",
+      "Agent",
+      "Edit",
+      "Write"
+    ],
+    "strictMcpConfig": true,
+    "maxBudgetUSD": 0.15,
+    "grader": "The run passes only if the real client calls both MCP tools, no model-visible tool result exceeds 5,000 characters, and the final result exactly equals the expected synthetic email."
+  },
+  "result": {
+    "passed": true,
+    "agentExitCode": 0,
+    "upstreamCalled": true,
+    "queryCalled": true,
+    "toolCalls": [
+      "ToolSearch",
+      "mcp__accounts__accounts_list",
+      "mcp__accounts__pinpoint_query"
+    ],
+    "upstreamStructuredChars": 81665,
+    "largestModelVisibleToolResultChars": 513,
+    "modelVisibleCharacterReduction": 0.9937182391477377,
+    "turns": 4,
+    "observedCostUSD": 0.01916255,
+    "expected": "user733@example.com",
+    "answer": "user733@example.com"
+  },
+  "limitations": [
+    "This is one first-party synthetic task, not a prevalence estimate or customer-production trace.",
+    "The prompt explicitly asked Claude to use the accounts MCP server; unrelated filesystem and shell tools were denied to prevent an alternate answer path.",
+    "The upstream server intentionally lacked a filter parameter, representing a poorly bounded tool rather than every MCP server.",
+    "The result proves client compatibility and autonomous follow-up querying for this task. It does not establish quality across free-form summarization, media, errors, or ambiguous data.",
+    "Character reduction is not provider token or bill reduction. Observed provider cost includes discovery and both MCP turns."
+  ]
+}

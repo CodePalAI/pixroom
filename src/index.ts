@@ -30,7 +30,22 @@ export { ProtocolRegistry } from './protocols/registry.js';
 export { createResponseEventDecoder } from './protocols/response-events.js';
 export type { ProtocolAdapter, ProtocolMatchInput } from './protocols/types.js';
 
-export { runMcpServer } from './mcp/server.js';
+export {
+  DEFAULT_MCP_VIRTUALIZE_CHARS,
+  MCP_ARTIFACT_URI_PREFIX,
+  MCP_QUERY_TOOL,
+  MCP_QUERY_TOOL_NAME,
+  McpResultFirewall,
+  runMcpGateway,
+  runMcpServer,
+} from './mcp/index.js';
+export type {
+  McpCallToolResult,
+  McpContentBlock,
+  McpGatewayOptions,
+  McpResultFirewallOptions,
+  McpResultTransformation,
+} from './mcp/index.js';
 
 export {
   AgentRegistry,

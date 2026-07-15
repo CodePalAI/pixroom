@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative as relativePath, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +17,17 @@ const receipt = JSON.parse(
     'utf8',
   ),
 );
+const gatewayReceipt = JSON.parse(
+  readFileSync(
+    join(
+      root,
+      'benchmarks',
+      'results',
+      'mcp-gateway-agent.first-party-macos-arm64-20260715.json',
+    ),
+    'utf8',
+  ),
+);
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const proofAssetPath = join(root, 'assets', 'qcv-evidence-gate.svg');
 const proofAsset = readFileSync(proofAssetPath, 'utf8');
@@ -24,6 +36,7 @@ const failures = [];
 const fail = (message) => failures.push(message);
 const integer = new Intl.NumberFormat('en-US');
 const percentage = (value) => `${(value * 100).toFixed(1)}%`;
+const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 function githubSlug(heading) {
   return heading
@@ -113,27 +126,49 @@ for (const value of [
   percentage(receipt.summary.comparisons.qcvVsRaw.costReduction),
   percentage(comparison.inputReduction),
 ]) {
-  if (!readme.includes(value)) fail(`README is missing above-fold value: ${value}`);
+  if (!readme.includes(value)) fail(`README is missing provider-wire receipt value: ${value}`);
+}
+
+for (const value of [
+  integer.format(gatewayReceipt.result.upstreamStructuredChars),
+  integer.format(gatewayReceipt.result.largestModelVisibleToolResultChars),
+  percentage(gatewayReceipt.result.modelVisibleCharacterReduction),
+  gatewayReceipt.result.expected,
+]) {
+  if (!readme.includes(value)) fail(`README is missing MCP gateway receipt value: ${value}`);
+}
+for (const [sourcePath, expectedHash] of Object.entries(gatewayReceipt.source.fingerprints)) {
+  const absolute = join(root, sourcePath);
+  if (!existsSync(absolute)) {
+    fail(`MCP gateway receipt source does not exist: ${sourcePath}`);
+    continue;
+  }
+  const actualHash = sha256(readFileSync(absolute));
+  if (actualHash !== expectedHash) {
+    fail(`MCP gateway receipt fingerprint is stale: ${sourcePath}`);
+  }
 }
 
 if (!readme.includes('./assets/qcv-evidence-gate.svg')) fail('README does not render the proof asset');
 if (!existsSync(join(root, 'llms.txt'))) fail('llms.txt is missing');
 if (!readme.includes('./llms.txt')) fail('README does not link llms.txt');
 const endUserSignals = [
-  'The exact context layer for AI agents',
-  'Save money on LLM input tokens. Pay for the answer, not the whole tool output.',
-  '## What your prompts turn into',
+  'The lossless MCP result firewall for AI agents',
+  'Stop oversized MCP results before they hit the context window.',
+  '## What changes at the tool boundary',
   '## Get started (60 seconds)',
   '## What it does',
   '## Works with your stack',
   '## Choose your path',
-  '### Coding CLI: the main path',
+  '### MCP gateway: the main path',
   '### TypeScript SDK: native client in, native response out',
   '### Any language or HTTP client: change the base URL',
+  'Subscription-compatible',
+  '## What passes through',
+  '### Provider-wire QCV: the secondary path',
+  '### Real Claude Code MCP gateway gate',
+  'pinpoint mcp gateway --',
   'Provider API key',
-  'Subscription or OAuth',
-  'About the 96.8% result',
-  '## What Pinpoint can optimize',
 ];
 for (const signal of endUserSignals) {
   if (!readme.includes(signal)) fail(`README is missing end-user onboarding signal: ${signal}`);

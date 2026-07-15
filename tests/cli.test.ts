@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseProxyArgs, runQcvDemo } from '../src/cli/main.js';
+import { parseMcpArgs, parseProxyArgs, runQcvDemo } from '../src/cli/main.js';
 
 describe('parseProxyArgs', () => {
   it('parses mode, host, and port', () => {
@@ -40,5 +40,32 @@ describe('runQcvDemo', () => {
     expect(output).toContain('exact answer materialized: user733@example.com');
     expect(output).toContain('model-driven fallback: not needed');
     expect(output).toContain('network requests: 0');
+  });
+});
+
+describe('parseMcpArgs', () => {
+  it('preserves the standalone server and parses a shell-free gateway command', () => {
+    expect(parseMcpArgs([])).toEqual({ ok: true, mode: 'server' });
+    expect(
+      parseMcpArgs(['gateway', '--min-chars', '12000', '--', 'npx', '-y', '@example/mcp']),
+    ).toEqual({
+      ok: true,
+      mode: 'gateway',
+      command: 'npx',
+      args: ['-y', '@example/mcp'],
+      minChars: 12000,
+    });
+  });
+
+  it('rejects missing commands, invalid thresholds, and unknown options', () => {
+    expect(parseMcpArgs(['gateway'])).toMatchObject({ ok: false });
+    expect(parseMcpArgs(['gateway', '--min-chars', '0', '--', 'server'])).toEqual({
+      ok: false,
+      error: '--min-chars must be an integer from 1 to 100000000',
+    });
+    expect(parseMcpArgs(['gateway', '--shell', '--', 'server'])).toEqual({
+      ok: false,
+      error: 'unknown mcp gateway option: --shell',
+    });
   });
 });

@@ -14,6 +14,7 @@ import { basename } from 'node:path';
 import { createProxyServer } from '../proxy/server.js';
 import { createPinpoint } from '../pinpoint.js';
 import { runMcpServer } from '../mcp/server.js';
+import { runMcpGateway } from '../mcp/gateway.js';
 import { runWrap, copilotPreflight } from '../wrap/runner.js';
 import { describeAgents, knownAgents } from '../wrap/agents.js';
 import { formatReport } from '../measurement/savings.js';
@@ -54,6 +55,9 @@ COMMANDS
   integration      List active optimizer integrations and their capabilities.
   agent             List agent adapters and their actual interception level.
   mcp              MCP server over stdio (tools: pinpoint_compress / _retrieve / _stats).
+  mcp gateway [--min-chars N] -- <command> [args...]
+                   Wrap any stdio MCP server. Oversized exact results stay local;
+                   hosts receive a resource handle plus pinpoint_query.
   wrap <agent>     Start pinpoint (or delegate) and launch <agent> pointed at it.
                    Agents: claude, codex, aider, goose, openhands, opencode, vibe,
                    copilot (uses your existing login, no API key); cursor/cline/
@@ -72,6 +76,7 @@ COMMON ENV
   PINPOINT_CAPTURE_BODIES              include sensitive bodies for replay (default off)
   PINPOINT_OTLP_ENDPOINT               OTLP/HTTP traces endpoint (default off)
   PINPOINT_CCR_CONTINUATION             execute retrieve tools locally (default on)
+  PINPOINT_MCP_MIN_CHARS                MCP gateway virtualization threshold (default 16000)
   PINPOINT_HEADROOM_URL               headroom sidecar base URL (default http://127.0.0.1:8787)
   PINPOINT_HEADROOM_AUTOSPAWN         auto-start 'headroom proxy' if not reachable (default on)
   PINPOINT_OPTICAL_ON_SUBSCRIPTION    allow lossy optical on oauth/subscription (default off)
@@ -114,6 +119,52 @@ export function parseProxyArgs(args: readonly string[]): ProxyArgsResult {
     }
   }
   return { ok: true, overrides };
+}
+
+export type McpArgsResult =
+  | { readonly ok: true; readonly mode: 'server' }
+  | {
+      readonly ok: true;
+      readonly mode: 'gateway';
+      readonly command: string;
+      readonly args: readonly string[];
+      readonly minChars?: number;
+    }
+  | { readonly ok: false; readonly error: string };
+
+export function parseMcpArgs(args: readonly string[]): McpArgsResult {
+  if (args.length === 0 || (args.length === 1 && args[0] === 'serve')) {
+    return { ok: true, mode: 'server' };
+  }
+  if (args[0] !== 'gateway') {
+    return { ok: false, error: 'usage: pinpoint mcp gateway [--min-chars N] -- <command> [args...]' };
+  }
+
+  const separator = args.indexOf('--');
+  if (separator < 0 || separator === args.length - 1) {
+    return { ok: false, error: 'mcp gateway requires -- followed by an upstream command' };
+  }
+  let minChars: number | undefined;
+  for (let index = 1; index < separator; index += 1) {
+    const arg = args[index];
+    if (arg !== '--min-chars') {
+      return { ok: false, error: `unknown mcp gateway option: ${arg}` };
+    }
+    const raw = args[++index];
+    const value = raw == null ? Number.NaN : Number(raw);
+    if (!Number.isInteger(value) || value < 1 || value > 100_000_000) {
+      return { ok: false, error: '--min-chars must be an integer from 1 to 100000000' };
+    }
+    minChars = value;
+  }
+
+  return {
+    ok: true,
+    mode: 'gateway',
+    command: args[separator + 1]!,
+    args: args.slice(separator + 2),
+    ...(minChars != null ? { minChars } : {}),
+  };
 }
 
 async function cmdProxy(args: readonly string[]): Promise<void> {
@@ -295,8 +346,43 @@ async function cmdStats(): Promise<void> {
   }
 }
 
-async function cmdMcp(): Promise<void> {
-  await runMcpServer();
+async function cmdMcp(args: readonly string[]): Promise<void> {
+  const parsed = parseMcpArgs(args);
+  if (!parsed.ok) {
+    console.error(parsed.error);
+    process.exitCode = 2;
+    return;
+  }
+  if (parsed.mode === 'server') {
+    await runMcpServer();
+    return;
+  }
+
+  const envThreshold = process.env.PINPOINT_MCP_MIN_CHARS;
+  const configuredThreshold = envThreshold == null ? undefined : Number(envThreshold);
+  if (
+    parsed.minChars == null &&
+    configuredThreshold != null &&
+    (!Number.isInteger(configuredThreshold) || configuredThreshold < 1)
+  ) {
+    console.error('PINPOINT_MCP_MIN_CHARS must be a positive integer');
+    process.exitCode = 2;
+    return;
+  }
+  const controller = new AbortController();
+  const stop = (): void => controller.abort();
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  try {
+    const code = await runMcpGateway(parsed.command, parsed.args, {
+      minChars: parsed.minChars ?? configuredThreshold,
+      signal: controller.signal,
+    });
+    if (!controller.signal.aborted && code !== 0) process.exitCode = code ?? 1;
+  } finally {
+    process.off('SIGINT', stop);
+    process.off('SIGTERM', stop);
+  }
 }
 
 async function cmdIntegration(args: string[]): Promise<void> {
@@ -428,7 +514,7 @@ export async function main(argv: string[]): Promise<void> {
     case 'adapters':
       return cmdAgent(rest);
     case 'mcp':
-      return cmdMcp();
+      return cmdMcp(rest);
     case 'wrap':
       return cmdWrap(rest);
     case 'version':

@@ -4,7 +4,12 @@
 
 Compression asks which bytes can be removed while leaving enough information for the model. Query-Backed Context Virtualization (QCV) changes the contract: a large structured tool result becomes an exact local dataset, and the model receives only the answer surface needed for the current turn.
 
-QCV handles non-recent JSON, line-oriented logs, and source-like tool results on first-party Anthropic Messages, OpenAI Chat, and OpenAI Responses PAYG traffic. Its conservative exact subset is on by default and works with streaming responses because it needs no hidden model round. The Anthropic model-driven query fallback is a separate opt-in experiment and remains non-streaming.
+QCV now has two integration surfaces:
+
+1. **MCP result firewall (primary):** captures eligible oversized results directly from an unmodified stdio MCP server before the host truncates or inserts them into conversation history. It exposes a protocol-native artifact handle and bounded deterministic `pinpoint_query` operations. This path is provider-independent and subscription-compatible.
+2. **Provider-wire prefetch (secondary):** handles non-recent JSON, line-oriented logs, and source-like tool results on Anthropic Messages, OpenAI Chat, and OpenAI Responses PAYG traffic. Its conservative exact subset is on by default and works with streaming responses because it needs no hidden model round. The Anthropic model-driven query fallback is a separate opt-in experiment and remains non-streaming.
+
+Both surfaces share the exact virtual store, result bounds, safe-integer policy, projections, counts, text operations, and strict unique-key joins. The MCP surface additionally discovers one nested record array only when the wrapper has exactly one candidate within three levels.
 
 ## Data flow
 
@@ -70,10 +75,12 @@ A separate real-agent gate ran five Claude Code and five Codex CLI sessions in d
 ## Related work
 
 - **Headroom CCR** and **pxpipe recoverable images** retain whole originals for retrieval. QCV adds bounded data operations and question-conditioned exact prefetch.
-- **LeanCTX** is the closest adjacent system found. It archives exact output, exposes `ctx_expand` with JSON/search recovery, and has task/query-conditioned read modes. QCV differs in its drop-in wire behavior: it virtualizes arbitrary intercepted provider `tool_result`s, performs deterministic exact prefetch directly from the current question, suppresses the query tool when resolved, and transparently continues unresolved Anthropic calls inside a transactional multi-optimizer plan.
+- **LeanCTX** is the closest broad category system found. It archives exact output, exposes recovery handles and query-conditioned read modes, and operates through MCP, shell hooks, and a provider proxy.
+- **VS Code, Qwen Code, Codex, Octomind, LangChain, and LlamaIndex** provide spill-to-file, truncation, content/artifact separation, model-selected extraction, or load-and-search variants. Storage plus retrieval is established prior art.
+- The narrower MCP distinction is one wrapper command for an arbitrary unmodified stdio server, protocol-native resource handles, deterministic structured operations and joins, output-schema unions, and atomic capacity fail-open behavior.
 - **Letta/MemGPT** virtualizes long-term memory and files behind agent tools. It is an agent architecture rather than a drop-in optimizer for arbitrary existing agent traffic.
 - **Mem0** retrieves semantic memories and injects them into prompts; it does not virtualize exact transient tool-result datasets.
-- **RTK** and specialized context tools reduce output at the tool boundary. QCV operates on already-produced results from any tool visible on the provider wire.
+- **RTK** and specialized context tools reduce output at the shell or tool boundary. Provider-wire QCV still operates on already-produced request history; the MCP firewall now acts earlier when an upstream MCP result still exists in full.
 
 The ingredients have prior art. The current claim is a distinct integration and a breakthrough-candidate result, not proof that every component is novel.
 

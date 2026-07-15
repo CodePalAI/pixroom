@@ -15,6 +15,8 @@ export interface VirtualContextDescriptor {
   readonly bytes: number;
   readonly items: number;
   readonly fields: readonly string[];
+  readonly dataPath?: readonly string[];
+  readonly recordCollections?: number;
 }
 
 export interface VirtualContextQuery {
@@ -68,6 +70,28 @@ function recordFields(records: readonly unknown[]): string[] {
     for (const key of Object.keys(value)) fields.add(key);
   }
   return [...fields].sort();
+}
+
+function nestedRecordArrays(
+  value: unknown,
+  path: readonly string[] = [],
+  depth = 0,
+): Array<{ path: readonly string[]; value: unknown[] }> {
+  if (depth > 3) return [];
+  if (Array.isArray(value)) {
+    if (value.length > 0 && value.slice(0, 100).every(isRecord)) {
+      return [{ path, value }];
+    }
+    return [];
+  }
+  if (!isRecord(value)) return [];
+
+  const candidates: Array<{ path: readonly string[]; value: unknown[] }> = [];
+  for (const [field, child] of Object.entries(value)) {
+    candidates.push(...nestedRecordArrays(child, [...path, field], depth + 1));
+    if (candidates.length > 1) break;
+  }
+  return candidates;
 }
 
 function clampInteger(value: number | undefined, fallback: number, max: number): number {
@@ -167,14 +191,27 @@ function buildEntry(raw: string): VirtualContextEntry {
   let value: unknown = raw.split(/\r?\n/);
   let kind: VirtualContextKind = 'lines';
   let fields: string[] = [];
+  let dataPath: readonly string[] | undefined;
+  let recordCollections: number | undefined;
   try {
     value = JSON.parse(unwrapSequentialLineNumbers(raw));
     if (Array.isArray(value)) {
       kind = 'json-array';
       fields = recordFields(value);
+      recordCollections = value.length > 0 && value.slice(0, 100).every(isRecord) ? 1 : undefined;
     } else if (isRecord(value)) {
-      kind = 'json-object';
-      fields = Object.keys(value).sort();
+      const candidates = nestedRecordArrays(value);
+      recordCollections = candidates.length > 0 ? candidates.length : undefined;
+      if (candidates.length === 1) {
+        const candidate = candidates[0]!;
+        value = candidate.value;
+        kind = 'json-array';
+        fields = recordFields(candidate.value);
+        dataPath = candidate.path;
+      } else {
+        kind = 'json-object';
+        fields = Object.keys(value).sort();
+      }
     } else {
       value = raw.split(/\r?\n/);
     }
@@ -188,6 +225,8 @@ function buildEntry(raw: string): VirtualContextEntry {
     bytes: Buffer.byteLength(raw),
     items: Array.isArray(value) ? value.length : 1,
     fields,
+    ...(dataPath ? { dataPath } : {}),
+    ...(recordCollections ? { recordCollections } : {}),
   } satisfies VirtualContextDescriptor;
   return { descriptor, raw, value };
 }

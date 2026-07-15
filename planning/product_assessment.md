@@ -4,18 +4,23 @@ _Evidence snapshot: 2026-07-15._
 
 ## Executive verdict
 
-Pinpoint now has a credible owned optimizer: **Query-Backed Context Virtualization (QCV)**. Instead of lossy-compressing an entire old JSON/log/code result, QCV keeps exact bytes locally, sends a deterministic typed manifest, and computes the narrow answer required by the current question. The manifest is stable across exact selectors; ambiguous turns intentionally fall back to the original. The deterministic exact subset is enabled by default; the bounded model-query fallback is separately opt-in.
+The original product thesis was too broad. Provider-wire QCV works extremely well after a large exact result reaches conversation history, but modern coding clients often avoid that state with shell filters, bounded reads, subagents, spill-to-file behavior, truncation, and compaction. All 150 paid benchmark variants were deliberately QCV-eligible. The real-agent proxy gate forced Claude to read complete synthetic files, while Codex used local sub-6k operations and applied QCV in 0/5 sessions. Those facts invalidate "mainstream coding CLI token saver" as a proven product position.
 
-The repeated paid gate now covers 30 structured-task templates with five independently parameterized variants each, two live models, and three protocols. Each of the 150 paired observations has a distinct payload, expected answer, task ID, and fixture hash. QCV scored 150/150 versus raw 109/150 and Headroom 112/150. It used 97.2% fewer provider input tokens and 96.8% lower modeled provider cost than Headroom; the paired-bootstrap 95% cost-reduction interval was 96.5%-96.9%. Zero paired harms put the exact one-sided 95% harm bound at 1.977%, below the predeclared two-point non-inferiority margin. The bound treats the fixed variants as exchangeable benchmark units; it does not estimate organic traffic. This is Pinpoint-owned value rather than inherited optimizer value.
+The problem itself is real. Public reports show oversized MCP results in Azure, PostHog, Monday.com, VS Code/Copilot, Codex, Gemini, Figma, and observability workflows. The architectural issue was that Pinpoint sat too late: once a client rejects, truncates, or spills a result, a model API proxy cannot recover the missing bytes.
 
-This is now a **validated breakthrough candidate for eligible structured context**, not a universal LLM-optimization breakthrough or proof of globally novel components. The repeated tasks are synthetic and first-party; organic eligible share, customer workloads, more model families, and independent replication remain unknown. LeanCTX has adjacent content-addressed expansion and query-conditioned context methods. QCV's distinction is the drop-in intercepted-tool-result pipeline, deterministic exact current-question prefetch, conditional tool exposure, transparent continuation, unique-key joins, and transactional composition. The first manifest-only design also failed quality (2/3 -> 1/3) before deterministic exact prefetch repaired it.
+Pinpoint now moves QCV to the upstream boundary as a **lossless MCP result firewall**. `pinpoint mcp gateway -- <server>` wraps an unmodified stdio MCP server, retains eligible oversized results before the host sees them, returns a protocol-native artifact handle, and exposes deterministic bounded queries. It requires no provider API key and therefore works on subscription/OAuth clients. Provider-wire QCV remains a secondary engine for custom applications and eligible historical requests.
 
-Recommendation: keep QCV as the product center and stop generic gateway expansion. The next cycle is external replication and organic-traffic eligibility measurement, not more synthetic feature breadth.
+The first real Claude Code gate passed. An intentionally unfilterable synthetic MCP tool returned 1,000 nested records (81,665 characters). Claude received a 513-character artifact result, called `pinpoint_query` with the correct selector and projection, and returned the exact email in four turns. This is the first evidence that the new boundary and autonomous query loop work together. It is one first-party synthetic task, not a prevalence estimate or external validation.
+
+Verdict: the gateway is a more credible breakthrough candidate than provider-wire QCV, but it is not yet a breakthrough product. The ingredients have substantial prior art in VS Code, Qwen Code, Octomind, LlamaIndex, LangChain, and LeanCTX. The candidate differentiation is arbitrary-server wrapping plus protocol-native exact artifacts, deterministic structured queries/joins, schema compatibility, and atomic fail-open retention.
+
+Recommendation: make the MCP firewall the product center. Stop expanding the generic model gateway. The next cycle must measure pre-truncation MCP traffic and external demand, not create more all-eligible synthetic prompts.
 
 ## What the evidence says
 
 | Evidence | Result | Attribution | What it supports |
 | --- | --- | --- | --- |
+| Real Claude Code MCP gateway gate, one synthetic unfilterable tool | 81,665-character structured result -> 513-character artifact result; autonomous upstream call + `pinpoint_query`; exact answer; 4 turns; $0.019163 | Pinpoint MCP firewall + QCV store | The upstream boundary, strict Claude MCP schemas, nested collection discovery, and autonomous exact follow-up work together for one real client task |
 | Repeated paid QCV gate, 30 templates x 5 unique variants, Haiku 4.5 + GPT-4.1 mini, 3 protocols | QCV 150/150; raw 109/150; Headroom 112/150; zero paired harms; 96.8% lower modeled cost than Headroom (95% CI 96.5%-96.9%); spend $2.295591 | Pinpoint QCV | Efficacy and two-point quality non-inferiority gate passed on the fixed, exchangeable synthetic benchmark population |
 | Real-agent trace gate, 5 Claude Code + 5 Codex sessions | 10/10 correct final values; 10/10 sanitized hash-matched replays; cache shape, long sessions, tool continuation, and two injected retries passed | Pinpoint runtime/QCV | First-party agent conformance: Claude QCV plus Codex safe sub-threshold pass-through; not customer production evidence |
 | Repaired paid QCV pilot, Haiku 4.5, 2 paired tasks | 22,614 -> 594 provider input tokens; 97.1% modeled cost reduction; 1/2 -> 2/2 score | Pinpoint QCV | Original optimizer can beat raw context and improve an exact aggregation answer |
@@ -36,10 +41,11 @@ Pinpoint currently has four layers of value:
 
 1. **Inherited optimizer value.** Headroom supplies semantic compression, CCR, agent coverage, and much of the end-user promise. pxpipe supplies optical compression and its model-specific research. Pinpoint must never market this as original compression IP.
 2. **Composition value.** Pinpoint partitions a request into disjoint regions and applies both engines. This is real on supported mixed workloads, but currently supported by offline fixtures rather than repeated paid task evidence.
-3. **QCV value.** Exact structured data stays local and queryable. A unique high-confidence explicit question receives an exact narrow prefetch; ambiguous questions fall through unless the experimental query fallback is enabled. This changes the unit of context from "whole artifact" to "answerable dataset."
-4. **Runtime value.** The transactional proposal model, registry, protocol adapters, output events, and audit/shadow modes host QCV and upstream optimizers without coupling them. QCV storage now participates in transaction commit; shadow/rejected/rolled-back proposals retain zero bytes.
+3. **MCP firewall value.** Exact structured data is intercepted before host truncation or provider ingestion. An arbitrary upstream stdio server requires no source change; the host sees protocol-native artifacts and one deterministic query surface.
+4. **QCV engine value.** The shared store supports exact selection, counts, text search, bounded slices, nested collection discovery, and strict one-hop joins. Provider-wire prefetch remains a secondary use of this engine.
+5. **Runtime value.** The transactional proposal model, registry, protocol adapters, output events, and audit/shadow modes remain useful for custom provider traffic, but no longer carry the primary product story.
 
-On Haiku, QCV materially changes the previous conclusion: pinpoint no longer depends on pxpipe eligibility to add value. The commercial question is now how much production traffic consists of large, exact, queryable tool results and how often deterministic prefetch or bounded queries preserve task quality.
+The commercial question is now measurable at the correct boundary: how much MCP output crosses the threshold before host truncation, how much is queryable, whether agents successfully narrow it, and whether the avoided context exceeds the extra discovery/query turns.
 
 ## Competitive landscape
 
@@ -48,7 +54,9 @@ On Haiku, QCV materially changes the previous conclusion: pinpoint no longer dep
 | [Headroom](https://github.com/headroomlabs-ai/headroom) | Local context compression, proxy, agent wrap, MCP, CCR, memory, learning, output shaping | Upstream and direct compression competitor | Headroom still owns broader distribution and product coverage. QCV differentiates by exact dataset operations rather than compressed whole-content retrieval. |
 | [pxpipe](https://github.com/teamchong/pxpipe) | Model-specific optical context compression | Upstream and specialized alternative | Stronger optical research and quality receipts. Pinpoint adds orchestration, not optical advantage. |
 | [LLMLingua](https://github.com/microsoft/LLMLingua) | Prompt-compression algorithms for RAG and long context | Algorithm-level alternative | Reports up to 20x compression and 3x-6x faster LLMLingua-2, but it is a Python compression library/research family, not a universal agent runtime or reversible control plane. |
-| [LeanCTX](https://github.com/yvgude/lean-ctx) | Local context engineering, exact archives, `ctx_expand`, query-conditioned read/compression modes | Closest QCV prior art and direct competitor | QCV must win on drop-in arbitrary-tool interception, exact prefetch, conditional tool exposure, and transparent provider continuation; generic "virtual context" is not a defensible novelty claim. |
+| [LeanCTX](https://github.com/yvgude/lean-ctx) | Local context engineering, exact archives, query-conditioned reads, shell hooks, MCP tools, and a model API proxy | Closest category competitor | It already occupies the broad local context-layer position with material public traction. Pinpoint must stay narrower: wrap arbitrary existing MCP servers and provide deterministic exact result operations. |
+| Native VS Code/Qwen/Codex output handling | Spill-to-file, previews, truncation, and bounded reads inside the host | Direct structural substitute | Native integration has distribution and UX advantages. Pinpoint must win where hosts are lossy, remote resources lack a local path, or exact structured operations matter. |
+| LlamaIndex/LangChain/Octomind | Load-and-search, content/artifact separation, and model-selected line extraction | Framework-level prior art | Confirms the problem and pattern. Pinpoint's case is cross-host MCP compatibility without adopting a specific agent framework. |
 | [LiteLLM](https://www.litellm.ai/) | Multi-provider gateway, routing, budgets, virtual keys, fallbacks | Complement and distribution target | Do not compete on provider breadth, auth, or gateway operations. Pinpoint should run beside or inside it as an optimization middleware. |
 | [Portkey](https://portkey.ai/) | Enterprise AI gateway, observability, guardrails, governance, prompt management | Complement at enterprise control-plane level | Far broader production platform. Its published 20-40 ms gateway overhead also gives context for pinpoint's high-concurrency profile, but the tests are not comparable. |
 | [Langfuse](https://langfuse.com/docs) / [Helicone](https://www.helicone.ai/) | Tracing, evaluation, observability, prompt management | Complement | Export OpenTelemetry-compatible optimization decisions and quality/cost outcomes instead of building another dashboard suite. |
@@ -59,22 +67,22 @@ Repository popularity is not product quality, but it changes distribution econom
 
 ## Positioning that can work
 
-**Category:** local-first optimization runtime for agent traffic.
+**Category:** lossless MCP result firewall.
 
-**One-line pitch:** Pinpoint turns bulky agent outputs into exact local datasets the model can answer without rereading the whole artifact, then composes that with the best available context optimizers.
+**One-line pitch:** Wrap any stdio MCP server; Pinpoint keeps oversized exact results out of model context and lets the agent query only the rows or lines it needs.
 
-**Product promise:** point existing agent traffic at one local runtime; pinpoint asks registered optimizers for typed proposals, rejects conflicts, applies selected changes atomically, and reports provider usage plus task quality against a holdout.
+**Product promise:** change only the MCP launch command. Keep the host, upstream tools, model, and login. Eligible results become exact process-local artifacts with bounded deterministic access; unsupported results pass through.
 
-The lead is not "40% cheaper Claude." The lead is **exact context virtualization plus control and proof across optimizers**:
+The lead is not "96.8% cheaper Claude." The lead is **recoverable exact MCP results before host truncation**:
 
-- one plugin contract for compression, caching, redaction, retrieval, and future transforms;
-- default-on cache-stable QCV manifests, deterministic exact prefetch, and separately gated query fallback;
-- request-scoped dataset capabilities, bounded memory, fail-open replay, and atomic storage commit;
-- audit/shadow/optimize modes with atomic rollback;
-- provider-neutral request and streaming-output protocols;
-- quality-constrained selection rather than maximum token deletion;
-- local/VPC execution, with keys forwarded rather than stored;
-- reproducible evidence artifacts, including negative results.
+- arbitrary unmodified stdio MCP server wrapping;
+- provider- and authentication-independent interception;
+- protocol-native resource links instead of host-specific file paths;
+- deterministic schema/select/count/grep/slice/join operations;
+- complete-wrapper retention with conservative nested collection discovery;
+- schema-valid original-or-artifact output contracts;
+- bounded memory, bounded disclosure, and atomic fail-open behavior;
+- reproducible real-agent receipts, including failed diagnostics.
 
 Avoid these positions:
 
@@ -86,15 +94,15 @@ Avoid these positions:
 
 ## Initial customer
 
-The plausible buyer is an AI platform team that:
+The plausible first user is an MCP server operator or AI platform team that:
 
-- runs multiple coding agents or agent frameworks across at least two providers;
-- spends enough on long-context input that a 10-20% net bill change matters;
-- needs local, VPC, or air-gapped request processing;
-- wants to compare multiple optimization techniques without coupling every client to them;
-- already has a gateway/observability stack and needs an optimization layer, not a replacement.
+- cannot quickly redesign every tool with filters, fields, pagination, and compact defaults;
+- supports multiple MCP hosts with inconsistent output limits;
+- handles database, analytics, browser, document, trace, or API results that can exceed tens of kilobytes;
+- needs exact recoverability rather than silent truncation or free-form summarization;
+- can deploy a local or VPC-side wrapper next to the upstream server.
 
-Individual developers are a weak commercial target. Headroom is easier, more complete, and already distributed. Pinpoint can still be useful OSS for optimizer authors and researchers.
+Generic coding-only individual developers remain a weak commercial target. Their local shell and file tools already narrow most data, and native clients continue improving.
 
 ## Economics
 
@@ -129,17 +137,18 @@ This is still close to Headroom's team offering. A partnership or upstream contr
 
 Do not add more generic gateway features. Current gate status:
 
-1. **QCV efficacy - passed first-party:** 30 templates x 5 unique fixture variants, two models, three protocols; 96.8% lower modeled cost than Headroom and 1.977% one-sided harm bound under the stated exchangeability assumption.
-2. **Real-agent conformance - passed first-party, external traffic open:** 10 disposable-repository Claude Code/Codex sessions covered cache shape, retries, tool continuation, long sessions, QCV, safe pass-through, and hash replay. These are controlled synthetic traces, not customer production traces. Copilot remains delegated to Headroom and outside QCV scope.
-3. **External extensibility:** two examples now run outside core through public exports, including non-compression redaction; the gate remains open until independent authors ship and operate integrations.
-4. **Operational path - implementation complete, soak open:** OpenAI Responses/Chat QCV, streaming exact prefetch, cross-provider CCR continuation, durable capture/replay, and OTLP export are implemented. Three live protocol cells and real Claude/Codex sessions passed; multi-hour provider-conformance soak remains open.
-5. **Performance:** the isolated three-process benchmark is implemented and zero-error, but still misses the sub-5 ms concurrency-100 target. The extra local HTTP hop remains a measured architectural cost rather than a solved gate.
-6. **Demand:** three external teams run shadow mode on real traffic; at least one asks to deploy it rather than merely starring the repository.
+1. **MCP protocol path - passed locally:** initialize, tools, resources, notifications, nested structured results, strict schemas, exact query recovery, and fail-open capacity are covered.
+2. **Real Claude MCP flow - passed first-party once:** the upstream-call -> artifact -> exact-query path completed correctly with bounded visible output.
+3. **Cross-host conformance - open:** run equivalent gates on Codex, VS Code/Copilot, Cursor, and at least one framework client without host-specific code.
+4. **Organic applicability - open:** three external teams capture content-free pre-truncation metrics for at least one week. Report result-size distribution, eligible share, query success, extra turns, and pass-through reasons.
+5. **Quality - open:** at least 100 externally sourced tasks with raw/full-artifact and gateway arms show no material task-quality loss. Include free-form, nested, ambiguous, error, and mixed-content controls.
+6. **Demand - open:** at least one MCP operator asks to keep the wrapper deployed after the shadow/evaluation period.
+7. **Provider-wire QCV - conditionally passed:** retain the existing 150-task efficacy result as engine evidence, not demand evidence.
 
-Time-box this to six weeks. If gates 1, 3, and 6 do not show traction, stop treating pinpoint as a standalone product. Offer the transactional kernel/protocol work upstream to Headroom or pxpipe, retain the benchmark harness as a neutral OSS project, and avoid maintaining a redundant proxy indefinitely.
+Time-box external validation to six weeks. If cross-host conformance, organic applicability, and requested deployment do not hold, stop treating Pinpoint as a standalone product. Offer the exact query/firewall implementation upstream to a host or context project and retain the benchmark harness as neutral infrastructure.
 
 ## Bottom line
 
-Pinpoint now has evidence beyond integration glue: QCV passed a repeated multi-provider non-inferiority and cost gate, then survived real Claude Code and Codex workflows with cache shape, retries, long sessions, and offline replay. For eligible structured contexts, the result is both large and statistically bounded.
+Pinpoint has now corrected both the product thesis and the architecture. The old provider-wire result remains valid conditional evidence, but it did not prove a mainstream coding-CLI problem. The MCP firewall attacks documented failures at the boundary where the full result still exists, and one real Claude Code flow proves the mechanism can work autonomously.
 
-The rational next move is external replication and demand validation, not more local feature breadth: recruit independent operators, measure eligible share on organic traces, run multi-hour protocol soak, and obtain at least one requested deployment. If those hold, Pinpoint has a distinct product. If they do not, retain QCV as a specialized plugin and keep the runtime/upstreaming fallback.
+That is a credible technical breakthrough candidate, not a market breakthrough yet. The rational next move is cross-host replication and external pre-truncation measurement. If those hold, Pinpoint has a narrow, defensible product. If they do not, upstream the firewall and exact query engine rather than maintaining another broad context platform.

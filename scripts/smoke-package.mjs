@@ -23,6 +23,7 @@ const publicEntries = [
   '@codepal/pinpoint/virtual-context',
   '@codepal/pinpoint/capture',
   '@codepal/pinpoint/telemetry',
+  '@codepal/pinpoint/mcp',
 ];
 
 try {
@@ -54,6 +55,12 @@ try {
   const runtimeScript = [
     `const entries = ${JSON.stringify(publicEntries)};`,
     'for (const entry of entries) await import(entry);',
+    "const { McpResultFirewall, MCP_QUERY_TOOL_NAME } = await import('@codepal/pinpoint/mcp');",
+    'const firewall = new McpResultFirewall({ minChars: 10 });',
+    "const transformed = firewall.transformResult('smoke', { content: [{ type: 'text', text: JSON.stringify(Array.from({ length: 100 }, (_, id) => ({ id, value: `exact-smoke-value-${id}` }))) }] });",
+    "if (!transformed.virtualized) throw new Error('public MCP firewall did not virtualize');",
+    "const queried = firewall.callTool(MCP_QUERY_TOOL_NAME, { id: transformed.descriptor.id, op: 'json_select', where: { id: 73 }, fields: ['value'] });",
+    "if (!queried.content[0].text.includes('exact-smoke-value-73')) throw new Error('public MCP query did not recover exact value');",
     'console.log(`imported ${entries.length} public entry points`);',
   ].join('\n');
   run(process.execPath, ['--input-type=module', '--eval', runtimeScript]);

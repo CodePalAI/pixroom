@@ -1,7 +1,7 @@
 {
   "name": "@codepal/pinpoint",
   "version": "0.1.1",
-  "description": "CodePal's open-source LLM context optimizer for reducing repeated input while preserving exact tool data.",
+  "description": "Lossless MCP result firewall and exact context virtualization runtime for AI agents.",
   "type": "module",
   "license": "Apache-2.0",
   "author": {
@@ -71,6 +71,10 @@
     "./telemetry": {
       "types": "./dist/telemetry/index.d.ts",
       "import": "./dist/telemetry/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
     }
   },
   "files": [
@@ -80,6 +84,7 @@
     "benchmarks/results/direct-anthropic-virtual.json",
     "benchmarks/results/evidence-gate.first-party-macos-arm64-20260715.json",
     "benchmarks/results/agent-trace-gate.first-party-macos-arm64-20260715.json",
+    "benchmarks/results/mcp-gateway-agent.first-party-macos-arm64-20260715.json",
     "benchmarks/traces/agent-gate/",
     "bin/",
     "dist/",
@@ -87,6 +92,7 @@
     "!dist/**/*.map",
     "planning/product_assessment.md",
     "planning/query_backed_context.md",
+    "planning/mcp_result_firewall.md",
     "README.md",
     "llms.txt",
     "CHANGELOG.md",
@@ -124,6 +130,7 @@
     "bench:evidence": "npm run build && node benchmarks/v2/evidence_gate.mjs --phase benchmark",
     "bench:agent-traces:canary": "npm run build && node benchmarks/v2/agent_trace_gate.mjs --phase canary",
     "bench:agent-traces": "npm run build && node benchmarks/v2/agent_trace_gate.mjs --phase benchmark",
+    "bench:mcp-gateway:agent": "npm run build && node benchmarks/v2/mcp_gateway_agent_gate.mjs",
     "prepublishOnly": "npm run assets:readme && npm run docs:check && npm run typecheck && npm test && npm run build && npm run package:smoke"
   },
   "publishConfig": {
@@ -134,6 +141,8 @@
     "llm",
     "context-compression",
     "context-virtualization",
+    "mcp-gateway",
+    "mcp-proxy",
     "query-backed-context",
     "token-optimization",
     "prompt-cache",

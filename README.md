@@ -5,60 +5,53 @@
 ██╔═══╝ ██║██║╚██╗██║██╔═══╝ ██║   ██║██║██║╚██╗██║   ██║
 ██║     ██║██║ ╚████║██║     ╚██████╔╝██║██║ ╚████║   ██║
 ╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝      ╚═════╝ ╚═╝╚═╝  ╚═══╝   ╚═╝
-                  The exact context layer for AI agents
+                 The lossless MCP result firewall for AI agents
 </pre></div>
 
-<p align="center"><strong>Save money on LLM input tokens. Pay for the answer, not the whole tool output.</strong></p>
+<p align="center"><strong>Stop oversized MCP results before they hit the context window.</strong></p>
 
-<p align="center">Pinpoint answers exact questions over old JSON, logs, and source locally, then sends only the row, count, symbol, or join your model needs.</p>
+<p align="center">Wrap any stdio MCP server. Pinpoint keeps large exact results local and gives the agent a small resource handle plus deterministic select, count, grep, slice, and join operations.</p>
 
-<p align="center"><strong>Modeled cost across 150 matching prompts: Raw $1.198998 -> Pinpoint $0.034462 (97.1% lower) · Headroom $1.062131 -> Pinpoint $0.034462 (96.8% lower)</strong></p>
-
-<p align="center"><strong>Input tokens: Raw 1,899,030 · Headroom 1,713,184 · Pinpoint 48,439 · QCV exact: 150/150</strong></p>
+<p align="center"><strong>Real Claude Code gate: 81,665-character MCP result -> 513-character handle -> exact email via <code>pinpoint_query</code></strong></p>
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
   <a href="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="node" src="https://img.shields.io/badge/node-%E2%89%A522-brightgreen.svg">
-  <a href="./benchmarks/results/evidence-gate.first-party-macos-arm64-20260715.json"><img alt="live evidence: 150/150 exact" src="https://img.shields.io/badge/live%20evidence-150%2F150%20exact-2ea44f.svg"></a>
+  <a href="./benchmarks/results/mcp-gateway-agent.first-party-macos-arm64-20260715.json"><img alt="real Claude Code MCP gate: passed" src="https://img.shields.io/badge/Claude%20Code%20MCP%20gate-passed-2ea44f.svg"></a>
   <img alt="status" src="https://img.shields.io/badge/status-experimental-orange.svg">
   <a href="https://codepal.ai"><img alt="Built by CodePal" src="https://img.shields.io/badge/built%20by-CodePal-2563eb.svg"></a>
 </p>
 
 <p align="center">
   <a href="#get-started-60-seconds">Start</a> ·
-  <a href="#choose-your-path">Use it</a> ·
+  <a href="#mcp-gateway-the-main-path">Gateway</a> ·
+  <a href="#how-it-works">How</a> ·
   <a href="#proof">Proof</a> ·
-  <a href="#works-with-your-stack">Agents</a> ·
+  <a href="#what-passes-through">Limits</a> ·
   <a href="#safety-and-privacy">Safety</a> ·
   <a href="./benchmarks/REPORT.md">Benchmarks</a> ·
   <a href="https://github.com/CodePalAI/pinpoint/discussions">Community</a>
 </p>
 
-<p align="center"><sub>Local-first | Same model and provider | Anthropic + OpenAI | Exact when supported, unchanged when not</sub></p>
+<p align="center"><sub>Local-first | Provider-independent | Subscription-compatible | Exact when supported, unchanged when not</sub></p>
 
 <p align="center"><sub><strong>AI agents / LLMs:</strong> read <a href="./llms.txt"><code>/llms.txt</code></a> for the compact project index.</sub></p>
 
 ---
 
-## What your prompts turn into
+## What changes at the tool boundary
 
-| Your next prompt | Without Pinpoint, the model receives | With Pinpoint, the model receives |
+| Upstream MCP result | Without Pinpoint | With Pinpoint |
 |---|---|---|
-| "What is the email for account ID 733?" | The full 1,000-row JSON again: 13,821 estimated tokens | A small dataset reference plus `user733@example.com`: 172 estimated tokens |
-| "How many ERROR lines are there?" | The entire old log, then the model tries to count it | The exact count computed locally |
-| "Who owns order 981?" | Both complete order and customer arrays | The exact joined customer projection |
-| An ambiguous range, duplicate key, or unsupported question | The original tool output | The original tool output, unchanged |
+| 1,000 JSON records | The host inserts every row into conversation history | A content-addressed `pinpoint://artifact/...` link and schema |
+| A large log or source dump | The host truncates it or spends context on it | A local exact artifact with bounded `grep`, `count`, and `slice` |
+| Wrapped data under `data.results` or `data.items` | The wrapper and every nested row enter context | Pinpoint finds the only unambiguous record collection and keeps the complete wrapper locally |
+| Small, error, media, mixed, ambiguous, or unprofitable output | The original result | The original result, byte-equivalent |
 
-That is how Pinpoint saves money: it removes repeated input tokens before provider billing. In the live gate, Headroom sent 1,713,184 input tokens and Pinpoint sent 48,439. Raw requests sent 1,899,030. Pinpoint does not directly reduce output-token pricing, and prompts that do not match a safe exact rule pass through unchanged.
+The gateway runs between the MCP host and server, before Claude Code, Codex, Copilot, Cursor, or another host can truncate or persist the result. It does not need a provider API key and does not depend on the model API protocol.
 
-<p align="center">
-  <a href="./benchmarks/results/evidence-gate.first-party-macos-arm64-20260715.json">
-    <img src="./assets/qcv-evidence-gate.svg" alt="Repeated live gate: Pinpoint QCV answered 150 of 150 independently parameterized structured-task variants exactly across two models and three protocols, with modeled provider cost 96.8% lower than Headroom" width="920">
-       </a>
-</p>
-
-<p align="center"><sub>Repeated controlled evidence: 30 templates, 150 unique fixture variants, zero QCV regressions, exact one-sided 95% harm bound 1.98%. Synthetic structured tasks, not a universal traffic claim.</sub></p>
+> **Evidence boundary:** the real-agent receipt is one first-party synthetic Claude Code task with an intentionally unfilterable MCP tool. It proves the gateway and autonomous follow-up query work together. It does not estimate how common oversized MCP results are.
 
 <!-- LAUNCH(demo-video): Put a 15-25 second terminal recording here after independent replication. Keep the generated receipt card above as the static fallback. -->
 
@@ -71,87 +64,78 @@ git clone https://github.com/CodePalAI/pinpoint.git
 cd pinpoint
 npm install && npm link
 
-pinpoint demo            # prove the exact path offline
-pinpoint wrap claude     # launch Claude Code through Pinpoint
-pinpoint proxy           # or use it as an Anthropic/OpenAI proxy
+pinpoint mcp gateway -- npx -y <your-mcp-server-package>
 ```
 
 <!-- LAUNCH(npm): Replace the checkout flow above with `npx @codepal/pinpoint demo` and `npm install -g @codepal/pinpoint` only after the registry confirms the package. -->
 
-Start with `pinpoint demo`. It runs the production exact-data path against 1,000 JSON rows without an API key, model call, sidecar, or network request:
+Put that command where your host currently starts the upstream server. For example, a Claude-compatible `.mcp.json` entry is:
 
-```console
-$ pinpoint demo
-
-pinpoint QCV demo (offline)
-dataset: 1,000 exact JSON rows (55,281 chars)
-question: What is the email for id 733?
-dataset region: 13,821 -> 172 estimated tokens (98.8% smaller)
-exact answer materialized: user733@example.com
-model-driven fallback: not needed
-network requests: 0
+```json
+{
+  "mcpServers": {
+    "protected-api": {
+      "command": "pinpoint",
+      "args": ["mcp", "gateway", "--", "npx", "-y", "<your-mcp-server-package>"]
+    }
+  }
+}
 ```
+
+The upstream command is spawned directly, without a shell. Its normal tools remain visible under the same names. Pinpoint adds one tool, `pinpoint_query`, and a bounded MCP resource surface.
 
 ## What it does
 
-- **Exact local context.** Resolve supported JSON lookups, filtered counts, log counts, source exports, projections, and unique-key joins before the request leaves your machine.
-- **Drop-in adoption.** Wrap a coding CLI, wrap the official Anthropic/OpenAI SDK, or change one base URL. Keep the same model, provider, streaming behavior, and response types.
-- **More usable context.** Stop spending the model's window and your provider budget on an old 10,000-line result when the current question needs one value.
-- **Safe composition.** Headroom and pxpipe can optimize other request regions, while Pinpoint prevents two optimizers from rewriting the same bytes.
-- **Fail-safe routing.** Short, recent, ambiguous, unsafe, unsupported, or unprofitable requests pass through unchanged.
+- **Intercept upstream.** Capture the complete MCP result before host caps, truncation, conversation storage, or provider billing.
+- **Retain exact data.** Store content in bounded local memory under a SHA-256-derived artifact id. Capacity is reserved atomically; no dead handle is emitted.
+- **Reveal only what is needed.** Expose deterministic `schema`, `json_select`, `count`, `grep`, `slice`, and unique-key `json_join` operations with bounded outputs.
+- **Stay protocol-native.** Preserve upstream tool names and input schemas, union structured output schemas with the artifact envelope, and expose `resource_link` plus `resources/read` previews.
+- **Fail open.** Leave errors, media, mixed blocks, small results, ambiguous wrappers, unsupported data, and unprofitable transformations unchanged.
 
-Pinpoint helps on requests that actually contain reusable bulk context. Ordinary chat and small prompts may not change at all.
+The existing Anthropic/OpenAI proxy and SDK path still supports provider-wire QCV and optional Headroom/pxpipe composition. It is now a secondary path, not the main product claim.
 
 ## Works with your stack
 
-| Client or protocol | Start with | Exact path on API-key traffic | Subscription / OAuth |
-|---|---|:---:|---|
-| Claude Code | `pinpoint wrap claude` | Yes | Safe pass-through |
-| Codex CLI | `pinpoint wrap codex` | Yes when tool output meets the exact-data rules | Safe pass-through |
-| Anthropic SDK / Messages | `@codepal/pinpoint/anthropic` or proxy | Yes | Safe pass-through |
-| OpenAI SDK / Chat / Responses | `@codepal/pinpoint/openai` or proxy | Yes | Safe pass-through |
-| Aider, OpenCode, Goose, OpenHands, Vibe | `pinpoint wrap <agent>` | Protocol-dependent | Safe pass-through |
-| GitHub Copilot CLI | `pinpoint doctor copilot` | Delegated to Headroom | Headroom subscription path |
-| Cursor, Cline, Continue | `pinpoint wrap <agent>` | Pinpoint prints the local base URL | Depends on configured auth |
+| Surface | Put Pinpoint here | Provider login requirement | Current evidence |
+|---|---|---|---|
+| Any stdio MCP host | `pinpoint mcp gateway -- <server> [args...]` | None; the host keeps its existing login | Protocol integration tests |
+| Claude Code MCP | Wrap the configured server command | API key or subscription | One paid synthetic agent gate passed |
+| VS Code / Copilot, Codex, Cursor, other MCP hosts | Wrap the configured server command | Whatever the host already uses | Protocol-compatible; external replication open |
+| Anthropic SDK / Messages | `@codepal/pinpoint/anthropic` or provider proxy | Provider API key for wire QCV | Repeated controlled QCV gate |
+| OpenAI SDK / Chat / Responses | `@codepal/pinpoint/openai` or provider proxy | Provider API key for wire QCV | Repeated controlled QCV gate |
 
 ## Choose your path
 
 No new provider account. No model migration. Pick the integration surface you already use:
 
-| You use an LLM through... | Start here | What stays unchanged |
+| Your large data enters through... | Start here | What stays unchanged |
 |---|---|---|
-| A coding CLI | `pinpoint wrap <agent>` | The CLI, model, login, and provider |
-| Anthropic or OpenAI TypeScript SDK | `withPinpoint(client)` | Native client methods, return types, streams, retries |
-| Any other language or HTTP client | `pinpoint proxy` | Your client and provider protocol |
-| Nothing yet; you just want proof | `pinpoint demo` | No key, model call, sidecar, or network needed |
+| An MCP server | `pinpoint mcp gateway -- <server> [args...]` | Host, upstream tool names, arguments, provider, and login |
+| Anthropic or OpenAI TypeScript SDK | `withPinpoint(client)` | Native client methods, return types, streams, and retries |
+| Provider HTTP | `pinpoint proxy` | Client and provider protocol |
+| A local fixture | `pinpoint demo` | No key, model call, sidecar, or network needed |
 
-### Coding CLI: the main path
+### MCP gateway: the main path
 
-Run your usual agent through Pinpoint:
+Wrap the command your host already uses to launch an MCP server:
 
 ```bash
-pinpoint agent list
-
-pinpoint wrap claude      # Claude Code
-pinpoint wrap codex       # Codex CLI
-pinpoint wrap opencode    # OpenCode
-pinpoint wrap aider       # Aider
+pinpoint mcp gateway -- npx -y <server-package>
+pinpoint mcp gateway --min-chars 32000 -- python -m your_mcp_server
 ```
 
-Pinpoint changes only the launched process environment. It does not rewrite the agent's config, and a future plain launch bypasses Pinpoint.
+`--min-chars` overrides the default 16,000-character virtualization threshold. `PINPOINT_MCP_MIN_CHARS` provides the same setting for managed environments.
 
-**What optimization applies depends on how that CLI authenticates:**
+The host sees all upstream tools plus `pinpoint_query`. When an eligible result crosses the threshold:
 
-| CLI traffic | Exact local JSON/log/source path | What to expect |
-|---|:---:|---|
-| Provider API key | **On** | Supported old tool results can become exact local answers instead of full repeated payloads |
-| Subscription or OAuth | Off | Conservative pass-through posture; optional Headroom text compression may still run if installed |
-| GitHub Copilot CLI | Delegated | `pinpoint doctor copilot`, then `pinpoint wrap copilot`; compression is handled by the optional Headroom integration |
-| Cursor, Cline, Continue | Config printed | `pinpoint wrap <agent>` prints the local base URL; keep the proxy running while the editor uses it |
+1. Pinpoint retains the exact text or structured object in bounded process memory.
+2. The original call returns a compact text manifest and `pinpoint://artifact/<id>` resource link.
+3. The agent calls `pinpoint_query` for a bounded exact result.
+4. The full artifact never enters model context unless the gateway deliberately passes it through.
 
-> **About the 96.8% result:** it came from provider API-key traffic containing large eligible structured tool output. It is not a promise for subscription/OAuth CLI sessions, ordinary chat, or traffic that does not match an exact rule.
+This moves Pinpoint ahead of host truncation. It also makes the exact path available on subscription/OAuth clients because no model API request is intercepted.
 
-Pinpoint checks every request, applies only a matching safe rule, and forwards everything else unchanged. Automatic routing is not forced compression.
+The original `pinpoint mcp` command still starts Pinpoint's standalone compress/retrieve/stats server. The gateway is selected only by the explicit `mcp gateway -- ...` form.
 
 ### TypeScript SDK: native client in, native response out
 
@@ -232,28 +216,33 @@ OPENAI_BASE_URL=http://127.0.0.1:8788/v1 your-command
 
 Keep your normal provider key configured in the client. Pinpoint forwards it to the same provider and does not write it to disk. Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses are supported.
 
-## What Pinpoint can optimize
+## What passes through
 
-Pinpoint targets repeated **tool results**: data your agent already received from a file read, shell command, search, database, or API call. **Older** means it is already in conversation history rather than the current turn.
+The MCP gateway virtualizes a result only when every safety condition holds:
 
-By default, the exact-data path considers older tool results between 6,000 and 2,000,000 characters. Within that range:
+1. The upstream call succeeded and returned either one text block or a structured JSON object.
+2. The exact payload meets the 16,000-character default threshold.
+3. The compact artifact envelope is smaller than the original result.
+4. Bounded local storage can retain the complete payload atomically.
+5. Structured data has an exact query shape. A nested record array is selected only when it is the sole candidate within three wrapper levels.
 
-| You ask next... | Pinpoint does locally | The provider receives |
+Everything else passes through unchanged. That includes error results, images and other media, mixed content blocks, small responses, multiple competing nested arrays, unsupported values, and results that cannot fit in the local store.
+
+Artifacts live only for the gateway process lifetime. The default store is capped at 256 entries and 64 MiB with least-recently-used eviction. Query outputs are capped independently; clients cannot use `pinpoint_query` to dump an unbounded artifact back into context.
+
+### Provider-wire QCV: the secondary path
+
+The Anthropic/OpenAI proxy still targets large **older tool results** already present in a provider request. On API-key traffic it can precompute an exact current-question answer before the request leaves the machine:
+
+| Current question | Local operation | Provider receives |
 |---|---|---|
 | "What is the email for ID 73?" | Exact JSON lookup | The matching value, not the whole array |
 | "How many records have `active: true`?" | Exact filtered count | The exact number |
-| "Which customer owns order 981?" | One-hop unique-key join across two JSON results | The bounded joined projection |
+| "Which customer owns order 981?" | One-hop unique-key join | The bounded joined projection |
 | "How many ERROR lines are there?" | Boundary-aware log count | The exact count |
-| "Which classes are exported?" | Source export scan | The matching `export class` lines |
-| A range, negation, duplicate key, competing dataset, or unclear question | Refuse to guess | The original tool result, unchanged |
+| A range, duplicate key, competing dataset, or unclear question | Refuse to guess | The original tool result, unchanged |
 
-Pinpoint intentionally leaves short prompts, normal chat, recent turns, images, unsupported content, and unsafe or ambiguous operations alone. Subscription/OAuth traffic keeps the exact-data path off. Optional compression integrations may still reduce other, non-overlapping request regions.
-
-Optional compression modules can reduce other parts of a request, but Pinpoint never applies two transformations to the same bytes.
-
-Every request gets an honest savings report, including negative savings and extra provider rounds used for local retrieval.
-
-The safe exact-data path is already on. Most users do not need to configure it.
+Provider-wire QCV remains useful for custom applications and clients that already send full historical results. It is not the main coding-CLI thesis because modern hosts often filter or truncate the data before the model API boundary.
 
 <details>
 <summary><strong>How this differs from summarization, prompt caching, and compaction</strong></summary>
@@ -264,10 +253,11 @@ Summaries are useful when the model needs the gist. They are a poor primitive fo
 
 | Technique | Primary job | Relationship to Pinpoint |
 |---|---|---|
-| Provider prompt caching | Discounts repeated byte-identical prefixes | Pinpoint keeps stable dataset references across supported exact turns so caching can still help |
-| Provider compaction | Shortens provider-managed conversation history | Pinpoint acts before the request on intercepted tool results |
-| Text or image compression | Reduces general prose, code, or static context | Optional [Headroom](https://github.com/headroomlabs-ai/headroom) and [pxpipe](https://github.com/teamchong/pxpipe) integrations handle regions the exact path does not own |
-| Pinpoint exact path | Materializes a supported answer from local old tool data | Keeps exact bytes local and passes through questions it cannot answer safely |
+| MCP server filtering and pagination | Prevents oversized results at the source | Preferred when the server can be changed; Pinpoint protects unmodified servers |
+| Host spill-to-file | Retains output behind a local path | Host-specific and usually text-oriented; Pinpoint adds protocol-native resources and exact structured operations |
+| Provider prompt caching | Discounts repeated byte-identical prefixes | Still useful after the gateway reduces what enters history |
+| Provider compaction | Summarizes or clears older history | Acts later and may lose exact details; Pinpoint retains queryable bytes before history |
+| Text or image compression | Reduces general prose, code, or static context | Optional [Headroom](https://github.com/headroomlabs-ai/headroom) and [pxpipe](https://github.com/teamchong/pxpipe) integrations remain secondary modules |
 
 Pinpoint composes with these techniques; it does not claim to replace them.
 
@@ -275,40 +265,51 @@ Pinpoint composes with these techniques; it does not claim to replace them.
 
 ## How it works
 
-A raw agent request can resend thousands of lines of JSON, logs, source code, tool definitions, and old conversation history. The model often needs only a small part of that material for the current turn.
+A normal MCP host calls a tool, receives its result, and inserts that result into the next model turn. At that point the provider bill and context damage are already determined.
 
-Pinpoint sits between the client and the provider:
+The gateway moves the decision one boundary earlier:
 
-1. It separates the system prompt, tool definitions, old tool results, and recent conversation turns.
-2. For large old JSON, logs, or source output, the exact-data path stores the original locally and computes supported lookups or counts. Its internal name is Query-Backed Context Virtualization (QCV).
-3. Installed compression modules can reduce other parts of the request. Pinpoint prevents two modules from changing the same bytes.
-4. Pinpoint validates each change before forwarding the request to the same provider. If one change fails, Pinpoint leaves that part alone.
+1. It starts the unmodified upstream stdio server and forwards JSON-RPC requests, responses, notifications, and server-initiated messages.
+2. It preserves upstream tool names and input schemas. Structured output schemas become an explicit union of the original object and Pinpoint's artifact envelope.
+3. Eligible oversized results enter the local virtual store before the host receives them.
+4. The host receives a small manifest, a `resource_link`, and the `pinpoint_query` tool.
+5. Exact bounded query results enter model context only when requested.
 
 ```
-agent or app
-       |
-       | raw Anthropic or OpenAI request
-       v
-Pinpoint on 127.0.0.1
-       |  exact local datasets
-       |  selected context optimizations
-       |  validated request + savings report
-       v
-same LLM provider
+MCP host / coding agent
+  |
+  | tools/call
+  v
+Pinpoint MCP gateway -----> unmodified upstream MCP server
+  |                              |
+  | exact local artifact <-------+
+  |
+  +---- compact resource handle ----> host conversation
+  +<--- pinpoint_query ---------------+
+  +---- bounded exact result --------> model
 ```
 
-Provider credentials pass through to the configured upstream. Pinpoint does not send them to local compression services. Provider responses keep their original format. A local retrieval may require one extra provider request, and Pinpoint includes those tokens in its savings report.
+The model provider is not in this data path until after the gateway has reduced the result. MCP server credentials remain in the upstream command environment; Pinpoint does not persist them.
 
 ### Exact answers instead of summaries
 
-Suppose an agent loaded 50,000 characters of account data and now asks for one email address.
+Suppose an MCP API returns 1,000 accounts even though the agent needs one email. Pinpoint returns the artifact schema and identifier. The agent then calls:
 
-Without Pinpoint, the provider reads the full dataset again. With Pinpoint, the provider receives a small dataset reference plus the exact matching email. The original bytes stay in bounded local memory. Pinpoint does not summarize the data or ask the model to guess which row matters.
+```json
+{
+  "id": "vctx_...",
+  "op": "json_select",
+  "where": { "accountId": 733 },
+  "fields": ["email"]
+}
+```
+
+The query engine returns one exact projection. It does not summarize the array, use embeddings, or ask a second model to copy a row.
 
 <details>
 <summary><strong>When exact optimization applies</strong></summary>
 
-Pinpoint changes a request only when all of these checks pass:
+Provider-wire QCV changes an Anthropic/OpenAI request only when all of these checks pass:
 
 1. The request uses Anthropic Messages, OpenAI Chat, or OpenAI Responses with a provider API key.
 2. One older tool result meets the size and content rules and matches one explicit lookup or supported count.
@@ -320,11 +321,11 @@ Repeated selectors, ranges, negation, multiple matching datasets, malformed valu
 
 </details>
 
-An experimental model-planned fallback exists for harder Anthropic questions, but it is off by default because an earlier version saved tokens while reducing task quality. Disable the exact-data path with `PINPOINT_VIRTUAL_CONTEXT=0` or `pinpoint proxy --no-qcv`. The [technical design note](./planning/query_backed_context.md) documents every boundary and the rejected design.
+An experimental model-planned fallback exists for harder Anthropic questions, but it is off by default because an earlier version saved tokens while reducing task quality. Disable provider-wire QCV with `PINPOINT_VIRTUAL_CONTEXT=0` or `pinpoint proxy --no-qcv`. The MCP gateway is separately and explicitly activated by `pinpoint mcp gateway`. The [technical design note](./planning/query_backed_context.md) documents the shared exact query engine and rejected fallback design.
 
 ## Advanced workflows
 
-Most users only need `pinpoint wrap <agent>` or `pinpoint proxy`. The commands below are for evaluation and integration work.
+Most MCP users only need `pinpoint mcp gateway -- <server>`. The commands below are for provider-wire evaluation and integration work.
 
 <details>
 <summary><strong>Show capture, telemetry, library, and MCP workflows</strong></summary>
@@ -382,7 +383,7 @@ pinpoint integration list    # installed compression and policy modules
 pinpoint mcp                 # MCP tools over stdio
 ```
 
-Provider wrappers are exported from `@codepal/pinpoint/anthropic` and `@codepal/pinpoint/openai`. Other public subpaths expose the integration kernel, protocols, normalized output events, agent adapters, virtual-context APIs, capture/replay, and OTLP telemetry.
+Provider wrappers are exported from `@codepal/pinpoint/anthropic` and `@codepal/pinpoint/openai`. `@codepal/pinpoint/mcp` exports the gateway and firewall APIs. Other public subpaths expose the integration kernel, protocols, normalized output events, agent adapters, virtual-context APIs, capture/replay, and OTLP telemetry.
 
 </details>
 
@@ -390,9 +391,24 @@ Provider wrappers are exported from `@codepal/pinpoint/anthropic` and `@codepal/
 
 CodePal publishes Pinpoint's raw benchmark artifacts, negative results, and safety checks so people can inspect the claims rather than trust a headline.
 
-### Repeated multi-provider evidence gate
+### Real Claude Code MCP gateway gate
 
-The current primary receipt covers 30 synthetic task templates with five independently parameterized variants each. Every one of the 150 paired observations has a distinct payload, expected answer, task ID, and fixture hash. Each runs three randomized arms: raw provider input, Headroom-only semantic compression, and Pinpoint QCV. The gate used Claude Haiku 4.5 through Anthropic Messages and GPT-4.1 mini through both OpenAI Chat Completions and Responses.
+One real Claude Code 2.1.197 session used the production CLI gateway against a disposable synthetic MCP server. The upstream `accounts_list` tool intentionally had no filter and returned 1,000 records under `structuredContent.data.accounts`.
+
+Claude autonomously performed this sequence:
+
+1. discovered and called `mcp__accounts__accounts_list`;
+2. received a 513-character artifact result instead of the 81,665-character structured payload, a 99.4% reduction in model-visible characters for that tool result;
+3. called `mcp__accounts__pinpoint_query` with `accountId: 733` and `fields: ["email"]`;
+4. returned exactly `user733@example.com`.
+
+The gate completed in four agent turns for $0.019163 observed provider cost. Filesystem, shell, subagent, and editing tools were denied, and the run failed unless both MCP calls occurred, every visible tool result stayed below 5,000 characters, and the final answer matched exactly. Inspect the [content-free receipt](./benchmarks/results/mcp-gateway-agent.first-party-macos-arm64-20260715.json) or rerun `npm run bench:mcp-gateway:agent` with Claude Code authenticated.
+
+This is one first-party synthetic compatibility task. It is evidence that the new boundary works with a real client, not an estimate of organic prevalence or a universal quality claim.
+
+### Provider-wire QCV evidence gate
+
+The provider-wire receipt covers 30 synthetic task templates with five independently parameterized variants each. Every one of the 150 paired observations has a distinct payload, expected answer, task ID, and fixture hash. Each runs three randomized arms: raw provider input, Headroom-only semantic compression, and Pinpoint QCV. The gate used Claude Haiku 4.5 through Anthropic Messages and GPT-4.1 mini through both OpenAI Chat Completions and Responses.
 
 | Arm | Exact score | Provider input | Modeled provider cost |
 |---|---:|---:|---:|
@@ -400,17 +416,28 @@ The current primary receipt covers 30 synthetic task templates with five indepen
 | Headroom | 112/150 | 1,713,184 | $1.062131 |
 | **Pinpoint QCV** | **150/150** | **48,439** | **$0.034462** |
 
-Against Headroom, QCV used 97.2% fewer input tokens and 96.8% lower modeled provider cost. The paired-bootstrap 95% cost-reduction interval was 96.5%-96.9%. There were zero paired regressions and 38 improvements; the exact one-sided 95% upper bound on harm was 1.98%, below the predeclared two-point non-inferiority margin. That inferential bound treats the 150 fixed, independently parameterized variants as exchangeable benchmark units; it is not a confidence bound for organic traffic.
+Against raw requests, modeled provider cost was 97.1% lower. Against Headroom, QCV used 97.2% fewer input tokens and 96.8% lower modeled provider cost. The paired-bootstrap 95% cost-reduction interval was 96.5%-96.9%. There were zero paired regressions and 38 improvements; the exact one-sided 95% upper bound on harm was 1.98%, below the predeclared two-point non-inferiority margin. That inferential bound treats the 150 fixed, independently parameterized variants as exchangeable benchmark units; it is not a confidence bound for organic traffic.
+
+<details>
+<summary><strong>View the provider-wire receipt graphic</strong></summary>
+
+<br>
+
+<img src="./assets/qcv-evidence-gate.svg" alt="Controlled provider-wire QCV gate: 150 of 150 eligible synthetic variants exact, with modeled provider cost 96.8% lower than Headroom" width="920">
+
+</details>
+
+All 150 tasks were deliberately eligible for provider-wire QCV. This proves conditional efficacy after a large exact result reaches provider history. It does not measure how frequently modern coding CLIs produce that traffic.
 
 The run made 450 paid calls with no harness retries and observed $2.295591 in provider spend. Inspect the [full repeated receipt](./benchmarks/results/evidence-gate.first-party-macos-arm64-20260715.json).
 
-### Real-agent capture and replay gate
+### Historical provider-proxy agent gate
 
 Five real Claude Code sessions and five real Codex CLI sessions ran in disposable synthetic repositories through the production proxy. The grader parsed only Claude's final `result` or Codex's last `agent_message`; all 10 returned the single correct email value. All 10 minimized sanitized traces replayed hash-identically, stable cache shape was observed, four long/join sessions completed, and both injected provider POST failures were retried by the agents.
 
 Claude Code exercised QCV on line-numbered `Read` output. Codex queried sub-6,000-character chunks locally, so Pinpoint correctly left those requests unchanged. The source captures, agent outputs, credentials, and personal paths were deleted; only reviewed synthetic derivatives remain. Inspect the [agent receipt](./benchmarks/results/agent-trace-gate.first-party-macos-arm64-20260715.json) and [sanitized traces](./benchmarks/traces/agent-gate/).
 
-These are first-party real-agent sessions over synthetic data, not customer production traces. Copilot subscription traffic delegates to Headroom and is outside QCV scope.
+These are first-party real-agent sessions over synthetic data, not customer production traces. Copilot subscription traffic is outside provider-wire QCV scope; the new MCP gateway is independent of provider authentication.
 
 ### Historical paid exact-context pilot
 
@@ -447,6 +474,12 @@ The full [benchmark report](./benchmarks/REPORT.md) keeps live, offline, agentic
 
 ## Safety and privacy
 
+- The MCP gateway spawns the configured upstream command directly with `shell: false`. Upstream arguments are never interpolated into a shell command.
+- Gateway artifacts stay in bounded process memory and disappear at shutdown. Text blocks retain their exact text. Structured content is retained as canonical JSON after MCP parsing.
+- Store capacity is reserved atomically before a handle is emitted. If the artifact cannot fit, the complete original result passes through instead of producing a dead reference.
+- `pinpoint_query` accepts only bounded deterministic operations and caps every result. `resources/read` returns a bounded preview, never the complete unbounded artifact.
+- Error results, media, mixed content, ambiguous nested collections, and unsupported output pass through unchanged. The host may still apply its own truncation to those results.
+- Upstream MCP output is untrusted. Virtualization reduces initial exposure, but queried rows or lines can still contain prompt injection or malicious data and must be treated like any other tool result.
 - Pinpoint binds to `127.0.0.1` by default. It has no public login or access-control layer, so do not expose it directly to the internet.
 - Provider credentials are forwarded to the configured provider and are not stored by Pinpoint.
 - QCV stores replaced tool results in process memory with a default cap of 256 datasets or 64 MiB and least-recently-used eviction.
