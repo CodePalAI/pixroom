@@ -12,9 +12,9 @@
 
 <p align="center">Pinpoint answers exact questions over old JSON, logs, and source locally, then sends only the row, count, symbol, or join your model needs.</p>
 
-<p align="center"><strong>150-prompt live gate: Raw $1.198998 · Headroom $1.062131 · Pinpoint $0.034462</strong></p>
+<p align="center"><strong>Modeled cost across 150 matching prompts: Raw $1.198998 -> Pinpoint $0.034462 (97.1% lower) · Headroom $1.062131 -> Pinpoint $0.034462 (96.8% lower)</strong></p>
 
-<p align="center"><strong>96.8% lower modeled cost than Headroom · 97.2% fewer input tokens · 150/150 exact</strong></p>
+<p align="center"><strong>Input tokens: Raw 1,899,030 · Headroom 1,713,184 · Pinpoint 48,439 · QCV exact: 150/150</strong></p>
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>

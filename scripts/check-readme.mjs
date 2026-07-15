@@ -110,6 +110,7 @@ for (const value of [
   `$${receipt.summary.arms.raw.costUSD.toFixed(6)}`,
   `$${headroom.costUSD.toFixed(6)}`,
   `$${qcv.costUSD.toFixed(6)}`,
+  percentage(receipt.summary.comparisons.qcvVsRaw.costReduction),
   percentage(comparison.inputReduction),
 ]) {
   if (!readme.includes(value)) fail(`README is missing above-fold value: ${value}`);
