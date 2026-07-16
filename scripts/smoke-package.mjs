@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,12 +53,20 @@ try {
     'planning/value_opaque_mcp_dataflow.md',
     'planning/opaque_flow_formal_properties.md',
     'planning/breakthrough_scorecard.md',
+    'planning/common_mcp_workflow_evaluation.md',
+    'comparisons/customer-record-lookup.md',
+    'comparisons/active-account-count.md',
+    'comparisons/incident-log-triage.md',
+    'comparisons/knowledge-graph-lookup.md',
+    'comparisons/native-filter-passthrough.md',
+    'comparisons/large-commit-triage.md',
     'formal/opaque_flow.pml',
     'benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json',
     'benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json',
     'benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json',
     'benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json',
     'benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json',
+    'benchmarks/results/mcp-common-workflows.first-party-macos-arm64-20260716.json',
     'benchmarks/results/hcp-comparison.first-party-macos-arm64-20260716.json',
     'benchmarks/competitors/hcp_same_workflow_adapter.mjs',
     'benchmarks/v2/hcp_comparison_gate.mjs',
@@ -146,9 +154,7 @@ try {
     'pinpoint',
     'README.md',
   );
-  const installedReadmeText = await import('node:fs').then(({ readFileSync }) =>
-    readFileSync(installedReadme, 'utf8')
-  );
+  const installedReadmeText = readFileSync(installedReadme, 'utf8');
   for (const expected of [
     'This benchmark requires the source checkout',
     'pinpoint demo',

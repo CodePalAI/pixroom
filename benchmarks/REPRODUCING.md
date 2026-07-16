@@ -13,6 +13,7 @@ npm run bench:qcv-quality
 npm run bench:virtual
 npm run bench:mcp-opaque-flow
 npm run bench:mcp-oss-cross-server
+npm run bench:mcp-common-workflows
 npm run bench:compare-hcp
 ```
 
@@ -25,9 +26,47 @@ What they establish:
 | `npm run bench:virtual` | Offline real transform | Token accounting for QCV against the committed comparison fixtures |
 | `npm run bench:mcp-opaque-flow` | Protocol integration | Fail-closed source capture, hidden exact destination calls, bypass denial, transcript canary absence, operator/session/policy authorization, signed receipt verification/chaining, and local latency |
 | `npm run bench:mcp-oss-cross-server` | OSS cross-server integration | Exact hidden composition across pinned unmodified filesystem and memory servers, persistent side-effect verification, separate process environments, and transcript canary absence |
+| `npm run bench:mcp-common-workflows` | Paired OSS protocol integration | Exact direct-versus-Pinpoint outcomes, data-bearing response bytes, unrelated fixture values at the client boundary, and an already-bounded no-op control across filesystem, memory, and Git MCP servers |
 | `npm run bench:compare-hcp` | Comparative mechanism evaluation | Clean pinned HCP validation plus byte-identical Pinpoint/HCP workflow, native denials, client-boundary canary scan, authority/TCB comparison, and explicit non-comparability |
 
 They do not establish live model quality, provider-reported usage, real-agent savings, or production latency.
+
+## Common MCP workflow comparison
+
+Run the paired credential-free matrix:
+
+```bash
+npm run bench:mcp-common-workflows
+```
+
+The gate launches each pinned published MCP server twice over equivalent disposable
+fixtures. The direct arm receives the complete source result and applies a deterministic
+local grader. The Pinpoint arm receives either one artifact plus the minimum bounded
+query result, or the original result when the upstream MCP operation is already bounded.
+Every pair must produce the same exact answer.
+
+| Workflow | Published MCP | Expected Pinpoint behavior |
+|---|---|---|
+| Exact account lookup in a 1,000-row JSON export | `@modelcontextprotocol/server-filesystem@2026.7.10` | `json_select` over an artifact |
+| Filtered account count | `@modelcontextprotocol/server-filesystem@2026.7.10` | `count` over an artifact |
+| Incident lookup in a 2,000-line log | `@modelcontextprotocol/server-filesystem@2026.7.10` | literal `grep` over an artifact |
+| One node from a 500-entity full graph | `@modelcontextprotocol/server-memory@2026.7.4` | `json_select` over an artifact |
+| The same node through native `open_nodes` | `@modelcontextprotocol/server-memory@2026.7.4` | passthrough; no artifact or savings claim |
+| One marker in a 2,000-line commit | `mcp-server-git==2026.7.10` | literal `grep` over an artifact |
+
+The retained first-party run passed 6/6 workflows. Across data-bearing responses,
+direct MCP exposed 936,377 bytes and Pinpoint exposed 7,576 bytes, a 99.2% reduction.
+The five oversized workflows kept 6,995 unrelated synthetic marker occurrences out of the
+Pinpoint-side client transcript. The bounded `open_nodes` control created no artifact
+and returned 437 bytes in both arms, so it does not manufacture a benefit when the
+upstream tool already filters well.
+
+These are protocol measurements, not model-token measurements. Fixture setup,
+initialization, and tool catalogs are excluded equally; package download time is not
+measured. The direct grader represents what a correct client can compute after receiving
+the full response, not what an LLM will necessarily infer. See the
+[canonical receipt](./results/mcp-common-workflows.first-party-macos-arm64-20260716.json)
+and the [evaluation plan](../planning/common_mcp_workflow_evaluation.md).
 
 The opaque-flow protocol gate starts the committed unmodified stdio fixture, runs 30 exact flows and eight adversarial calls, scans 400 generated canaries, verifies every receipt and chain link, validates an operator delegation and exact policy opening, rejects receipt/authority tampering and a wrong operator root, and compares client-visible bytes with a constructed direct-MCP transcript. It makes no provider request. The committed receipt is `results/mcp-opaque-flow.first-party-macos-arm64-20260715.json`.
 

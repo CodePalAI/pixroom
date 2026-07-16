@@ -94,6 +94,17 @@ const ossCrossServerReceipt = JSON.parse(
     'utf8',
   ),
 );
+const commonWorkflowsReceipt = JSON.parse(
+  readFileSync(
+    join(
+      root,
+      'benchmarks',
+      'results',
+      'mcp-common-workflows.first-party-macos-arm64-20260716.json',
+    ),
+    'utf8',
+  ),
+);
 const hcpComparisonReceipt = JSON.parse(
   readFileSync(
     join(
@@ -106,6 +117,14 @@ const hcpComparisonReceipt = JSON.parse(
   ),
 );
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const commonComparisonPages = [
+  ['comparisons/customer-record-lookup.md', 'filesystem-exact-record-lookup'],
+  ['comparisons/active-account-count.md', 'filesystem-filtered-count'],
+  ['comparisons/incident-log-triage.md', 'filesystem-incident-log-triage'],
+  ['comparisons/knowledge-graph-lookup.md', 'memory-knowledge-graph-lookup'],
+  ['comparisons/native-filter-passthrough.md', 'memory-native-node-lookup-control'],
+  ['comparisons/large-commit-triage.md', 'git-large-commit-triage'],
+];
 const proofAssetPath = join(root, 'assets', 'qcv-evidence-gate.svg');
 const proofAsset = readFileSync(proofAssetPath, 'utf8');
 const failures = [];
@@ -152,6 +171,16 @@ function isPackaged(relativePath) {
 }
 
 const slugs = headingSlugs(readme);
+const codeFenceCount = [...readme.matchAll(/^```/gm)].length;
+if (codeFenceCount % 2 !== 0) fail(`README has an unbalanced fenced code block count: ${codeFenceCount}`);
+const detailsOpenCount = [...readme.matchAll(/<details>/g)].length;
+const detailsCloseCount = [...readme.matchAll(/<\/details>/g)].length;
+if (detailsOpenCount !== detailsCloseCount) {
+  fail(`README has unbalanced details blocks: ${detailsOpenCount} open, ${detailsCloseCount} closed`);
+}
+if (readme.split('\n').some((line) => (line.match(/```/g)?.length ?? 0) > 1)) {
+  fail('README contains multiple fenced-code markers on one line');
+}
 for (const target of localTargets(readme)) {
   if (target.startsWith('#')) {
     const anchor = decodeURIComponent(target.slice(1));
@@ -279,6 +308,72 @@ for (const [sourcePath, expectedHash] of Object.entries(ossCrossServerReceipt.so
   const actualHash = sha256(readFileSync(absolute));
   if (actualHash !== expectedHash) fail(`OSS cross-server receipt fingerprint is stale: ${sourcePath}`);
 }
+for (const [sourcePath, expectedHash] of Object.entries(commonWorkflowsReceipt.source.fingerprints)) {
+  const absolute = join(root, sourcePath);
+  if (!existsSync(absolute)) {
+    fail(`common-workflows receipt source does not exist: ${sourcePath}`);
+    continue;
+  }
+  const actualHash = sha256(readFileSync(absolute));
+  if (actualHash !== expectedHash) fail(`common-workflows receipt fingerprint is stale: ${sourcePath}`);
+}
+for (const value of [
+  `${commonWorkflowsReceipt.summary.workflowsPassed}/${commonWorkflowsReceipt.summary.workflows} exact`,
+  percentage(commonWorkflowsReceipt.summary.aggregateVisibleByteReduction),
+  integer.format(commonWorkflowsReceipt.summary.unrelatedCanariesAvoided),
+  integer.format(commonWorkflowsReceipt.summary.directVisibleBytes),
+  integer.format(commonWorkflowsReceipt.summary.pinpointVisibleBytes),
+]) {
+  if (!readme.includes(value)) fail(`README is missing common-workflow result: ${value}`);
+}
+const commonWorkflowsById = new Map(
+  commonWorkflowsReceipt.workflows.map((workflow) => [workflow.id, workflow]),
+);
+for (const [pagePath, workflowId] of commonComparisonPages) {
+  const workflow = commonWorkflowsById.get(workflowId);
+  if (!workflow) {
+    fail(`common-workflows receipt is missing comparison case: ${workflowId}`);
+    continue;
+  }
+  const absolute = join(root, pagePath);
+  if (!existsSync(absolute)) {
+    fail(`common-workflow comparison page does not exist: ${pagePath}`);
+    continue;
+  }
+  const page = readFileSync(absolute, 'utf8');
+  const expectedValues = [
+    `Benchmark case: \`${workflowId}\``,
+    `**${integer.format(workflow.direct.visibleBytes)} bytes**`,
+    `**${integer.format(workflow.pinpoint.visibleBytes)} bytes**`,
+    `**${integer.format(workflow.direct.unrelatedCanariesVisible)}**`,
+    `**${integer.format(workflow.pinpoint.unrelatedCanariesVisible)}**`,
+  ];
+  if (workflow.comparison.visibleByteReduction > 0) {
+    expectedValues.push(`**${percentage(workflow.comparison.visibleByteReduction)} less**`);
+  }
+  for (const value of expectedValues) {
+    if (!page.includes(value)) fail(`${pagePath} is missing receipt value: ${value}`);
+  }
+  for (const target of localTargets(page)) {
+    if (/^(?:https?:|mailto:|#)/.test(target)) continue;
+    const [relative] = decodeURIComponent(target).split('#');
+    if (!relative) continue;
+    const targetPath = resolve(dirname(absolute), relative);
+    if (!existsSync(targetPath)) fail(`${pagePath} has a missing local target: ${target}`);
+  }
+  for (const value of [
+    integer.format(workflow.direct.visibleBytes),
+    integer.format(workflow.pinpoint.visibleBytes),
+  ]) {
+    if (!readme.includes(value)) fail(`README is missing ${workflowId} result: ${value}`);
+  }
+  if (workflow.comparison.visibleByteReduction > 0) {
+    const reduction = percentage(workflow.comparison.visibleByteReduction);
+    if (!readme.includes(reduction)) fail(`README is missing ${workflowId} result: ${reduction}`);
+  } else if (!readme.includes('Byte-identical')) {
+    fail(`README is missing ${workflowId} passthrough result: Byte-identical`);
+  }
+}
 for (const sourcePath of [
   'benchmarks/competitors/hcp_same_workflow_adapter.mjs',
   'benchmarks/v2/hcp_comparison_gate.mjs',
@@ -368,6 +463,7 @@ if (!existsSync(join(root, 'llms.txt'))) fail('llms.txt is missing');
 if (!readme.includes('./llms.txt')) fail('README does not link llms.txt');
 const endUserSignals = [
   'Let AI agents use private tool data without showing it to the model.',
+  '## Six everyday tasks. Six exact answers.',
   'Pinpoint sits between your AI agent and an MCP server.',
   'The lossless MCP result firewall for AI agents',
   '### A concrete example',

@@ -14,6 +14,7 @@
 
 <p align="center">
   <a href="#start-here">See the value</a> ·
+  <a href="#six-everyday-tasks-six-exact-answers">Results</a> ·
   <a href="#install">Try it</a> ·
   <a href="#where-it-fits">Use cases</a> ·
   <a href="#evidence">Evidence</a> ·
@@ -37,6 +38,65 @@ Do not add the image tag until both files exist and render correctly on GitHub l
 </p>
 
 ---
+
+## Six everyday tasks. Six exact answers.
+
+<p align="center">
+  <strong>6/6 exact</strong> &nbsp;·&nbsp;
+  <strong>99.2% fewer response bytes</strong> &nbsp;·&nbsp;
+  <strong>6,995 unrelated value occurrences kept out</strong>
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">What the user asked</th>
+      <th align="right">Without Pinpoint</th>
+      <th align="right">With Pinpoint</th>
+      <th align="left">Outcome</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="./comparisons/customer-record-lookup.md"><strong>Find one customer's email</strong></a></td>
+      <td align="right">215,336 B<br><sub>999 unrelated visible</sub></td>
+      <td align="right">1,463 B<br><sub>0 unrelated visible</sub></td>
+      <td><strong>99.3% less</strong><br><sub>same exact email</sub></td>
+    </tr>
+    <tr>
+      <td><a href="./comparisons/active-account-count.md"><strong>Count active EU accounts</strong></a></td>
+      <td align="right">215,336 B<br><sub>1,000 unrelated visible</sub></td>
+      <td align="right">1,307 B<br><sub>0 unrelated visible</sub></td>
+      <td><strong>99.4% less</strong><br><sub>same exact count: 166</sub></td>
+    </tr>
+    <tr>
+      <td><a href="./comparisons/incident-log-triage.md"><strong>Find one incident in a service log</strong></a></td>
+      <td align="right">276,180 B<br><sub>1,999 unrelated visible</sub></td>
+      <td align="right">1,490 B<br><sub>0 unrelated visible</sub></td>
+      <td><strong>99.5% less</strong><br><sub>same exact log line</sub></td>
+    </tr>
+    <tr>
+      <td><a href="./comparisons/knowledge-graph-lookup.md"><strong>Recall one customer note</strong></a></td>
+      <td align="right">132,672 B<br><sub>998 unrelated visible</sub></td>
+      <td align="right">1,495 B<br><sub>0 unrelated visible</sub></td>
+      <td><strong>98.9% less</strong><br><sub>same exact note</sub></td>
+    </tr>
+    <tr>
+      <td><a href="./comparisons/native-filter-passthrough.md"><strong>Open one named customer</strong></a></td>
+      <td align="right">437 B<br><sub>already bounded</sub></td>
+      <td align="right">437 B<br><sub>no artifact created</sub></td>
+      <td><strong>Byte-identical</strong><br><sub>Pinpoint stayed out of the way</sub></td>
+    </tr>
+    <tr>
+      <td><a href="./comparisons/large-commit-triage.md"><strong>Find one change in a large commit</strong></a></td>
+      <td align="right">96,416 B<br><sub>1,999 unrelated visible</sub></td>
+      <td align="right">1,384 B<br><sub>0 unrelated visible</sub></td>
+      <td><strong>98.6% less</strong><br><sub>same exact changed line</sub></td>
+    </tr>
+  </tbody>
+</table>
+
+<p align="center"><sub>936,377 bytes direct vs 7,576 bytes with Pinpoint across three pinned published MCP servers. Data-bearing response bytes, not token estimates. <a href="./benchmarks/results/mcp-common-workflows.first-party-macos-arm64-20260716.json">View the receipt.</a></sub></p>
 
 ## Start here
 

@@ -80,6 +80,7 @@
   },
   "files": [
     "assets/",
+    "comparisons/",
     "benchmarks/REPORT.md",
     "benchmarks/REPRODUCING.md",
     "benchmarks/results/mcp-gateway-agent.first-party-macos-arm64-20260715.json",
@@ -89,6 +90,7 @@
     "benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json",
     "benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json",
     "benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json",
+    "benchmarks/results/mcp-common-workflows.first-party-macos-arm64-20260716.json",
     "benchmarks/results/hcp-comparison.first-party-macos-arm64-20260716.json",
     "benchmarks/competitors/hcp_same_workflow_adapter.mjs",
     "benchmarks/v2/hcp_comparison_gate.mjs",
@@ -102,6 +104,7 @@
     "planning/value_opaque_mcp_dataflow.md",
     "planning/opaque_flow_formal_properties.md",
     "planning/breakthrough_scorecard.md",
+    "planning/common_mcp_workflow_evaluation.md",
     "formal/opaque_flow.pml",
     "README.md",
     "llms.txt",
@@ -150,6 +153,7 @@
     "bench:mcp-opaque-flow:cross-host": "npm run build && node benchmarks/v2/mcp_opaque_flow_cross_host_gate.mjs",
     "bench:mcp-oss-filesystem": "npm run build && node benchmarks/v2/mcp_oss_filesystem_gate.mjs",
     "bench:mcp-oss-cross-server": "npm run build && node benchmarks/v2/mcp_oss_cross_server_gate.mjs",
+    "bench:mcp-common-workflows": "npm run build && node benchmarks/v2/mcp_common_workflows_gate.mjs",
     "bench:compare-hcp": "npm run build && node benchmarks/v2/hcp_comparison_gate.mjs",
     "prepublishOnly": "npm run assets:readme && npm run docs:check && npm run package:manifest-check && npm run typecheck && npm test && npm run build && npm run package:smoke"
   },

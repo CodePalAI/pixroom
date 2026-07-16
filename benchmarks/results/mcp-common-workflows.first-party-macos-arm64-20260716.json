@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "evidenceLevel": "paired-oss-protocol-integration",
+  "kind": "mcp-common-workflows-gate",
+  "date": "2026-07-16",
+  "passed": true,
+  "environment": {
+    "platform": "darwin",
+    "release": "25.5.0",
+    "architecture": "arm64",
+    "node": "v26.0.0",
+    "tools": {
+      "git": "git version 2.50.1 (Apple Git-155)",
+      "npx": "11.12.1",
+      "uvx": "uvx 0.11.8 (Homebrew 2026-04-27 aarch64-apple-darwin)"
+    }
+  },
+  "summary": {
+    "workflows": 6,
+    "workflowsPassed": 6,
+    "publishedServers": 3,
+    "operations": [
+      "count",
+      "grep",
+      "json_select",
+      "native-filter"
+    ],
+    "directVisibleBytes": 936377,
+    "pinpointVisibleBytes": 7576,
+    "aggregateVisibleByteReduction": 0.9919092416836381,
+    "unrelatedCanariesAvoided": 6995
+  },
+  "workflows": [
+    {
+      "id": "filesystem-exact-record-lookup",
+      "description": "Find one account email in a large JSON export.",
+      "server": "@modelcontextprotocol/server-filesystem@2026.7.10",
+      "mode": "virtualized",
+      "operation": "json_select",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "workflow-user-733@example.invalid",
+        "visibleBytes": 215336,
+        "unrelatedCanariesVisible": 999
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "workflow-user-733@example.invalid",
+        "artifactCapabilities": 1,
+        "visibleBytes": 1463,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0.993205966489579,
+        "unrelatedCanariesAvoided": 999
+      }
+    },
+    {
+      "id": "filesystem-filtered-count",
+      "description": "Count active EU accounts in a large JSON export.",
+      "server": "@modelcontextprotocol/server-filesystem@2026.7.10",
+      "mode": "virtualized",
+      "operation": "count",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": 166,
+        "visibleBytes": 215336,
+        "unrelatedCanariesVisible": 1000
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": 166,
+        "artifactCapabilities": 1,
+        "visibleBytes": 1307,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0.9939304157224059,
+        "unrelatedCanariesAvoided": 1000
+      }
+    },
+    {
+      "id": "filesystem-incident-log-triage",
+      "description": "Find one incident line in a large service log.",
+      "server": "@modelcontextprotocol/server-filesystem@2026.7.10",
+      "mode": "virtualized",
+      "operation": "grep",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "2026-07-16T12:23:47Z ERROR incident=INCIDENT-0427 marker=log-private-1427 payment authorization timed out",
+        "visibleBytes": 276180,
+        "unrelatedCanariesVisible": 1999
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "2026-07-16T12:23:47Z ERROR incident=INCIDENT-0427 marker=log-private-1427 payment authorization timed out",
+        "artifactCapabilities": 1,
+        "visibleBytes": 1490,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0.9946049677746397,
+        "unrelatedCanariesAvoided": 1999
+      }
+    },
+    {
+      "id": "memory-knowledge-graph-lookup",
+      "description": "Retrieve one customer observation from a large knowledge graph.",
+      "server": "@modelcontextprotocol/server-memory@2026.7.4",
+      "mode": "virtualized",
+      "operation": "json_select",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "memory-private-0311",
+        "visibleBytes": 132672,
+        "unrelatedCanariesVisible": 998
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "memory-private-0311",
+        "artifactCapabilities": 1,
+        "visibleBytes": 1495,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0.9887316087795466,
+        "unrelatedCanariesAvoided": 998
+      }
+    },
+    {
+      "id": "memory-native-node-lookup-control",
+      "description": "Retrieve one customer through the MCP server native bounded lookup.",
+      "server": "@modelcontextprotocol/server-memory@2026.7.4",
+      "mode": "passthrough",
+      "operation": "native-filter",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "memory-private-0311",
+        "visibleBytes": 437,
+        "unrelatedCanariesVisible": 0
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "memory-private-0311",
+        "artifactCapabilities": 0,
+        "visibleBytes": 437,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0,
+        "unrelatedCanariesAvoided": 0
+      }
+    },
+    {
+      "id": "git-large-commit-triage",
+      "description": "Find one change marker in a large commit diff.",
+      "server": "mcp-server-git==2026.7.10",
+      "mode": "virtualized",
+      "operation": "grep",
+      "passed": true,
+      "direct": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "+export const record1427 = 'BUGFIX-0427 payment retry guard';",
+        "visibleBytes": 96416,
+        "unrelatedCanariesVisible": 1999
+      },
+      "pinpoint": {
+        "exitCode": 0,
+        "exactAnswer": true,
+        "answer": "+export const record1427 = 'BUGFIX-0427 payment retry guard';",
+        "artifactCapabilities": 1,
+        "visibleBytes": 1384,
+        "unrelatedCanariesVisible": 0
+      },
+      "comparison": {
+        "sameAnswer": true,
+        "visibleByteReduction": 0.9856455360106207,
+        "unrelatedCanariesAvoided": 1999
+      }
+    }
+  ],
+  "source": {
+    "fingerprints": {
+      "src/mcp/gateway.ts": "eed74b121fe36ea471399704147bd1656df65c12792a9d2258735ae57a8581ab",
+      "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
+      "benchmarks/v2/mcp_common_workflows_gate.mjs": "8709b0fc6692ad9dfa244e7a1d67db3f92fca122edc46d97cb2d3953ad4fd809"
+    }
+  },
+  "limitations": [
+    "These are maintainer-authored synthetic workflows over three pinned published MCP servers, not organic customer traffic.",
+    "The direct arm uses deterministic local parsing after the full result reaches the client; it does not measure model accuracy.",
+    "Fixture setup calls are excluded equally from both arms, and package download time is not measured.",
+    "Visible bytes count data-bearing MCP responses only, not initialization or tool catalogs.",
+    "The benchmark measures exact result-boundary disclosure and response bytes, not provider tokens, cost, latency, or semantic side channels."
+  ]
+}
