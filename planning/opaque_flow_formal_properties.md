@@ -9,11 +9,11 @@ security decisions at the MCP client, Pinpoint gateway, and wrapped upstream
 boundary. Spin exhaustively explored every modeled action ordering up to ten actions
 per trace.
 
-The committed run reached depth 222 and explored:
+The committed run reached depth 208 and explored:
 
-- 1,436,912 stored states;
-- 696,981 matched states;
-- 2,133,893 transitions;
+- 2,270,040 stored states;
+- 1,146,404 matched states;
+- 3,416,444 transitions;
 - zero unreached control states;
 - zero assertion violations.
 
@@ -29,7 +29,8 @@ attempts cannot set the client-visible value state.
 
 A destination dispatch implies all modeled predicates held simultaneously:
 
-- the upstream catalog validated;
+- the source catalog validated;
+- the destination catalog validated independently;
 - the operator authority binding is valid for the session key and exact policy commitment;
 - the capability is valid;
 - the operation is allowlisted;
@@ -40,6 +41,13 @@ A destination dispatch implies all modeled predicates held simultaneously:
 - operator-fixed predicates remain applied;
 - the item bound holds;
 - the byte bound holds.
+
+### P2b. Authentication-domain isolation
+
+Source credentials never cross into the destination authentication domain. The
+implementation maps this property to destination `envAllowlist`, source removal of
+destination-exclusive names, explicit `sharedEnvAllowlist`, and separate stdio request
+maps. The model does not prove operating-system isolation.
 
 ### P3. Receipt completeness
 
@@ -54,7 +62,8 @@ attestation and chains the previous receipt hash.
 
 ## Hostile actions explored
 
-The state space includes invalid catalogs, missing or tampered authority, wrong roots,
+The state space includes independently invalid source and destination catalogs,
+credential-copy attempts, missing or tampered authority, wrong roots,
 changed policy commitments, session-key swaps, direct hidden-destination calls, direct
 queries, resource reads, forged capabilities, malformed protected source responses,
 late upstream output, fixed-predicate override attempts, and every independent
@@ -62,10 +71,10 @@ combination of the policy predicates.
 
 ## Non-vacuity check
 
-`npm run formal:opaque-flow:mutation` creates a temporary model with one deliberate
-bug: late protected upstream output sets the client-visible value state. Spin must find
-at least one assertion violation. The committed gate detected the mutation with one
-violation.
+`npm run formal:opaque-flow:mutation` creates two temporary models with deliberate
+bugs: late protected upstream output sets the client-visible value state, and a source
+credential crosses into the destination domain. Spin must find at least one assertion
+violation for each mutation. The committed gate detected both with one violation each.
 
 ## Relationship to the implementation
 
@@ -76,6 +85,7 @@ separate specification. Implementation conformance is tested at adjacent boundar
 |---|---|---|
 | Protected capture and value-free errors | `src/mcp/gateway.ts` | `tests/mcp-gateway.test.ts`, hostile protocol fixture |
 | Policy parsing and allowlists | `src/mcp/flow.ts` | `tests/cli.test.ts`, opaque-flow protocol gate |
+| Separate catalog and credential domains | `src/mcp/destination.ts`, `src/mcp/gateway.ts` | cross-server exact, invalid-catalog, environment, timeout, and two-published-server gates |
 | Capability provenance and hidden destination | `src/mcp/gateway.ts`, `src/mcp/flow.ts` | forged-capability, direct-destination, and resource bypasses |
 | Item and byte confinement | `src/mcp/flow.ts` | protocol gate and query-store bounds |
 | Receipt signature and session pinning | `src/mcp/flow.ts` | valid, tampered, wrong-session, concurrent-chain tests |
@@ -85,7 +95,7 @@ separate specification. Implementation conformance is tested at adjacent boundar
 
 ## Assumptions
 
-- Pinpoint, the reviewed policy, wrapped upstream process, and OS boundary are trusted.
+- Pinpoint, the reviewed policy, source process, destination process, and OS boundary are trusted.
 - The model abstracts JSON parsing, cryptographic primitives, process isolation, and
   transport framing.
 - Capabilities are abstract Booleans; cryptographic entropy is tested separately.

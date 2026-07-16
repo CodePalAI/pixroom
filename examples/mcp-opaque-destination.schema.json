@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-destination.schema.json",
+  "title": "Pinpoint opaque-flow private destination",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "id",
+    "command"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "args": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "default": []
+    },
+    "cwd": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "envAllowlist": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+      },
+      "default": []
+    },
+    "sharedEnvAllowlist": {
+      "description": "Names allowed in both process environments. Runtime requires this to be a subset of envAllowlist.",
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+      },
+      "default": []
+    },
+    "initializeTimeoutMs": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 300000,
+      "default": 10000
+    },
+    "requestTimeoutMs": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 300000,
+      "default": 30000
+    },
+    "shutdownGraceMs": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 300000,
+      "default": 2000
+    }
+  }
+}

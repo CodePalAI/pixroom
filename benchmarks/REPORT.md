@@ -11,6 +11,7 @@ Measures token consumption (and, for live arms, response correctness) for **head
 - `protocol-integration` — real gateway and protocol processes over a deterministic fixture, without a model; valid for wire behavior, exact grading, and local timing only.
 - `bounded-model-check` — exhaustive finite-state exploration of an abstract reference model; valid only for the stated model, bounds, and assumptions.
 - `oss-protocol-integration` — production gateway around a pinned published OSS MCP server with no source modifications; valid for that package/version/workflow only.
+- `oss-cross-server-integration` — production gateway composing two pinned published OSS MCP servers in separate processes with an independently checked side effect; valid for those versions and fixture only.
 - `live-controlled` — real model call with a fixed, directly graded prompt; currently single-run unless stated otherwise.
 - `live-agentic` — real tool-using agent run; correctness is useful, while tokens/latency are high-variance without paired repetitions.
 
@@ -45,15 +46,16 @@ Promela reference monitor for ten-action traces.
 
 | Check | Result |
 |---|---:|
-| Stored states | 1,436,912 |
-| Matched states | 696,981 |
-| Transitions | 2,133,893 |
+| Stored states | 2,270,040 |
+| Matched states | 1,146,404 |
+| Transitions | 3,416,444 |
 | Unreached control states | 0 |
 | Assertion violations | 0 |
-| Deliberate late-output leak mutation | Detected (1 violation) |
+| Deliberate value-leak / credential-copy mutations | Detected (1 violation each) |
 
-The model checks client-value isolation, dispatch confinement to every policy
-predicate including fixed predicates and valid operator authority, one receipt per dispatch, and monotonic receipt
+The model checks client-value isolation, separate source/destination catalogs,
+credential-domain isolation, dispatch confinement to every policy predicate including
+fixed predicates and valid operator authority, one receipt per dispatch, and monotonic receipt
 sequence linkage. It abstracts TypeScript, Node.js, JSON parsing, cryptography, OS
 isolation, timing, cardinality, and upstream behavior. See
 `results/opaque-flow-model-check.first-party-macos-arm64-20260715.json` and
@@ -76,6 +78,32 @@ This validates result virtualization and exact query recovery against one publis
 external server. It does not validate opaque destination composition or broad MCP
 ecosystem compatibility. See
 `results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json`.
+
+### Published OSS cross-server gate
+
+Evidence: `oss-cross-server-integration`. The production gateway composed two
+unmodified official packages in separate stdio processes:
+`@modelcontextprotocol/server-filesystem@2026.7.10` supplied a synthetic JSON file,
+and `@modelcontextprotocol/server-memory@2026.7.4` persisted the policy-selected
+projection through `create_entities`.
+
+| Check | Result |
+|---|---:|
+| Source records / selected entities | 200 / 40 |
+| Exact entities in disposable destination JSONL | 40/40 |
+| Private source canaries absent from client transcript | 0/400 leaked |
+| Destination tool hidden / direct call denied | Yes / Yes |
+| Separate process homes / inherited credential variables | Yes / 0 |
+| Receipt, operator delegation, exact policy opening | Valid / Valid / Valid |
+| Destination server id bound into receipt | Yes |
+
+The destination process receives only explicitly named environment variables. Those
+names are removed from the source by default; only `sharedEnvAllowlist` names may
+exist in both process environments. This is process-configuration isolation, not an
+OS sandbox or proof of executable identity. Both children can still access common
+files, keychains, network identities, and kernel resources. The persistent side
+effect proves completion for this fixture, not exactly-once behavior during crashes.
+See `results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json`.
 
 ### Live cross-host gate
 

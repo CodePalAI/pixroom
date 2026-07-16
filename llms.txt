@@ -24,6 +24,7 @@
 - [Opaque flow engine](https://github.com/CodePalAI/pinpoint/blob/main/src/mcp/flow.ts): versioned policy validation, exact projection confinement, HMAC commitments, Ed25519 receipts, chaining, and verification
 - [Flow policy example](https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-flow.json): source, destination, filter, projection, fixed arguments, and limits
 - [Flow policy schema](https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-flow.schema.json): editor and deployment-tooling schema; runtime validation remains authoritative
+- [Private destination example](https://github.com/CodePalAI/pinpoint/blob/main/examples/mcp-opaque-destination.json): separate stdio process, environment allowlist, and explicit shared-name subset
 - [Anthropic SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/anthropic.ts): wrap the official Anthropic TypeScript client
 - [OpenAI SDK wrapper](https://github.com/CodePalAI/pinpoint/blob/main/src/sdk/openai.ts): wrap Chat Completions and Responses clients
 - [Integration examples](https://github.com/CodePalAI/pinpoint/tree/main/examples/integrations): public integration API examples with built-ins disabled
@@ -36,8 +37,9 @@
 - [Cross-host MCP gateway receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-gateway-cross-host.first-party-macos-arm64-20260715.json): the same exact task passed on Claude Code and GitHub Copilot CLI with a shared artifact id; Cursor and Codex blocks are explicitly uncounted
 - [Opaque-flow protocol receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json): 30 exact hidden calls, eight denied bypasses, zero of 400 canaries leaked, operator/session/policy authorization, signed chain verification, and local latency
 - [Opaque-flow cross-host receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json): Claude Code and Copilot each completed the same hidden destination flow with valid receipts and zero event-stream fixture values
-- [Opaque-flow model-check receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json): 1,436,912 states and 2,133,893 transitions, zero assertion violations, deliberate leak mutation detected
+- [Opaque-flow model-check receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json): 2,270,040 states and 3,416,444 transitions, zero assertion violations, deliberate value-leak and credential-copy mutations detected
 - [Published filesystem MCP receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json): unmodified pinned OSS server, exact row recovery, 999 unrelated canaries absent
+- [Published cross-server MCP receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json): unmodified filesystem -> memory servers, exact 40-entity side effect, 0/400 canaries, separate process environments
 - [Contributing](https://github.com/CodePalAI/pinpoint/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
 - [Code of Conduct](https://github.com/CodePalAI/pinpoint/blob/main/CODE_OF_CONDUCT.md): community expectations, private reporting, and enforcement
 - [Upstream attribution](https://github.com/CodePalAI/pinpoint/blob/main/UPSTREAM.md): pinned pxpipe and Headroom contracts
@@ -58,4 +60,5 @@
 - "Local" describes optimization and temporary dataset storage. Normal model requests still go to the provider selected by the user.
 - The cross-host MCP receipt is one first-party synthetic task replicated across two clients, not a prevalence estimate. The 96.8% provider-wire result used deliberately eligible synthetic prompts, not normal coding traffic.
 - Optional operator-rooted sessions authenticate a configured Ed25519 key and exact hidden policy commitment; they do not prove the key's organizational identity or detect omitted sessions without external witnesses.
-- Not yet supported: cross-server flows with separate authentication domains, externally witnessed identity/transparency, remote attestation, or formal compliance claims.
+- One separate private stdio destination is supported with an independent catalog/request namespace and destination-exclusive environment names. This is not OS sandboxing or remote OAuth brokering.
+- Not yet supported: multiple/remote destinations, externally witnessed identity/transparency, remote attestation, exactly-once side effects, or formal compliance claims.

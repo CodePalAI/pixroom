@@ -86,13 +86,17 @@ const result = {
   mutationSensitivity: mutation,
   checkedProperties: [
     'No selected value becomes visible on the modeled client boundary.',
+    'No source credential crosses into the destination authentication domain.',
     'Destination dispatch implies every modeled policy predicate held.',
+    'Destination dispatch implies independently validated source and destination catalogs.',
     'Destination dispatch implies a valid operator delegation for the authorized session and policy.',
     'Every destination dispatch emits exactly one receipt.',
     'Receipt sequence advances by exactly one and links to the previous sequence.',
   ],
   hostileActions: [
-    'invalid catalog',
+    'invalid source catalog',
+    'invalid destination catalog',
+    'credential-copy attempt across source and destination domains',
     'missing, wrong-root, changed-policy, or session-swapped authority',
     'direct destination',
     'direct query',

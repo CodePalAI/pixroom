@@ -83,6 +83,17 @@ const ossFilesystemReceipt = JSON.parse(
     'utf8',
   ),
 );
+const ossCrossServerReceipt = JSON.parse(
+  readFileSync(
+    join(
+      root,
+      'benchmarks',
+      'results',
+      'mcp-oss-cross-server.first-party-macos-arm64-20260716.json',
+    ),
+    'utf8',
+  ),
+);
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const proofAssetPath = join(root, 'assets', 'qcv-evidence-gate.svg');
 const proofAsset = readFileSync(proofAssetPath, 'utf8');
@@ -248,6 +259,15 @@ for (const [sourcePath, expectedHash] of Object.entries(ossFilesystemReceipt.sou
   const actualHash = sha256(readFileSync(absolute));
   if (actualHash !== expectedHash) fail(`OSS filesystem receipt fingerprint is stale: ${sourcePath}`);
 }
+for (const [sourcePath, expectedHash] of Object.entries(ossCrossServerReceipt.source.fingerprints)) {
+  const absolute = join(root, sourcePath);
+  if (!existsSync(absolute)) {
+    fail(`OSS cross-server receipt source does not exist: ${sourcePath}`);
+    continue;
+  }
+  const actualHash = sha256(readFileSync(absolute));
+  if (actualHash !== expectedHash) fail(`OSS cross-server receipt fingerprint is stale: ${sourcePath}`);
+}
 for (const value of [
   `${crossHostReceipt.summary.hostsPassed}/${crossHostReceipt.summary.hostsExecuted}`,
   integer.format(crossHostReceipt.hosts[1].largestToolCompletionEventChars),
@@ -295,6 +315,16 @@ for (const value of [
 ]) {
   if (!readme.includes(value)) fail(`README is missing OSS filesystem receipt value: ${value}`);
 }
+for (const value of [
+  ossCrossServerReceipt.sourceServer.package,
+  ossCrossServerReceipt.sourceServer.version,
+  ossCrossServerReceipt.destinationServer.package,
+  ossCrossServerReceipt.destinationServer.version,
+  `${ossCrossServerReceipt.summary.persistedEntities}/${ossCrossServerReceipt.fixture.selectedRecords}`,
+  `${ossCrossServerReceipt.summary.privateCanariesLeaked}/${ossCrossServerReceipt.summary.privateCanariesScanned}`,
+]) {
+  if (!readme.includes(value)) fail(`README is missing OSS cross-server receipt value: ${value}`);
+}
 
 if (!readme.includes('./assets/qcv-evidence-gate.svg')) fail('README does not render the proof asset');
 if (!existsSync(join(root, 'llms.txt'))) fail('llms.txt is missing');
@@ -322,6 +352,8 @@ const endUserSignals = [
   'experimental and available today for controlled local or VPC-side evaluation',
   'pinpoint mcp gateway --',
   '--flow-config',
+  '--destination-config',
+  'sharedEnvAllowlist',
   'pinpoint_flow',
   'verifyMcpOpaqueFlowReceipt(receipt, initializedVerifier)',
   'Pinpoint returns the receipt through MCP but does not persist it.',

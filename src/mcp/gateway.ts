@@ -749,7 +749,10 @@ export async function runMcpGateway(
             command: options.destination.command,
             args: [...(options.destination.args ?? [])],
             cwd: options.destination.cwd ?? null,
-            envNames: Object.keys(options.destination.env ?? {}).sort(),
+            envNames: [...(
+              options.destination.declaredEnvNames ?? Object.keys(options.destination.env ?? {})
+            )].sort(),
+            sharedEnvNames: [...(options.destination.sharedEnvNames ?? [])].sort(),
           },
         } : {}),
       },
@@ -765,13 +768,32 @@ export async function runMcpGateway(
   }
   const child = spawn(command, [...args], {
     cwd: options.cwd,
-    env: options.env ?? process.env,
+    env: (() => {
+      const sourceEnv = { ...(options.env ?? process.env) };
+      const shared = new Set(options.destination?.sharedEnvNames ?? []);
+      for (const name of Object.keys(options.destination?.env ?? {})) {
+        if (!shared.has(name)) delete sourceEnv[name];
+      }
+      return sourceEnv;
+    })(),
     stdio: ['pipe', 'pipe', 'pipe'],
     shell: false,
   });
-  const destinationPeer = options.destination
-    ? new McpDestinationPeer(options.destination, (message) => error.write(message))
-    : undefined;
+  let destinationPeer: McpDestinationPeer | undefined;
+  try {
+    destinationPeer = options.destination
+      ? new McpDestinationPeer(
+          options.destination,
+          (message) => error.write(message),
+          () => {
+            if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+          },
+        )
+      : undefined;
+  } catch (cause) {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+    throw cause;
+  }
   const pending = new Map<string, PendingRequest>();
   const shutdownGraceMs = Math.max(0, Math.trunc(options.shutdownGraceMs ?? 2_000));
   let upstreamHasResources = false;
@@ -1022,6 +1044,7 @@ export async function runMcpGateway(
             destinationCatalogValidated = true;
           } catch {
             destinationCatalogValidated = false;
+            if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
             throw new Error('opaque destination initialization failed');
           }
         }
@@ -1094,6 +1117,9 @@ export async function runMcpGateway(
   const exitCode = await new Promise<number | null>((resolve, reject) => {
     child.once('error', reject);
     child.once('close', resolve);
+  }).catch(async (cause) => {
+    await destinationPeer?.close();
+    throw cause;
   });
   options.signal?.removeEventListener('abort', abort);
   if (forceKillTimer) clearTimeout(forceKillTimer);
@@ -1101,5 +1127,5 @@ export async function runMcpGateway(
   clientLines.close();
   upstreamLines.close();
   await Promise.all([clientQueue, upstreamQueue, destinationQueue]);
-  return exitCode === 0 && destinationPeer?.state === 'failed' ? 1 : exitCode;
+  return destinationPeer?.state === 'failed' ? 1 : exitCode;
 }

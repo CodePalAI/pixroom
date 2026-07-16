@@ -14,28 +14,42 @@
   "model": {
     "path": "formal/opaque_flow.pml",
     "maxStepsPerTrace": 10,
-    "depthReached": 210,
-    "statesStored": 1436912,
-    "statesMatched": 696981,
-    "transitions": 2133893,
+    "depthReached": 208,
+    "statesStored": 2270040,
+    "statesMatched": 1146404,
+    "transitions": 3416444,
     "unreachedControlStates": 0,
     "assertionViolations": 0
   },
   "mutationSensitivity": {
     "passed": true,
-    "mutation": "late protected upstream value becomes client-visible",
-    "expected": "at least one assertion violation",
-    "assertionViolations": 1
+    "mutations": [
+      {
+        "mutation": "late protected upstream value becomes client-visible",
+        "expected": "at least one assertion violation",
+        "assertionViolations": 1
+      },
+      {
+        "mutation": "source credential is copied into the destination domain",
+        "expected": "at least one assertion violation",
+        "assertionViolations": 1
+      }
+    ],
+    "assertionViolations": 2
   },
   "checkedProperties": [
     "No selected value becomes visible on the modeled client boundary.",
+    "No source credential crosses into the destination authentication domain.",
     "Destination dispatch implies every modeled policy predicate held.",
+    "Destination dispatch implies independently validated source and destination catalogs.",
     "Destination dispatch implies a valid operator delegation for the authorized session and policy.",
     "Every destination dispatch emits exactly one receipt.",
     "Receipt sequence advances by exactly one and links to the previous sequence."
   ],
   "hostileActions": [
-    "invalid catalog",
+    "invalid source catalog",
+    "invalid destination catalog",
+    "credential-copy attempt across source and destination domains",
     "missing, wrong-root, changed-policy, or session-swapped authority",
     "direct destination",
     "direct query",
@@ -48,9 +62,9 @@
   ],
   "source": {
     "fingerprints": {
-      "formal/opaque_flow.pml": "df378305e5f4afc9dfe1950b21d4db8fbfcb0e3fd4bb7d660cd946f17dba1a6d",
-      "scripts/check-opaque-flow-model.mjs": "df872d2feffea5a3a457bfcbb55de99faa001af03b71111ec43fe71f3c0cde6a",
-      "scripts/check-opaque-flow-model-mutation.mjs": "403c148f28645b00c6da6fff2dcf44f467feead5c9b5f2aebf6fddf2ca8ec4fd"
+      "formal/opaque_flow.pml": "264e640897df30c37864d3ab0134a05188af2a1920ce6e2a85dc5de7f78489fd",
+      "scripts/check-opaque-flow-model.mjs": "7033ed24b284e280134cdf29ff328cc828468410100b12807a40193904f2f7ec",
+      "scripts/check-opaque-flow-model-mutation.mjs": "eecf955bc778590264484bfe08969e5f7f48c4ccb3d0cae799ab62f6e91ae68a"
     }
   },
   "limitations": [

@@ -10,6 +10,8 @@ export interface McpDestinationStdioConfig {
   readonly args?: readonly string[];
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  readonly declaredEnvNames?: readonly string[];
+  readonly sharedEnvNames?: readonly string[];
   readonly initializeTimeoutMs?: number;
   readonly requestTimeoutMs?: number;
   readonly shutdownGraceMs?: number;
@@ -22,6 +24,7 @@ export interface McpOpaqueFlowDestinationConfig {
   readonly args: readonly string[];
   readonly cwd?: string;
   readonly envAllowlist: readonly string[];
+  readonly sharedEnvAllowlist: readonly string[];
   readonly initializeTimeoutMs: number;
   readonly requestTimeoutMs: number;
   readonly shutdownGraceMs: number;
@@ -80,12 +83,14 @@ export function parseMcpOpaqueFlowDestinationConfig(
 ): McpOpaqueFlowDestinationConfig & McpDestinationStdioConfig {
   if (!isRecord(value)) throw new TypeError('opaque-flow destination config must be a JSON object');
   const allowedKeys = new Set([
+    '$schema',
     'version',
     'id',
     'command',
     'args',
     'cwd',
     'envAllowlist',
+    'sharedEnvAllowlist',
     'initializeTimeoutMs',
     'requestTimeoutMs',
     'shutdownGraceMs',
@@ -93,6 +98,9 @@ export function parseMcpOpaqueFlowDestinationConfig(
   const unknownKeys = Object.keys(value).filter((key) => !allowedKeys.has(key));
   if (unknownKeys.length > 0) {
     throw new TypeError(`unknown opaque-flow destination config field: ${unknownKeys.join(', ')}`);
+  }
+  if (value.$schema != null && (typeof value.$schema !== 'string' || value.$schema.length > 4096)) {
+    throw new TypeError('opaque-flow destination $schema must be a string of at most 4096 characters');
   }
   if (value.version !== 1) throw new TypeError('opaque-flow destination config version must be 1');
   if (typeof value.id !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/.test(value.id)) {
@@ -121,6 +129,15 @@ export function parseMcpOpaqueFlowDestinationConfig(
   ) {
     throw new TypeError('opaque-flow destination envAllowlist must contain at most 64 unique environment names');
   }
+  const sharedEnvAllowlist = value.sharedEnvAllowlist ?? [];
+  if (
+    !Array.isArray(sharedEnvAllowlist) ||
+    sharedEnvAllowlist.length > 64 ||
+    new Set(sharedEnvAllowlist).size !== sharedEnvAllowlist.length ||
+    sharedEnvAllowlist.some((name) => typeof name !== 'string' || !envAllowlist.includes(name))
+  ) {
+    throw new TypeError('opaque-flow destination sharedEnvAllowlist must be a unique subset of envAllowlist');
+  }
   const initializeTimeoutMs = positiveTimeout(
     value.initializeTimeoutMs as number | undefined,
     10_000,
@@ -139,7 +156,10 @@ export function parseMcpOpaqueFlowDestinationConfig(
     args: [...args] as string[],
     ...(typeof value.cwd === 'string' ? { cwd: value.cwd } : {}),
     envAllowlist: [...envAllowlist] as string[],
+    sharedEnvAllowlist: [...sharedEnvAllowlist] as string[],
     env,
+    declaredEnvNames: [...envAllowlist] as string[],
+    sharedEnvNames: [...sharedEnvAllowlist] as string[],
     initializeTimeoutMs,
     requestTimeoutMs,
     shutdownGraceMs,
@@ -157,6 +177,7 @@ export class McpDestinationPeer {
   private requestSequence = 0;
   private currentState: McpDestinationState = 'spawned';
   private diagnosticEmitted = false;
+  private failureNotified = false;
   private closeExpected = false;
   private closePromise?: Promise<number | null>;
   private readonly exited: Promise<number | null>;
@@ -164,6 +185,7 @@ export class McpDestinationPeer {
   constructor(
     readonly config: McpDestinationStdioConfig,
     private readonly onDiagnostic: (message: string) => void = () => {},
+    private readonly onFailure: () => void = () => {},
   ) {
     if (!/^[a-z][a-z0-9_-]{0,63}$/.test(config.id)) {
       throw new TypeError(`invalid destination id: ${config.id}`);
@@ -202,6 +224,7 @@ export class McpDestinationPeer {
           this.currentState = 'failed';
           this.rejectPending('destination process exited');
           this.diagnostic('destination process exited');
+          this.notifyFailure();
         } else if (this.currentState !== 'failed') {
           this.currentState = 'closed';
           this.rejectPending('destination process closed');
@@ -229,11 +252,18 @@ export class McpDestinationPeer {
     this.pending.clear();
   }
 
+  private notifyFailure(): void {
+    if (this.failureNotified) return;
+    this.failureNotified = true;
+    this.onFailure();
+  }
+
   private fail(message: string): void {
     if (this.currentState === 'failed' || this.currentState === 'closed') return;
     this.currentState = 'failed';
     this.rejectPending(message);
     this.diagnostic(message);
+    this.notifyFailure();
     if (this.child.exitCode === null && this.child.signalCode === null) this.child.kill('SIGTERM');
   }
 
@@ -244,6 +274,10 @@ export class McpDestinationPeer {
       return;
     }
     if (message.method) {
+      if (message.method === 'notifications/tools/list_changed' && this.currentState === 'ready') {
+        this.fail('destination tool catalog changed');
+        return;
+      }
       if (message.id !== undefined) {
         this.child.stdin.write(`${JSON.stringify({
           jsonrpc: '2.0',
@@ -253,9 +287,16 @@ export class McpDestinationPeer {
       }
       return;
     }
-    if (typeof message.id !== 'string') return;
+    if (message.id === undefined) return;
+    if (typeof message.id !== 'string') {
+      this.fail('destination returned an unknown response');
+      return;
+    }
     const request = this.pending.get(message.id);
-    if (!request) return;
+    if (!request) {
+      this.fail('destination returned an unknown response');
+      return;
+    }
     this.pending.delete(message.id);
     clearTimeout(request.timer);
     if (message.error != null) request.reject(new Error('destination returned a JSON-RPC error'));

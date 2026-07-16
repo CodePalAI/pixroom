@@ -13,10 +13,13 @@
 #define MAX_STEPS 10
 
 mtype = {
-    ListValid,
-    ListInvalid,
+   SourceCatalogValid,
+   SourceCatalogInvalid,
+   DestinationCatalogValid,
+   DestinationCatalogInvalid,
    AuthorityValid,
    AuthorityTamper,
+   CredentialCopy,
     SourceCall,
     FlowAttempt,
     DirectDestination,
@@ -28,12 +31,14 @@ mtype = {
     LateUpstreamOutput
 };
 
-bool catalog_valid = false;
+bool source_catalog_valid = false;
+bool destination_catalog_valid = false;
 bool authority_valid = false;
 bool capability_valid = false;
 bool protected_data_handled = false;
 
 bool client_value_visible = false;
+bool credential_crossed = false;
 bool destination_called = false;
 bool receipt_emitted = false;
 
@@ -69,12 +74,18 @@ active proctype ReferenceMonitor() {
         receipt_emitted = false;
 
         if
-        :: action = ListValid;
-           catalog_valid = true
+        :: action = SourceCatalogValid;
+           source_catalog_valid = true
 
-        :: action = ListInvalid;
-           catalog_valid = false;
+        :: action = SourceCatalogInvalid;
+           source_catalog_valid = false;
            capability_valid = false
+
+        :: action = DestinationCatalogValid;
+           destination_catalog_valid = true
+
+        :: action = DestinationCatalogInvalid;
+           destination_catalog_valid = false
 
         :: action = AuthorityValid;
            /* A trusted operator delegates the session key for the exact policy. */
@@ -84,9 +95,13 @@ active proctype ReferenceMonitor() {
            /* Wrong roots, changed policy commitments, and key swaps invalidate authority. */
            authority_valid = false
 
+        :: action = CredentialCopy;
+           /* Source and destination environments are separately allowlisted. */
+           skip
+
         :: action = SourceCall;
            if
-           :: catalog_valid ->
+           :: source_catalog_valid ->
               choose_bool(source_capture_succeeds);
               protected_data_handled = true;
               if
@@ -107,7 +122,8 @@ active proctype ReferenceMonitor() {
            choose_bool(byte_bound_holds);
 
            if
-           :: catalog_valid &&
+           :: source_catalog_valid &&
+              destination_catalog_valid &&
               authority_valid &&
               capability_valid &&
               operation_allowed &&
@@ -161,9 +177,13 @@ active proctype ReferenceMonitor() {
         /* Safety 1: selected values never cross the modeled client boundary. */
         assert(!client_value_visible);
 
+      /* Safety 1b: credentials never copy between source and destination domains. */
+      assert(!credential_crossed);
+
         /* Safety 2: destination dispatch implies every policy predicate held. */
       assert(!destination_called ||
-             (catalog_valid &&
+             (source_catalog_valid &&
+          destination_catalog_valid &&
           authority_valid &&
          capability_valid &&
          operation_allowed &&

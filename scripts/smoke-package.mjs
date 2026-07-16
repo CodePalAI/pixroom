@@ -44,6 +44,8 @@ try {
     'bin/verify-receipt.js',
     'examples/mcp-opaque-flow.json',
     'examples/mcp-opaque-flow.schema.json',
+    'examples/mcp-opaque-destination.json',
+    'examples/mcp-opaque-destination.schema.json',
     'planning/value_opaque_mcp_dataflow.md',
     'planning/opaque_flow_formal_properties.md',
     'planning/breakthrough_scorecard.md',
@@ -52,6 +54,7 @@ try {
     'benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json',
     'benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json',
     'benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json',
+    'benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json',
   ]) {
     if (!paths.has(required)) throw new Error(`packed artifact is missing ${required}`);
   }
@@ -72,7 +75,7 @@ try {
   const runtimeScript = [
     `const entries = ${JSON.stringify(publicEntries)};`,
     'for (const entry of entries) await import(entry);',
-    "const { McpResultFirewall, MCP_FLOW_TOOL_NAME, MCP_QUERY_TOOL_NAME, parseMcpOpaqueFlowConfig, verifyMcpOpaqueFlowReceipt } = await import('@codepal/pinpoint/mcp');",
+    "const { McpResultFirewall, MCP_FLOW_TOOL_NAME, MCP_QUERY_TOOL_NAME, parseMcpOpaqueFlowConfig, parseMcpOpaqueFlowDestinationConfig, verifyMcpOpaqueFlowReceipt } = await import('@codepal/pinpoint/mcp');",
     'const firewall = new McpResultFirewall({ minChars: 10 });',
     "const transformed = firewall.transformResult('smoke', { content: [{ type: 'text', text: JSON.stringify(Array.from({ length: 100 }, (_, id) => ({ id, value: `exact-smoke-value-${id}` }))) }] });",
     "if (!transformed.virtualized) throw new Error('public MCP firewall did not virtualize');",
@@ -80,6 +83,8 @@ try {
     "if (!queried.content[0].text.includes('exact-smoke-value-73')) throw new Error('public MCP query did not recover exact value');",
     "const flowConfig = parseMcpOpaqueFlowConfig({ version: 1, flows: [{ name: 'smoke_flow', sourceTool: 'source', sourceKind: 'json-array', destinationTool: 'destination', destinationArgument: 'records', allowedOps: ['json_select'], allowedFields: ['value'] }] });",
     "if (MCP_FLOW_TOOL_NAME !== 'pinpoint_flow' || flowConfig.exposeQueryTool || !flowConfig.opaqueArtifactIds) throw new Error('public opaque-flow config defaults are invalid');",
+    "const destination = parseMcpOpaqueFlowDestinationConfig({ version: 1, id: 'smoke-domain', command: 'smoke-destination', envAllowlist: ['PATH', 'DESTINATION_TOKEN'], sharedEnvAllowlist: ['PATH'] }, { PATH: '/usr/bin', DESTINATION_TOKEN: 'destination-only', SOURCE_TOKEN: 'source-only' });",
+    "if (destination.env.DESTINATION_TOKEN !== 'destination-only' || destination.env.SOURCE_TOKEN != null || destination.sharedEnvNames.join(',') !== 'PATH') throw new Error('public destination config isolation is invalid');",
     "if (verifyMcpOpaqueFlowReceipt({})) throw new Error('public receipt verifier accepted an invalid receipt');",
     'console.log(`imported ${entries.length} public entry points`);',
   ].join('\n');

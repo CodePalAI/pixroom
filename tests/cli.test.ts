@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { parseMcpArgs, parseProxyArgs, runQcvDemo } from '../src/cli/main.js';
@@ -133,6 +135,7 @@ describe('parseMcpArgs', () => {
       command: '/usr/local/bin/crm-mcp',
       args: ['--stdio'],
       envAllowlist: ['PATH', 'CRM_TOKEN'],
+      sharedEnvAllowlist: ['PATH'],
     }, {
       PATH: '/usr/bin:/bin',
       CRM_TOKEN: 'destination-secret',
@@ -144,7 +147,10 @@ describe('parseMcpArgs', () => {
       command: '/usr/local/bin/crm-mcp',
       args: ['--stdio'],
       envAllowlist: ['PATH', 'CRM_TOKEN'],
+      sharedEnvAllowlist: ['PATH'],
       env: { PATH: '/usr/bin:/bin', CRM_TOKEN: 'destination-secret' },
+      declaredEnvNames: ['PATH', 'CRM_TOKEN'],
+      sharedEnvNames: ['PATH'],
       initializeTimeoutMs: 10_000,
       requestTimeoutMs: 30_000,
       shutdownGraceMs: 2_000,
@@ -156,6 +162,25 @@ describe('parseMcpArgs', () => {
       command: '/usr/local/bin/crm-mcp',
       env: { CRM_TOKEN: 'plaintext-not-allowed' },
     })).toThrow('unknown opaque-flow destination config field: env');
+    expect(() => parseMcpOpaqueFlowDestinationConfig({
+      version: 1,
+      id: 'crm-domain',
+      command: '/usr/local/bin/crm-mcp',
+      envAllowlist: ['CRM_TOKEN'],
+      sharedEnvAllowlist: ['PATH'],
+    })).toThrow('sharedEnvAllowlist must be a unique subset of envAllowlist');
+  });
+
+  it('parses the shipped private-destination example', () => {
+    const example = JSON.parse(readFileSync('examples/mcp-opaque-destination.json', 'utf8'));
+    expect(parseMcpOpaqueFlowDestinationConfig(example, {
+      PATH: '/usr/bin:/bin',
+      CRM_API_TOKEN: 'synthetic-token',
+    })).toMatchObject({
+      id: 'crm-domain',
+      env: { PATH: '/usr/bin:/bin', CRM_API_TOKEN: 'synthetic-token' },
+      sharedEnvNames: ['PATH'],
+    });
   });
 
   it('rejects config typos and destination-policy overlap', () => {

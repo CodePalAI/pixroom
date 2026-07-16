@@ -91,6 +91,7 @@
     "benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json",
     "benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json",
     "benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json",
+    "benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json",
     "benchmarks/traces/agent-gate/",
     "bin/",
     "dist/",
@@ -147,6 +148,7 @@
     "bench:mcp-opaque-flow": "npm run build && node benchmarks/v2/mcp_opaque_flow_gate.mjs",
     "bench:mcp-opaque-flow:cross-host": "npm run build && node benchmarks/v2/mcp_opaque_flow_cross_host_gate.mjs",
     "bench:mcp-oss-filesystem": "npm run build && node benchmarks/v2/mcp_oss_filesystem_gate.mjs",
+    "bench:mcp-oss-cross-server": "npm run build && node benchmarks/v2/mcp_oss_cross_server_gate.mjs",
     "prepublishOnly": "npm run assets:readme && npm run docs:check && npm run typecheck && npm test && npm run build && npm run package:smoke"
   },
   "publishConfig": {

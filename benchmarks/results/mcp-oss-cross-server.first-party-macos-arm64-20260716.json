@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "evidenceLevel": "oss-cross-server-integration",
+  "kind": "mcp-value-opaque-oss-cross-server-gate",
+  "date": "2026-07-16",
+  "passed": true,
+  "environment": {
+    "platform": "darwin",
+    "release": "25.5.0",
+    "architecture": "arm64",
+    "node": "v26.0.0"
+  },
+  "sourceServer": {
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "2026.7.10",
+    "modification": "none",
+    "transport": "stdio",
+    "tool": "read_text_file"
+  },
+  "destinationServer": {
+    "package": "@modelcontextprotocol/server-memory",
+    "version": "2026.7.4",
+    "modification": "none",
+    "transport": "stdio",
+    "tool": "create_entities",
+    "persistentSideEffect": "disposable JSONL knowledge graph"
+  },
+  "fixture": {
+    "sourceRecords": 200,
+    "selectedRecords": 40,
+    "sourceBytes": 34521,
+    "privateCanaries": 400
+  },
+  "summary": {
+    "gatewayExitCode": 0,
+    "sourceToolPresent": true,
+    "flowToolPresent": true,
+    "destinationToolHidden": true,
+    "directDestinationDenied": true,
+    "artifactCapabilities": 1,
+    "exactPersistedProjection": true,
+    "persistedEntities": 40,
+    "privateCanariesScanned": 400,
+    "privateCanariesLeaked": 0,
+    "elapsedMs": 3972.0285830000003
+  },
+  "security": {
+    "separateProcesses": true,
+    "separateDisposableHomes": true,
+    "inheritedCredentialVariables": 0,
+    "receiptValid": true,
+    "operatorAuthorityBindingValid": true,
+    "exactPolicyOpeningValid": true,
+    "destinationServerBoundInReceipt": true,
+    "operatorKeyId": "7cf790b5647cfcc3b2f366d3d6f9e3fde7373412ad042d04752ab5a92f34f6f0",
+    "policyCommitment": "sha256:eee457d09f2721c1f65b8e2f48caae5ed74fcc3cc35ffa7d75ab5a058023f296",
+    "receiptHash": "e2abc7ee3027146d71ca77559609a18b92307ced870587c4f8bd37e68780d034"
+  },
+  "source": {
+    "fingerprints": {
+      "src/mcp/destination.ts": "c6b284a2947fd4bd80b4936794699a7a13620a8d3eda3d049161375f5a782e8d",
+      "src/mcp/flow.ts": "1584a45e7bb99ae947d70bdddb0dfa426eec6f6db7517bd71e44745c95cd2e14",
+      "src/mcp/gateway.ts": "98cacf13646557c5c4331f8b38b7fd84a6aa129f104273cd2fc08e82840122f0",
+      "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
+      "benchmarks/v2/mcp_oss_cross_server_gate.mjs": "8ff2675f9716b7682497df95b8179d0fd63086b0bd31179a6a70c6dddf71d0aa"
+    }
+  },
+  "limitations": [
+    "This is a first-party synthetic integration using two pinned published MCP packages, not an independent review or customer workflow.",
+    "The gateway still sees plaintext selected values and both processes share the local operating-system trust boundary.",
+    "Separate process environments prove the gateway did not copy inherited credentials; they do not prove OS-level credential isolation or executable identity.",
+    "The local JSONL side effect proves this destination call completed for the fixture, not exactly-once behavior under crashes or timeouts.",
+    "The operator key is generated for this run and proves the mechanism, not externally attested organizational identity or transparency inclusion."
+  ]
+}

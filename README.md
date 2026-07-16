@@ -99,13 +99,14 @@ The committed evidence uses deterministic synthetic fixtures and real installed 
 | Protocol integration | **30 / 30 correct destination invocations** | One deterministic local stdio fixture and policy |
 | Adversarial protocol gate | **8 / 8 bypasses denied** | Direct query, resource read, destination call, forbidden field, operation switch, forged capability, fixed-argument override, fixed-predicate override |
 | Operator-rooted policy authorization | **Exact opening valid; wrong root and tampered authority rejected** | Fresh session key delegated by a stable Ed25519 operator key; first-party software-key evidence |
-| Bounded reference model | **1,436,912 states / 2,133,893 transitions / 0 violations** | Spin 6.5.2; ten actions per trace; abstract model, not a proof over TypeScript |
-| Mutation sensitivity | **Deliberate late-output leak detected** | Spin found the expected assertion violation |
-| Published OSS server | **1/1 pinned server passed** | Unmodified `@modelcontextprotocol/server-filesystem@2026.7.10`; one synthetic 1,000-row read/query flow |
+| Bounded reference model | **2,270,040 states / 3,416,444 transitions / 0 violations** | Spin 6.5.2; ten actions per trace; abstract model, not a proof over TypeScript |
+| Mutation sensitivity | **Value-leak and credential-copy mutations detected** | Spin found one expected assertion violation for each |
+| Published OSS result firewall | **1/1 pinned server passed** | Unmodified `@modelcontextprotocol/server-filesystem@2026.7.10`; one synthetic 1,000-row read/query flow |
+| Published OSS cross-server flow | **40/40 entities persisted; 0/400 canaries visible** | Unmodified `@modelcontextprotocol/server-filesystem@2026.7.10` -> `@modelcontextprotocol/server-memory@2026.7.4` |
 | Constructed visible traffic | **31,013 -> 3,414 bytes** | Same synthetic source and destination payload with operator authority; character bytes, not provider tokens or bill |
 | Local flow latency | **0.86 ms p95** | 30 local protocol samples on the recorded machine; not a production load test |
 
-Read the [cross-host receipt](./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json), [protocol receipt](./benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json), [model-check receipt](./benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json), [OSS filesystem receipt](./benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json), [formal property map](./planning/opaque_flow_formal_properties.md), or [full evidence methodology](./benchmarks/REPORT.md).
+Read the [cross-host receipt](./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json), [protocol receipt](./benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json), [model-check receipt](./benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json), [OSS filesystem receipt](./benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json), [OSS cross-server receipt](./benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json), [formal property map](./planning/opaque_flow_formal_properties.md), or [full evidence methodology](./benchmarks/REPORT.md).
 
 **Evidence boundary:** these are first-party synthetic tests, not customer production traces, a formal noninterference proof, a prevalence estimate, or a compliance certification. Tool names, field names, counts, byte sizes, timing, and success status remain observable. The wrapped MCP process is trusted with the values.
 
@@ -171,6 +172,22 @@ Both generated files are created with mode `0600` and existing files are never
 overwritten. Retain the operator key in your normal secret-management boundary.
 Treat the opening record as sensitive because it enables an auditor to test
 candidate policy values.
+
+To send the approved projection to a separately launched destination server, keep
+its process configuration outside the flow policy:
+
+```bash
+pinpoint mcp gateway \
+  --flow-config ./examples/mcp-opaque-flow.json \
+  --destination-config ./examples/mcp-opaque-destination.json \
+  -- <source-mcp-command> [args...]
+```
+
+`envAllowlist` copies named variables into the destination. Those names are
+removed from the source environment by default. `sharedEnvAllowlist` is the
+explicit subset, typically `PATH`, permitted in both process environments. Put
+credential values in the environment or workload-identity system, never in the
+JSON, command arguments, flow policy, or prompt.
 
 <!-- LAUNCH(npm): Replace the checkout flow above with verified npm commands only after the registry confirms the package. -->
 
@@ -268,7 +285,7 @@ pinpoint-verify-receipt receipt.json \
 
 Pinpoint returns the receipt through MCP but does not persist it. If your audit policy requires durable retention, the host or an existing collector must store the value-free receipt. Do not enable body capture merely to retain receipts; body capture can persist sensitive prompts and tool values.
 
-Do not put provider credentials in `fixedDestinationArguments`; the policy is a plaintext operator file. Keep authentication in the upstream server's existing credential mechanism.
+Do not put provider credentials in `fixedDestinationArguments`; the policy is a plaintext operator file. Keep authentication in each server's existing credential mechanism. A private-destination timeout yields a signed `destinationSucceeded=false` receipt meaning **success was not confirmed**; the side effect may already have happened, so retry only under the destination's idempotency rules.
 
 ## Evaluate with your team
 
@@ -305,7 +322,8 @@ Use [GitHub Discussions](https://github.com/CodePalAI/pinpoint/discussions) for 
 | **Policy owner** | Your operator, platform, or security team; never the model |
 | **Runtime storage** | Bounded process memory; artifacts disappear at shutdown |
 | **Validated hosts** | Claude Code and GitHub Copilot CLI on committed synthetic gates |
-| **Not yet supported** | Cross-server flows with separate auth domains, externally witnessed organizational identity, HSM/remote attestation, omission-proof transparency, or formal compliance claims |
+| **Private destination** | One separately spawned stdio destination with independent catalog, request namespace, and destination-exclusive environment variables |
+| **Not yet supported** | Multiple destinations, remote HTTP/OAuth brokering, OS sandboxing, exactly-once side effects, externally witnessed identity, HSM/remote attestation, omission-proof transparency, or formal compliance claims |
 | **Maturity** | Experimental; suitable for controlled evaluation and contribution, not an automatic enterprise approval |
 
 ## Security boundary
@@ -315,7 +333,8 @@ Use [GitHub Discussions](https://github.com/CodePalAI/pinpoint/discussions) for 
 | Selected source and destination values on the client-facing MCP path | Isolation from a malicious or compromised wrapped MCP process |
 | Operator-declared source, destination, operation, fields, arguments, and limits | Protection from the upstream process's own network, files, subprocesses, or timing channels |
 | Direct query, resource, hidden-destination, capability, and argument bypasses covered by the committed protocol gate | Secrecy for tool names, field names, operation, counts, sizes, limits, timing, or success status |
-| Optional operator-signed delegation of each session key to a hidden exact-policy commitment | Proof that a key belongs to a claimed organization, human approval, HSM/remote attestation, transparency-log inclusion, or omission detection |
+| Optional operator-signed delegation of each session key to a hidden exact-policy and destination-process commitment | Proof that a key belongs to a claimed organization, human approval, executable identity, HSM/remote attestation, transparency-log inclusion, or omission detection |
+| Separate source/destination stdio request maps and destination-exclusive environment names | OS-level credential isolation, protection from shared files/keychains/network identity, or exactly-once destination effects |
 | Bounded process-local artifact retention | A DLP suite, identity provider, zero-retention guarantee, or compliance certification |
 
 The trusted computing base includes Pinpoint, the reviewed flow policy, the wrapped MCP process, and the operating-system boundary. Read [SECURITY.md](./SECURITY.md) and the [full threat model](./planning/value_opaque_mcp_dataflow.md#threat-model) before a controlled deployment.
@@ -325,6 +344,7 @@ The trusted computing base includes Pinpoint, the reviewed flow policy, the wrap
 | Surface | Integration | Current evidence |
 |---|---|---|
 | Any stdio MCP host | `pinpoint mcp gateway --flow-config <policy> -- <server>` | Protocol integration suite |
+| Two stdio MCP servers | Add `--destination-config <deployment>` | Published filesystem-to-memory exact side-effect gate |
 | Claude Code MCP | Replace the configured server command | Live synthetic flow passed |
 | GitHub Copilot CLI | Replace the configured server command | Live synthetic flow passed; zero premium requests in the committed run |
 | VS Code, Codex, Cursor, other MCP hosts | Same stdio wrapper pattern | Protocol-compatible; independent host replication remains open |
@@ -747,6 +767,9 @@ The full [benchmark report](./benchmarks/REPORT.md) keeps live, offline, agentic
 - Strict flow mode uses random 128-bit process-local capabilities. Public content hashes, artifact resources, previews, `pinpoint_query`, and direct hidden-destination calls are disabled by default.
 - Flow receipts expose field names, counts, sizes, limits, and success status. Values are represented by per-sequence HMAC-SHA256 commitments; equal values do not produce equal public commitments.
 - Receipts are Ed25519-signed and hash-chained. The session verification key is pinned at MCP initialization. Optional authority mode uses a stable operator key to sign an unlinkable delegation of the fresh session key and a commitment to the complete normalized policy. This authenticates the configured key, not the organization behind it, human approval, hardware state, transparency inclusion, or upstream honesty.
+- Cross-server mode independently initializes and catalogs one private destination. Its tools and protocol messages never enter the host catalog; successful receipts bind the logical destination-server id. Destination stderr, malformed stdout, notifications, server requests, and result values are suppressed from the host boundary.
+- Destination `envAllowlist` is deny-by-default. Names not explicitly listed never enter the destination, and listed names are removed from the source unless also present in `sharedEnvAllowlist`. Both local processes still share the operating-system trust boundary and may access common files, keychains, network identities, or other channels outside Pinpoint.
+- A destination crash or timeout after dispatch produces a signed unconfirmed receipt, blocks further flows, and terminates the gateway nonzero. It cannot prove whether a side effect occurred; use destination idempotency keys or reconciliation before retrying.
 - Operator private keys and policy-opening records must remain mode `0600`. The opening record contains no policy values, but it enables verification of guessed values against the commitment and is therefore sensitive.
 - The wrapped upstream process is trusted with source and destination values. Pinpoint does not stop that process from using its own network, filesystem, subprocess, timing, or other operating-system channels.
 - The MCP gateway spawns the configured upstream command directly with `shell: false`. Upstream arguments are never interpolated into a shell command.
@@ -790,6 +813,7 @@ The defaults are designed for local use. These are the controls most people need
 | `PINPOINT_HOST` / `PINPOINT_PORT` | listen interface / port | `127.0.0.1` / `8788` |
 | `PINPOINT_MCP_MIN_CHARS` | ordinary MCP result-firewall threshold | `16000` |
 | `PINPOINT_MCP_FLOW_CONFIG` | versioned value-opaque flow policy file | unset |
+| `PINPOINT_MCP_DESTINATION_CONFIG` | private stdio destination process config | unset |
 | `PINPOINT_MCP_FLOW_AUTHORITY_KEY` | mode-0600 Ed25519 operator private-key file | unset |
 | `PINPOINT_MCP_FLOW_AUTHORITY_OPENING` | new mode-0600 exact-policy opening record | unset |
 | `PINPOINT_MAX_INSPECTION_BYTES` | maximum request bytes buffered for optimization; larger requests stream unchanged | `33554432` |
@@ -851,6 +875,7 @@ Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md). The main local checks are:
 npm run typecheck
 npm test                        # offline test suite
 npm run bench:mcp-opaque-flow   # 30 flows + 8 bypasses, no provider call
+npm run bench:mcp-oss-cross-server # 2 unmodified OSS servers, exact side effect
 npm run bench:mcp-opaque-flow:cross-host # Claude Code + Copilot live gate
 node benchmarks/proof.mjs       # constructed additivity check
 node benchmarks/rd_frontier.mjs # simulated RD surface
@@ -870,7 +895,7 @@ Pinpoint is experimental and available today for controlled local or VPC-side ev
 Pinpoint is developed and maintained by [CodePal](https://codepal.ai) with contributions from the open-source community.
 
 - **Validated first-party:** the value-opaque flow passed on Claude Code and GitHub Copilot CLI; the protocol gate completed 30/30 exact destinations, denied 8/8 bypasses, and found zero of 400 canaries in its client transcript.
-- **Still being proved:** independent security review, broader host replication, externally sourced workflows, multi-server authority boundaries, externally attested/witnessed operator identity, and customer demand.
+- **Still being proved:** independent security review, broader host replication, externally sourced workflows, remote/multi-destination authority, externally attested/witnessed operator identity, and customer demand.
 
 The [product assessment](./planning/product_assessment.md) explains the evidence and current limits without marketing shortcuts.
 

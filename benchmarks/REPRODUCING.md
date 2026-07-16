@@ -12,6 +12,7 @@ npm run demo:qcv
 npm run bench:qcv-quality
 npm run bench:virtual
 npm run bench:mcp-opaque-flow
+npm run bench:mcp-oss-cross-server
 ```
 
 What they establish:
@@ -22,6 +23,7 @@ What they establish:
 | `npm run bench:qcv-quality` | Offline real transform | Exact-operation and refusal coverage over the committed synthetic fixtures |
 | `npm run bench:virtual` | Offline real transform | Token accounting for QCV against the committed comparison fixtures |
 | `npm run bench:mcp-opaque-flow` | Protocol integration | Fail-closed source capture, hidden exact destination calls, bypass denial, transcript canary absence, operator/session/policy authorization, signed receipt verification/chaining, and local latency |
+| `npm run bench:mcp-oss-cross-server` | OSS cross-server integration | Exact hidden composition across pinned unmodified filesystem and memory servers, persistent side-effect verification, separate process environments, and transcript canary absence |
 
 They do not establish live model quality, provider-reported usage, real-agent savings, or production latency.
 
@@ -39,6 +41,18 @@ pinpoint-verify-receipt \
 ```
 
 The benchmark retains an opening because its policy is public and synthetic. Do not publish a production opening record; it enables testing candidate fixed values.
+
+The published cross-server gate creates disposable npm homes/caches and a disposable
+memory JSONL file. It passes only if the filesystem server's protected result becomes
+one random capability, the memory destination remains absent from the host tool
+catalog, direct destination access is denied, exactly 40 selected entities persist,
+all 400 source canaries remain absent from the client transcript, and the receipt,
+operator delegation, policy opening, and destination-server binding verify. It does
+not call a model or provider:
+
+```bash
+npm run bench:mcp-oss-cross-server
+```
 
 ## Live cross-host opaque-flow gate
 

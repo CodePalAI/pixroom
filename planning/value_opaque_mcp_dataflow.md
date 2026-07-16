@@ -8,6 +8,7 @@ bounded-model, published-OSS, and two-executed-host evidence, 2026-07-16._
 Pinpoint can move an exact, policy-approved projection from one tool result into
 another tool call without placing the projected values in the MCP client or model
 transcript. It does this as a transparent stdio gateway around an unmodified MCP
+source server and, optionally, a separately spawned unmodified private destination
 server. No generated code, sandbox, host plugin, or tool implementation change is
 required.
 
@@ -61,6 +62,20 @@ existing files. The opening record carries a policy authorization signature, not
 plaintext values, but it enables testing candidate policies and is therefore
 sensitive.
 
+Optional private-destination mode:
+
+```bash
+pinpoint mcp gateway \
+  --flow-config ./flow-policy.json \
+  --destination-config ./destination.json \
+  -- <source-command> [args...]
+```
+
+The destination deployment config is separate from flow policy. `envAllowlist`
+copies named variables into that process and removes those names from the source;
+`sharedEnvAllowlist` is the explicit subset permitted in both environments. Values
+remain outside JSON and the public receipt.
+
 `PINPOINT_MCP_FLOW_CONFIG` can supply the same file path. The policy is loaded and
 validated before the upstream process starts. Unknown top-level fields, unsupported
 versions, duplicate flow names, missing projection allowlists, overlapping fixed and
@@ -68,10 +83,12 @@ dynamic destination arguments, invalid limits, and missing upstream tools fail c
 
 Do not place provider credentials or long-lived secrets in
 `fixedDestinationArguments`; the policy is a plaintext operator configuration file.
-Keep authentication in the upstream server's normal credential mechanism.
+Keep authentication in each server's normal environment or workload-identity
+mechanism, never command arguments or destination JSON.
 
 See `examples/mcp-opaque-flow.json` for a complete policy and
-`examples/mcp-opaque-flow.schema.json` for the editor/tooling schema. Runtime
+`examples/mcp-opaque-flow.schema.json` for the editor/tooling schema. The separate
+deployment example is `examples/mcp-opaque-destination.json`. Runtime
 validation remains authoritative because it also checks semantic constraints such as
 projection requirements and argument overlap.
 
@@ -82,7 +99,7 @@ MCP host / model
   |
   | call source tool
   v
-Pinpoint gateway ---------------------> unmodified source tool
+Pinpoint gateway ---------------------> unmodified source server
   |                                          |
   | exact local artifact <------------------+
   | random capability only
@@ -95,7 +112,7 @@ Pinpoint policy + exact query engine
   |
   | selected values (internal JSON-RPC only)
   v
-hidden unmodified destination tool
+private unmodified destination server
   |
   | destination result (internal only)
   v
@@ -111,6 +128,13 @@ dimensions and non-payload arguments named by that flow. `fixedWhere` predicates
 always merged locally and cannot be supplied, omitted, or overridden by the model. The
 operator, not the model, controls source, destination, and fixed business-rule
 authority.
+
+With `--destination-config`, Pinpoint initializes and catalogs the private peer
+independently before accepting flows. It has a separate request namespace, timeouts,
+stderr suppression, and shutdown path. Its tools are never merged into the host
+catalog. Authority mode commits the destination command, arguments, working
+directory, environment names, and explicitly shared environment names without
+publishing them.
 
 ## Strict defaults
 
@@ -153,7 +177,8 @@ Each successful or destination-error flow produces one `McpOpaqueFlowReceipt`.
 It includes:
 
 - sequence number and previous receipt hash;
-- flow, source tool, destination tool, destination argument, and operation;
+- flow, source tool, destination tool, optional logical destination-server id,
+  destination argument, and operation;
 - filter field names, projection field names, and non-payload destination argument
   names, but not their values;
 - policy-shape SHA-256 and enforced item/byte limits;
@@ -175,10 +200,10 @@ additionally check monotonically
 increasing sequence numbers and each `previousReceiptHash`.
 
 Authority mode proves that the configured operator key authorized the fresh session
-key and exact hidden policy commitment. It does not prove who owns that key, that a
-human approved it, that the key is hardware protected, that every session was
-retained, or that the upstream tool is honest. External witnesses or a transparency
-service are needed to detect omission or equivocation across sessions.
+key and exact hidden policy/deployment commitment. It does not prove who owns that
+key, that a human approved it, executable identity, hardware protection, complete
+retention, or upstream honesty. External witnesses or a transparency service are
+needed to detect omission or equivocation across sessions.
 
 ## Threat model
 
@@ -186,7 +211,7 @@ Trusted components:
 
 - the local Pinpoint process and exact query engine;
 - the operator-supplied flow policy;
-- the wrapped upstream process as a recipient of source and destination values;
+- the source and destination processes as recipients of their respective values;
 - the operating system process boundary.
 
 Protected boundary:
@@ -216,12 +241,18 @@ Out of scope:
 
 - a malicious upstream process can exfiltrate values over its own network, files,
   subprocesses, timing, or other OS channels;
+- separate source/destination processes run under the same OS user unless the operator
+  adds stronger isolation; environment filtering does not prevent shared files,
+  keychains, workload identities, IPC, or network access;
+- destination command and catalog validation do not attest executable/package identity;
 - an upstream server may expose the same data through a separate unprotected tool or
   resource;
 - source call arguments originate at the client and remain visible;
 - process-local artifacts are not durable and do not survive gateway restart;
-- flow policies currently compose tools from one wrapped server, not arbitrary remote
-  servers with independent authentication domains;
+- one private stdio destination is supported; multiple destinations and remote
+  HTTP/OAuth authorization brokering are not;
+- destination failure after dispatch cannot prove whether a side effect occurred;
+  `destinationSucceeded=false` means success was not confirmed, not rolled back;
 - paginated tool catalogs are not accepted for initial policy validation in this
   experimental version.
 
@@ -269,6 +300,21 @@ This proves the same contract is usable by two host/model families for one synth
 task. It does not estimate organic need, establish behavior on every MCP host, or
 replace an external security review.
 
+### Published cross-server execution
+
+`benchmarks/v2/mcp_oss_cross_server_gate.mjs` composes two pinned unmodified
+official packages in separate stdio processes. The filesystem server reads 200
+synthetic records; operator-fixed policy selects 40 entity projections; the memory
+server persists exactly those 40 into a disposable JSONL graph. The destination tool
+is hidden, direct access is denied, all 400 source canaries remain absent from the
+client transcript, no destination-exclusive environment name remains in the source,
+and the receipt, operator delegation, policy opening, and destination-server binding
+verify.
+
+This is first-party compatibility evidence for two packages and one persistent side
+effect. It does not establish independent reproduction, executable identity, OS
+isolation, exactly-once semantics, or product demand.
+
 ## Prior art and novelty boundary
 
 The closest verified work is substantial:
@@ -315,7 +361,9 @@ gates. Calling it a field-level breakthrough still requires independent work:
    another tool without model inspection;
 6. an externally pinned organizational trust root plus retained witnesses or
   transparency-log anchoring that can expose omitted or equivocated sessions;
-7. multi-server composition with explicit authentication and authority boundaries.
+7. independent review of multi-server process, credential, timeout, and authority
+  boundaries, followed by remote or multi-destination work only where external
+  workflows demand it.
 
 Public blocking gates:
 

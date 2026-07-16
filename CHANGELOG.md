@@ -17,13 +17,16 @@ All notable changes are documented here. This project follows semantic versionin
 - Versioned flow-policy parsing with source/destination provenance, operation/filter/projection allowlists, fixed and dynamic destination-argument policy, and item/byte bounds.
 - Random session capability ids, per-sequence HMAC-SHA256 value commitments, Ed25519-signed hash-chained receipts, initialization-time verifier pinning, and a public receipt verifier.
 - Operator-fixed `fixedWhere` predicates that are always applied locally and cannot be omitted or overridden by the model.
-- A Spin 6.5.2 bounded reference model covering 1,436,912 states and 2,133,893 transitions with zero assertion violations, including operator-authority confinement, plus a mutation gate that proves a deliberate late-output disclosure is detected.
+- A Spin 6.5.2 bounded reference model covering 2,270,040 states and 3,416,444 transitions with zero assertion violations, including separate source/destination catalogs, credential-domain isolation, and operator-authority confinement; value-leak and credential-copy mutations are both detected.
 - A zero-dependency `pinpoint-verify-receipt` binary independent of the Pinpoint runtime module; valid, tampered, wrong-session, wrong-operator, and changed-policy receipts are covered.
 - Optional operator-rooted receipt sessions: `pinpoint mcp authority init` creates a protected Ed25519 key that delegates fresh session keys to unlinkable commitments of complete normalized policies, with independently verifiable opening records.
 - A pinned unmodified `@modelcontextprotocol/server-filesystem@2026.7.10` gate that exposed and repaired identical string-wrapper handling in structured MCP results.
 - A deterministic opaque-flow property suite covering fixed predicates, repeated projections, policy hashes, byte bounds, 1,000 random capabilities, receipt opacity, wrong-session verification, 50-link chains, and value-free destination errors.
 - A no-model protocol gate with 30/30 exact hidden destination acceptances, 8/8 denied bypasses, zero of 400 private canaries leaked, valid operator/policy authorization, an 89.0% constructed visible-byte reduction, and measured local flow latency on the recorded run.
 - A live Claude Code and GitHub Copilot CLI gate in which both hosts completed the same exact 40-record hidden destination flow, emitted valid receipts, and exposed zero fixture values in retained event-stream grades.
+- A private destination mode using `--destination-config`: one separately spawned stdio server receives internal opaque-flow calls through its own initialize/catalog/request/lifecycle path and never enters the host tool catalog.
+- Deny-by-default destination environment policy: `envAllowlist` names are removed from the source process unless explicitly permitted in `sharedEnvAllowlist`; credential values remain outside JSON policy.
+- A two-published-server gate composing unmodified filesystem 2026.7.10 and memory 2026.7.4 packages, with an exact 40-entity persistent side effect and zero of 400 source canaries in the client transcript.
 
 ### Changed
 
@@ -37,6 +40,7 @@ All notable changes are documented here. This project follows semantic versionin
 - Artifact capacity is reserved atomically before a handle is emitted; insufficient storage fails open with the original result.
 - Gateway query and resource outputs are bounded independently, artifacts are process-scoped, and upstream commands use `shell: false`.
 - Strict flows hide direct query, resources, previews, and destination tools; scrub protected metadata/extensions and protocol errors; suppress protected stderr and unsolicited server messages; and validate configured tools against the upstream catalog before accepting calls.
+- Cross-server destination startup/catalog errors fail closed. A timeout or process loss after dispatch emits one signed unconfirmed receipt, blocks further flows, and terminates nonzero rather than claiming rollback.
 
 ### Fixed
 

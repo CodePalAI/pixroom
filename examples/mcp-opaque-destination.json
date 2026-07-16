@@ -1,0 +1,20 @@
+{
+  "$schema": "./mcp-opaque-destination.schema.json",
+  "version": 1,
+  "id": "crm-domain",
+  "command": "npx",
+  "args": [
+    "-y",
+    "@example/crm-mcp-server"
+  ],
+  "envAllowlist": [
+    "PATH",
+    "CRM_API_TOKEN"
+  ],
+  "sharedEnvAllowlist": [
+    "PATH"
+  ],
+  "initializeTimeoutMs": 10000,
+  "requestTimeoutMs": 30000,
+  "shutdownGraceMs": 2000
+}
