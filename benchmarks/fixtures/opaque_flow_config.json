@@ -17,9 +17,9 @@
       "allowedOps": [
         "json_select"
       ],
-      "allowedWhereFields": [
-        "segment"
-      ],
+      "fixedWhere": {
+        "segment": "renewal"
+      },
       "allowedFields": [
         "email"
       ],

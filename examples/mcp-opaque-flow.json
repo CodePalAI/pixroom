@@ -17,9 +17,9 @@
       "allowedOps": [
         "json_select"
       ],
-      "allowedWhereFields": [
-        "active"
-      ],
+      "fixedWhere": {
+        "active": true
+      },
       "allowedFields": [
         "email"
       ],

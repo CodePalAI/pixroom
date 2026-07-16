@@ -232,11 +232,25 @@ function parseQuery(args: Record<string, unknown>): VirtualContextQuery | Virtua
 
 function exactPayload(result: McpCallToolResult): string | undefined {
   if (result.isError === true) return undefined;
-  if (isRecord(result.structuredContent)) return JSON.stringify(result.structuredContent);
-  if (!Array.isArray(result.content) || result.content.length !== 1) return undefined;
-  const block = result.content[0];
-  if (!isRecord(block) || block.type !== 'text' || typeof block.text !== 'string') return undefined;
-  return block.text;
+  const block = Array.isArray(result.content) && result.content.length === 1
+    ? result.content[0]
+    : undefined;
+  const exactText = isRecord(block) && block.type === 'text' && typeof block.text === 'string'
+    ? block.text
+    : undefined;
+  if (isRecord(result.structuredContent)) {
+    const entries = Object.entries(result.structuredContent);
+    if (
+      exactText != null &&
+      entries.length === 1 &&
+      entries[0]?.[0] === 'content' &&
+      entries[0]?.[1] === exactText
+    ) {
+      return exactText;
+    }
+    return JSON.stringify(result.structuredContent);
+  }
+  return exactText;
 }
 
 function artifactMimeType(descriptor: VirtualContextDescriptor): string {

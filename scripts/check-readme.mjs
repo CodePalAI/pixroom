@@ -61,6 +61,28 @@ const opaqueFlowCrossHostReceipt = JSON.parse(
     'utf8',
   ),
 );
+const opaqueFlowModelReceipt = JSON.parse(
+  readFileSync(
+    join(
+      root,
+      'benchmarks',
+      'results',
+      'opaque-flow-model-check.first-party-macos-arm64-20260715.json',
+    ),
+    'utf8',
+  ),
+);
+const ossFilesystemReceipt = JSON.parse(
+  readFileSync(
+    join(
+      root,
+      'benchmarks',
+      'results',
+      'mcp-oss-filesystem.first-party-macos-arm64-20260715.json',
+    ),
+    'utf8',
+  ),
+);
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const proofAssetPath = join(root, 'assets', 'qcv-evidence-gate.svg');
 const proofAsset = readFileSync(proofAssetPath, 'utf8');
@@ -206,6 +228,26 @@ for (const evidence of [opaqueFlowReceipt, opaqueFlowCrossHostReceipt]) {
     }
   }
 }
+for (const [sourcePath, expectedHash] of Object.entries(opaqueFlowModelReceipt.source.fingerprints)) {
+  const absolute = join(root, sourcePath);
+  if (!existsSync(absolute)) {
+    fail(`opaque-flow model source does not exist: ${sourcePath}`);
+    continue;
+  }
+  const actualHash = sha256(readFileSync(absolute));
+  if (actualHash !== expectedHash) {
+    fail(`opaque-flow model receipt fingerprint is stale: ${sourcePath}`);
+  }
+}
+for (const [sourcePath, expectedHash] of Object.entries(ossFilesystemReceipt.source.fingerprints)) {
+  const absolute = join(root, sourcePath);
+  if (!existsSync(absolute)) {
+    fail(`OSS filesystem receipt source does not exist: ${sourcePath}`);
+    continue;
+  }
+  const actualHash = sha256(readFileSync(absolute));
+  if (actualHash !== expectedHash) fail(`OSS filesystem receipt fingerprint is stale: ${sourcePath}`);
+}
 for (const value of [
   `${crossHostReceipt.summary.hostsPassed}/${crossHostReceipt.summary.hostsExecuted}`,
   integer.format(crossHostReceipt.hosts[1].largestToolCompletionEventChars),
@@ -239,6 +281,20 @@ for (const value of [
 ]) {
   if (!readme.includes(value)) fail(`README is missing opaque-flow cross-host value: ${value}`);
 }
+for (const value of [
+  integer.format(opaqueFlowModelReceipt.model.statesStored),
+  integer.format(opaqueFlowModelReceipt.model.transitions),
+  `${opaqueFlowModelReceipt.model.assertionViolations} violations`,
+]) {
+  if (!readme.includes(value)) fail(`README is missing opaque-flow model-check value: ${value}`);
+}
+for (const value of [
+  ossFilesystemReceipt.upstream.package,
+  ossFilesystemReceipt.upstream.version,
+  `${ossFilesystemReceipt.summary.exactAnswer ? 1 : 0}/1`,
+]) {
+  if (!readme.includes(value)) fail(`README is missing OSS filesystem receipt value: ${value}`);
+}
 
 if (!readme.includes('./assets/qcv-evidence-gate.svg')) fail('README does not render the proof asset');
 if (!existsSync(join(root, 'llms.txt'))) fail('llms.txt is missing');
@@ -255,6 +311,7 @@ const endUserSignals = [
   '## Evaluate with your team',
   '## Deployment fit',
   '## Security boundary',
+  'Bounded reference model',
   '## What changes at the tool boundary',
   '## Get started (60 seconds)',
   '## What it does',

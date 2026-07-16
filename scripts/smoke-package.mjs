@@ -41,11 +41,17 @@ try {
     'LICENSE',
     'NOTICE',
     'bin/cli.js',
+    'bin/verify-receipt.js',
     'examples/mcp-opaque-flow.json',
     'examples/mcp-opaque-flow.schema.json',
     'planning/value_opaque_mcp_dataflow.md',
+    'planning/opaque_flow_formal_properties.md',
+    'planning/breakthrough_scorecard.md',
+    'formal/opaque_flow.pml',
     'benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json',
     'benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json',
+    'benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json',
+    'benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json',
   ]) {
     if (!paths.has(required)) throw new Error(`packed artifact is missing ${required}`);
   }
@@ -97,6 +103,7 @@ try {
   ]);
 
   const cli = join(temporary, 'node_modules', '@codepal', 'pinpoint', 'bin', 'cli.js');
+  const receiptVerifier = join(temporary, 'node_modules', '@codepal', 'pinpoint', 'bin', 'verify-receipt.js');
   if (run(process.execPath, [cli, '--version']).trim() !== artifact.version) {
     throw new Error('installed CLI version does not match the packed version');
   }
@@ -105,6 +112,22 @@ try {
   for (const expected of ['exact answer materialized: user733@example.com', 'network requests: 0']) {
     if (!demo.includes(expected)) throw new Error(`installed demo is missing: ${expected}`);
   }
+  const installedReceipt = join(
+    temporary,
+    'node_modules',
+    '@codepal',
+    'pinpoint',
+    'benchmarks',
+    'results',
+    'mcp-opaque-flow.first-party-macos-arm64-20260715.json',
+  );
+  const verification = JSON.parse(run(process.execPath, [
+    receiptVerifier,
+    installedReceipt,
+    '--path',
+    'firstReceipt',
+  ]));
+  if (verification.valid !== true) throw new Error('installed standalone receipt verifier failed');
 
   console.log(
     `package smoke: ok (${artifact.name}@${artifact.version}, ${publicEntries.length} exports, ${paths.size} files)`,

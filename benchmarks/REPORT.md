@@ -9,6 +9,8 @@ Measures token consumption (and, for live arms, response correctness) for **head
 - `unit-simulation` — hand-parameterized mechanism/controller checks; useful for unit behavior, not competitive claims.
 - `offline-real-transform` — real compressor code over synthetic or fixture inputs; valid for transform/token accounting only.
 - `protocol-integration` — real gateway and protocol processes over a deterministic fixture, without a model; valid for wire behavior, exact grading, and local timing only.
+- `bounded-model-check` — exhaustive finite-state exploration of an abstract reference model; valid only for the stated model, bounds, and assumptions.
+- `oss-protocol-integration` — production gateway around a pinned published OSS MCP server with no source modifications; valid for that package/version/workflow only.
 - `live-controlled` — real model call with a fixed, directly graded prompt; currently single-run unless stated otherwise.
 - `live-agentic` — real tool-using agent run; correctness is useful, while tokens/latency are high-variance without paired repetitions.
 
@@ -21,7 +23,7 @@ Evidence: `protocol-integration`. Production stdio gateway plus an unmodified de
 | Check | Result |
 |---|---:|
 | Exact hidden destination acceptances | 30/30 |
-| Policy/resource/query/capability bypasses denied | 7/7 |
+| Policy/resource/query/capability bypasses denied | 8/8 |
 | Private canaries absent from client transcript | 400/400 |
 | Signed receipts and receipt chain valid | 30/30 |
 | Modified receipt rejected | Yes |
@@ -29,22 +31,62 @@ Evidence: `protocol-integration`. Production stdio gateway plus an unmodified de
 | Constructed direct transcript | 31,013 bytes |
 | Opaque source + flow transcript | 2,628 bytes |
 | Visible-byte reduction | 91.5% |
-| Internal flow latency p50 / p95 / p99 | 0.27 / 0.91 / 1.08 ms |
+| Internal flow latency p50 / p95 / p99 | 0.24 / 0.49 / 1.01 ms |
 
 The protected source was 26,231 bytes while the ordinary virtualization threshold was deliberately set to 100,000,000 characters. Capture therefore occurred because of policy, not optimization eligibility. The destination accepted the exact 40-record projection. Public content hashes, source values, destination arguments, and destination result values were absent from the client transcript.
 
 This is an exact synthetic trace check, not semantic noninterference, a provider token measurement, a production-demand estimate, or a benchmark against IFC/code-execution systems. Counts, sizes, field names, timing, and success status remain visible. See `results/mcp-opaque-flow.first-party-macos-arm64-20260715.json`.
 
+### Bounded reference-model gate
+
+Evidence: `bounded-model-check`. Spin 6.5.2 exhaustively explored the checked-in
+Promela reference monitor for ten-action traces.
+
+| Check | Result |
+|---|---:|
+| Stored states | 945,468 |
+| Matched states | 435,911 |
+| Transitions | 1,381,379 |
+| Unreached control states | 0 |
+| Assertion violations | 0 |
+| Deliberate late-output leak mutation | Detected (1 violation) |
+
+The model checks client-value isolation, dispatch confinement to every policy
+predicate including fixed predicates, one receipt per dispatch, and monotonic receipt
+sequence linkage. It abstracts TypeScript, Node.js, JSON parsing, cryptography, OS
+isolation, timing, cardinality, and upstream behavior. See
+`results/opaque-flow-model-check.first-party-macos-arm64-20260715.json` and
+`../planning/opaque_flow_formal_properties.md`.
+
+### Published OSS filesystem MCP gate
+
+Evidence: `oss-protocol-integration`. The production gateway wrapped unmodified
+`@modelcontextprotocol/server-filesystem@2026.7.10` from npm.
+
+| Check | Result |
+|---|---:|
+| Synthetic records read through `read_text_file` | 1,000 |
+| Raw source | 90,614 bytes |
+| Model-facing artifact response | 1,184 bytes |
+| Exact selected row | 1/1 |
+| Unrelated email canaries absent | 999/999 |
+
+This validates result virtualization and exact query recovery against one published
+external server. It does not validate opaque destination composition or broad MCP
+ecosystem compatibility. See
+`results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json`.
+
 ### Live cross-host gate
 
-Evidence: `live-agentic`. One authorized synthetic flow, independently executed by two installed clients.
+Evidence: `live-agentic`. One authorized synthetic flow attempted on three installed clients; two executed and passed, while Codex was blocked by provider authentication before MCP initialization.
 
 | Host | Source + flow calls | Model called destination | Receipt | Destination | Values in event stream | Final |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | Claude Code 2.1.197 / Haiku 4.5 | Yes | No | Valid | Accepted 40 | 0/400 canaries | `VALIDATED` |
-| GitHub Copilot CLI 1.0.71-2 / GPT-5.3 Codex | Yes | No | Valid | Accepted 40 | 0/400 canaries | `VALIDATED` |
+| GitHub Copilot CLI 1.0.71-3 / GPT-5.3 Codex | Yes | No | Valid | Accepted 40 | 0/400 canaries | `VALIDATED` |
+| OpenAI Codex CLI 0.45.0 | Not executed: provider 401 | N/A | N/A | N/A | N/A | N/A |
 
-Claude completed in nine turns with $0.045451 observed cost. Copilot reported zero premium requests and no file changes. Neither public source nor selected-payload hash appeared in either event stream. This proves two-host protocol usability for one first-party fixture, not organic prevalence or general model quality. See `results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json`.
+Claude completed in ten turns with $0.046905 observed cost. Copilot reported zero premium requests and no file changes. Neither public source nor selected-payload hash appeared in either executed event stream. This proves two-host protocol usability for one first-party fixture, not organic prevalence or general model quality. See `results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json`.
 
 ## Benchmark v2 — no-op proxy profile
 

@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, copyFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,7 +27,7 @@ const resultPath = join(
 const prompt =
   'Run this authorized local synthetic MCP conformance test. All records are generated example.invalid fixtures, and the validator has no external side effects. ' +
   'Call synthetic_accounts_list first to receive its opaque artifact id. Then call pinpoint_flow with ' +
-  'flow=validate_renewal_projection, op=json_select, where.segment=renewal, and fields=[email]. ' +
+  'flow=validate_renewal_projection, op=json_select, and fields=[email]. The renewal predicate is fixed by operator policy. ' +
   'Do not print fixture field values because this test measures transcript isolation. Do not call resources or pinpoint_query. ' +
   'Verify the signed receipt says destinationSucceeded=true, then return only VALIDATED.';
 
@@ -345,10 +345,136 @@ async function runCopilot() {
   };
 }
 
+async function runCodex() {
+  const temporary = mkdtempSync(join(tmpdir(), 'pinpoint-opaque-codex-'));
+  const codexHome = join(temporary, 'home');
+  const workspace = join(temporary, 'workspace');
+  const authSource = join(homedir(), '.codex', 'auth.json');
+  mkdirSync(codexHome);
+  mkdirSync(workspace);
+  try {
+    if (!existsSync(authSource)) {
+      return {
+        host: 'OpenAI Codex CLI',
+        clientVersion: commandVersion('codex'),
+        model: null,
+        status: 'not_executed',
+        exitCode: null,
+        calls: [],
+        artifactCapabilities: 0,
+        randomCapability: false,
+        receipt: receiptGrade([]),
+        privateCanariesLeaked: 0,
+        publicValueHashesLeaked: false,
+        answer: '',
+        nonMcpActions: [],
+        exceededOutputCap: false,
+        diagnostic: 'No Codex auth file was available.',
+      };
+    }
+    copyFileSync(authSource, join(codexHome, 'auth.json'));
+    chmodSync(join(codexHome, 'auth.json'), 0o600);
+    const tomlString = (value) => JSON.stringify(value);
+    writeFileSync(join(codexHome, 'config.toml'), [
+      'model_reasoning_effort = "high"',
+      'approval_policy = "never"',
+      '',
+      '[mcp_servers.opaque_conformance]',
+      `command = ${tomlString(process.execPath)}`,
+      `args = ${JSON.stringify(gatewayArgs())}`,
+      '',
+    ].join('\n'), { mode: 0o600 });
+
+    const run = await runCommand('codex', [
+      'exec',
+      '--json',
+      '--sandbox',
+      'read-only',
+      '--skip-git-repo-check',
+      prompt,
+    ], {
+      cwd: workspace,
+      env: { ...process.env, CODEX_HOME: codexHome },
+    });
+    const events = run.launchError ? [] : parseEvents(run.stdout);
+    const toolNames = nestedStrings(events, /^(?:name|toolName|tool_name)$/i)
+      .filter((name) => /(?:synthetic_accounts_list|pinpoint_flow|synthetic_projection_validate|pinpoint_query)$/.test(name));
+    const itemTypes = [...new Set(nestedStrings(events, /^type$/i))];
+    const eventErrors = events
+      .filter((event) => event.type === 'error' || event.type === 'turn.failed')
+      .flatMap((event) => nestedStrings(event, /^(?:message|error|detail|last_error)$/i))
+      .map((message) => message.slice(0, 500));
+    const nonMcpActions = itemTypes.filter((type) =>
+      /command_execution|file_change|web_search|computer|shell|exec_command/i.test(type),
+    );
+    const receipts = dedupeReceipts(events);
+    const receipt = receiptGrade(receipts);
+    const privacy = privacyGrade(run.stdout);
+    const artifactIds = [...new Set(run.stdout.match(/vctx_[a-f0-9]{32,64}/g) ?? [])];
+    const answers = nestedStrings(events, /^(?:content|result|text|message)$/i);
+    const answer = [...answers].reverse().find((value) => value.trim() === 'VALIDATED')?.trim() ?? '';
+    const models = [...new Set(nestedStrings(events, /^model$/i))];
+    const authenticationBlocked = eventErrors.some((message) => /401 Unauthorized/i.test(message));
+    const passed =
+      run.code === 0 &&
+      !run.exceeded &&
+      nonMcpActions.length === 0 &&
+      toolNames.some((name) => name.endsWith('synthetic_accounts_list')) &&
+      toolNames.some((name) => name.endsWith('pinpoint_flow')) &&
+      !toolNames.some((name) => name.endsWith('synthetic_projection_validate') || name.endsWith('pinpoint_query')) &&
+      artifactIds.length >= 1 &&
+      artifactIds.every((id) => id !== deterministicArtifactId) &&
+      artifactIds.includes(receipt.artifactId) &&
+      privacy.leakedCanaries.length === 0 &&
+      !privacy.sourceHashLeaked &&
+      !privacy.selectedHashLeaked &&
+      receipt.valid &&
+      receipt.destinationSucceeded &&
+      receipt.items === selected.length &&
+      answer === 'VALIDATED';
+    return {
+      host: 'OpenAI Codex CLI',
+      clientVersion: commandVersion('codex'),
+      model: models.length > 0 ? models.join(', ') : 'default',
+      status: passed ? 'passed' : authenticationBlocked ? 'not_executed' : 'failed',
+      exitCode: run.code,
+      calls: [...new Set(toolNames)],
+      artifactCapabilities: artifactIds.length,
+      randomCapability:
+        artifactIds.length >= 1 &&
+        artifactIds.every((id) => id !== deterministicArtifactId) &&
+        artifactIds.includes(receipt.artifactId),
+      receipt,
+      privateCanariesLeaked: privacy.leakedCanaries.length,
+      publicValueHashesLeaked: privacy.sourceHashLeaked || privacy.selectedHashLeaked,
+      answer,
+      nonMcpActions,
+      eventTypes: itemTypes,
+      exceededOutputCap: run.exceeded,
+      diagnostic: passed ? null : [...eventErrors, run.stderr.trim().slice(-1_000)].filter(Boolean).join('\n'),
+    };
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
 const beforeStatus = spawnSync('git', ['status', '--short'], { cwd: root, encoding: 'utf8' }).stdout;
-const hosts = [await runClaude(), await runCopilot()];
+const requestedHosts = new Set(
+  (process.env.PINPOINT_OPAQUE_HOSTS ?? 'claude,copilot,codex')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean),
+);
+const hosts = [];
+if (requestedHosts.has('claude')) hosts.push(await runClaude());
+if (requestedHosts.has('copilot')) hosts.push(await runCopilot());
+if (requestedHosts.has('codex')) hosts.push(await runCodex());
 const afterStatus = spawnSync('git', ['status', '--short'], { cwd: root, encoding: 'utf8' }).stdout;
-const passed = hosts.every(({ status }) => status === 'passed') && beforeStatus === afterStatus;
+const executedHosts = hosts.filter(({ status }) => status !== 'not_executed');
+const passed =
+  executedHosts.length >= 2 &&
+  executedHosts.every(({ status }) => status === 'passed') &&
+  beforeStatus === afterStatus;
 const result = {
   schemaVersion: 1,
   evidenceLevel: 'live-agentic',
@@ -356,7 +482,7 @@ const result = {
   date: new Date().toISOString().slice(0, 10),
   passed,
   source: {
-    description: 'Two installed unmodified agent hosts independently executed the same synthetic value-opaque flow through the production CLI gateway.',
+    description: 'Three installed unmodified agent hosts independently executed the same synthetic value-opaque flow through the production CLI gateway.',
     persistedData: 'Only content-free grading summaries and receipt identifiers are retained. Event streams, debug logs, synthetic values, credentials, and personal paths are not persisted.',
     fingerprints: Object.fromEntries([
       'src/mcp/flow.ts',
@@ -379,7 +505,8 @@ const result = {
     finalAnswer: 'VALIDATED',
   },
   summary: {
-    hostsExecuted: hosts.filter(({ exitCode }) => exitCode != null).length,
+    hostsAttempted: hosts.length,
+    hostsExecuted: executedHosts.length,
     hostsPassed: hosts.filter(({ status }) => status === 'passed').length,
     sourceCallsObserved: hosts.filter(({ calls }) => calls.some((name) => name.endsWith('synthetic_accounts_list'))).length,
     flowCallsObserved: hosts.filter(({ calls }) => calls.some((name) => name.endsWith('pinpoint_flow'))).length,
@@ -392,7 +519,8 @@ const result = {
   },
   hosts,
   limitations: [
-    'This is one first-party synthetic task on two installed clients, not a prevalence estimate or customer-production trace.',
+    'This is one first-party synthetic task attempted on three installed clients, not a prevalence estimate or customer-production trace.',
+    'A client blocked by provider authentication is recorded as not_executed and is not counted as a pass or failure.',
     'The prompt explicitly requests the opaque_conformance MCP server and flow sequence; it measures autonomous protocol use, not tool discovery among unrelated servers.',
     'The upstream synthetic process is trusted with source and destination values. The measured confidentiality boundary is each client event stream and model-visible MCP transcript.',
     'Exact canary absence proves non-occurrence for this fixture trace, not semantic noninterference against timing, cardinality, field-name, or success-status side channels.',

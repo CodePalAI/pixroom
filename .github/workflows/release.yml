@@ -46,6 +46,10 @@ jobs:
           git merge-base --is-ancestor "$TAG_COMMIT" "origin/$DEFAULT_BRANCH"
       - run: npm ci --ignore-scripts
       - run: npm audit --audit-level=high
+      - name: Install Spin model checker
+        run: sudo apt-get update && sudo apt-get install -y spin
+      - name: Check opaque-flow reference model
+        run: npm run formal:opaque-flow
       - run: npm run prepublishOnly
       - name: Verify generated files are committed
         run: git diff --exit-code

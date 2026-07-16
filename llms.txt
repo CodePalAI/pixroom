@@ -7,6 +7,8 @@
 - [README](https://github.com/CodePalAI/pinpoint/blob/main/README.md): enterprise business case, target owners, evaluation path, deployment fit, evidence, quickstart, and technical appendix
 - [Security policy](https://github.com/CodePalAI/pinpoint/blob/main/SECURITY.md): deployment trust boundaries, private reporting, and claims Pinpoint does not make
 - [Value-opaque MCP dataflow](https://github.com/CodePalAI/pinpoint/blob/main/planning/value_opaque_mcp_dataflow.md): flow policy, fail-closed source capture, random capabilities, signed receipts, evidence, prior art, and remaining security gates
+- [Opaque-flow formal properties](https://github.com/CodePalAI/pinpoint/blob/main/planning/opaque_flow_formal_properties.md): Spin reference model, checked invariants, mutation sensitivity, implementation mapping, and explicit non-proofs
+- [Breakthrough scorecard](https://github.com/CodePalAI/pinpoint/blob/main/planning/breakthrough_scorecard.md): strict local/external gates and the current not-yet-proven verdict
 - [Benchmark report](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/REPORT.md): generated evidence split by simulation, offline transform, live controlled, and live agent levels
 - [Reproducing benchmarks](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/REPRODUCING.md): no-key checks and capped paid replication workflow
 - [QCV design](https://github.com/CodePalAI/pinpoint/blob/main/planning/query_backed_context.md): exact-operation boundaries, threat model, rejected design, and prior art
@@ -34,6 +36,8 @@
 - [Cross-host MCP gateway receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-gateway-cross-host.first-party-macos-arm64-20260715.json): the same exact task passed on Claude Code and GitHub Copilot CLI with a shared artifact id; Cursor and Codex blocks are explicitly uncounted
 - [Opaque-flow protocol receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json): 30 exact hidden calls, seven denied bypasses, zero of 400 canaries leaked, signed chain verification, and local latency
 - [Opaque-flow cross-host receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json): Claude Code and Copilot each completed the same hidden destination flow with valid receipts and zero event-stream fixture values
+- [Opaque-flow model-check receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json): 945,468 states and 1,381,379 transitions, zero assertion violations, deliberate leak mutation detected
+- [Published filesystem MCP receipt](https://github.com/CodePalAI/pinpoint/blob/main/benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json): unmodified pinned OSS server, exact row recovery, 999 unrelated canaries absent
 - [Contributing](https://github.com/CodePalAI/pinpoint/blob/main/CONTRIBUTING.md): architecture contract, evidence labels, tests, and release process
 - [Code of Conduct](https://github.com/CodePalAI/pinpoint/blob/main/CODE_OF_CONDUCT.md): community expectations, private reporting, and enforcement
 - [Upstream attribution](https://github.com/CodePalAI/pinpoint/blob/main/UPSTREAM.md): pinned pxpipe and Headroom contracts

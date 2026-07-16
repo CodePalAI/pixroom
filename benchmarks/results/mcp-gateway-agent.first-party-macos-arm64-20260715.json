@@ -7,7 +7,7 @@
     "description": "One real Claude Code session against a disposable synthetic stdio MCP server wrapped by the production Pinpoint CLI gateway.",
     "persistedData": "Only this content-free receipt is retained. The Claude stream, debug log, provider credentials, and temporary MCP state are not persisted.",
     "fingerprints": {
-      "src/mcp/gateway.ts": "82f9984b2df643780f2054706fd2b68388a19fdd420b51327cd83402f49c5c69",
+      "src/mcp/gateway.ts": "b3ea3566a2024f540e2cae6902580ba16dc525baf435c8bd8eaf81b687a7e6b6",
       "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
       "src/cli/main.ts": "c9d2677e188b197be550448073e8e02a49db04dd7642203d27372c198ba1f22b",
       "benchmarks/v2/mcp_gateway_agent_gate.mjs": "a018aee17817f4de3121bcfa3b1011c6afa6e6264dd8e842ba795e58a94a80d5"
@@ -56,7 +56,7 @@
     "largestModelVisibleToolResultChars": 508,
     "modelVisibleCharacterReduction": 0.9937794648870385,
     "turns": 4,
-    "observedCostUSD": 0.0203392,
+    "observedCostUSD": 0.02076365,
     "expected": "user733@example.com",
     "answer": "user733@example.com"
   },

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceLevel": "bounded-model-check",
+  "kind": "mcp-value-opaque-flow-reference-model",
+  "date": "2026-07-15",
+  "passed": true,
+  "environment": {
+    "platform": "darwin",
+    "release": "25.5.0",
+    "architecture": "arm64",
+    "node": "v26.0.0",
+    "spin": "Spin Version 6.5.2 -- 6 December 2019"
+  },
+  "model": {
+    "path": "formal/opaque_flow.pml",
+    "maxStepsPerTrace": 10,
+    "depthReached": 222,
+    "statesStored": 945468,
+    "statesMatched": 435911,
+    "transitions": 1381379,
+    "unreachedControlStates": 0,
+    "assertionViolations": 0
+  },
+  "mutationSensitivity": {
+    "passed": true,
+    "mutation": "late protected upstream value becomes client-visible",
+    "expected": "at least one assertion violation",
+    "assertionViolations": 1
+  },
+  "checkedProperties": [
+    "No selected value becomes visible on the modeled client boundary.",
+    "Destination dispatch implies every modeled policy predicate held.",
+    "Every destination dispatch emits exactly one receipt.",
+    "Receipt sequence advances by exactly one and links to the previous sequence."
+  ],
+  "hostileActions": [
+    "invalid catalog",
+    "direct destination",
+    "direct query",
+    "resource read",
+    "forged capability",
+    "fixed-predicate override",
+    "malformed protected source",
+    "late upstream output",
+    "independent policy-predicate failures"
+  ],
+  "source": {
+    "fingerprints": {
+      "formal/opaque_flow.pml": "297f25a3bf90ee8839672505e21ac09721006b6c1371107294ac846c245daa47",
+      "scripts/check-opaque-flow-model.mjs": "8806d65103a59b12e4ee2b025bf86bc9078194172b4fa3254d1680646f34b246",
+      "scripts/check-opaque-flow-model-mutation.mjs": "403c148f28645b00c6da6fff2dcf44f467feead5c9b5f2aebf6fddf2ca8ec4fd"
+    }
+  },
+  "limitations": [
+    "This is a bounded abstract reference model, not a proof over the TypeScript implementation or Node runtime.",
+    "The search bounds each trace to ten actions over finite Boolean policy predicates.",
+    "Cryptography, JSON parsing, OS isolation, timing, cardinality, and upstream-process behavior are abstracted.",
+    "Implementation conformance is tested separately by protocol integration and live-host gates."
+  ]
+}

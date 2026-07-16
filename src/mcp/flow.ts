@@ -26,6 +26,7 @@ export interface McpOpaqueFlowPolicy {
   readonly fixedDestinationArguments?: Readonly<Record<string, unknown>>;
   readonly allowedDestinationArguments?: readonly string[];
   readonly allowedOps: readonly McpOpaqueFlowOperation[];
+  readonly fixedWhere?: Readonly<Record<string, string | number | boolean | null>>;
   readonly allowedWhereFields?: readonly string[];
   readonly allowedFields?: readonly string[];
   readonly maxItems?: number;
@@ -145,6 +146,7 @@ function policyShape(policy: McpOpaqueFlowPolicy): Record<string, unknown> {
     fixedDestinationArgumentNames: Object.keys(policy.fixedDestinationArguments ?? {}).sort(),
     allowedDestinationArguments: [...(policy.allowedDestinationArguments ?? [])].sort(),
     allowedOps: [...policy.allowedOps].sort(),
+    fixedWhereFields: Object.keys(policy.fixedWhere ?? {}).sort(),
     allowedWhereFields: [...(policy.allowedWhereFields ?? [])].sort(),
     allowedFields: [...(policy.allowedFields ?? [])].sort(),
     maxItems: policy.maxItems,
@@ -258,6 +260,7 @@ function normalizePolicy(policy: McpOpaqueFlowPolicy): McpOpaqueFlowPolicy {
     'fixedDestinationArguments',
     'allowedDestinationArguments',
     'allowedOps',
+    'fixedWhere',
     'allowedWhereFields',
     'allowedFields',
     'maxItems',
@@ -322,6 +325,25 @@ function normalizePolicy(policy: McpOpaqueFlowPolicy): McpOpaqueFlowPolicy {
   );
   const allowedWhereFields = uniqueStrings(policy.allowedWhereFields, 'allowedWhereFields');
   const allowedFields = uniqueStrings(policy.allowedFields, 'allowedFields');
+  const fixedWhere = policy.fixedWhere == null
+    ? undefined
+    : JSON.parse(canonicalJson(policy.fixedWhere)) as Record<string, unknown>;
+  if (
+    fixedWhere != null &&
+    (
+      !isRecord(fixedWhere) ||
+      Object.keys(fixedWhere).length === 0 ||
+      Object.keys(fixedWhere).length > 16 ||
+      Object.keys(fixedWhere).some((field) => !/^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/.test(field)) ||
+      Object.values(fixedWhere).some((value) => !isJsonPrimitive(value))
+    )
+  ) {
+    throw new TypeError(`flow ${policy.name} fixedWhere must contain 1 to 16 exact JSON primitive fields`);
+  }
+  const whereOverlap = allowedWhereFields?.filter((field) => Object.hasOwn(fixedWhere ?? {}, field)) ?? [];
+  if (whereOverlap.length > 0) {
+    throw new TypeError(`flow ${policy.name} fixed and dynamic where fields overlap: ${whereOverlap.join(', ')}`);
+  }
   if (policy.allowedOps.includes('json_select') && allowedFields == null) {
     throw new TypeError(`flow ${policy.name} must allowlist fields for json_select`);
   }
@@ -343,6 +365,7 @@ function normalizePolicy(policy: McpOpaqueFlowPolicy): McpOpaqueFlowPolicy {
     ...policy,
     allowedOps: [...policy.allowedOps],
     ...(allowedWhereFields ? { allowedWhereFields } : {}),
+    ...(fixedWhere ? { fixedWhere: fixedWhere as McpOpaqueFlowPolicy['fixedWhere'] } : {}),
     ...(allowedFields ? { allowedFields } : {}),
     ...(fixedDestinationArguments ? { fixedDestinationArguments } : {}),
     ...(allowedDestinationArguments ? { allowedDestinationArguments } : {}),
@@ -488,11 +511,13 @@ export class McpOpaqueFlowEngine {
     const descriptions = flows
       .map((policy) => {
         const where = policy.allowedWhereFields?.join(',') || 'none';
+        const fixedWhere = Object.keys(policy.fixedWhere ?? {}).join(',') || 'none';
         const fields = policy.allowedFields?.join(',') || 'not applicable';
         const destinationArgs = policy.allowedDestinationArguments?.join(',') || 'none';
         return (
           `${policy.name}: ${policy.sourceTool} -> ${policy.destinationTool}.${policy.destinationArgument}; ` +
-          `ops=${policy.allowedOps.join(',')}; where=${where}; fields=${fields}; destinationArgs=${destinationArgs}`
+          `ops=${policy.allowedOps.join(',')}; fixedWhere=${fixedWhere}; dynamicWhere=${where}; ` +
+          `fields=${fields}; destinationArgs=${destinationArgs}`
         );
       })
       .join('; ');
@@ -610,10 +635,14 @@ export class McpOpaqueFlowEngine {
     const limit = args.limit != null
       ? boundedInteger(args.limit, 'limit', 100)
       : defaultLimit;
+    const effectiveWhere: Record<string, string | number | boolean | null> = {
+      ...(policy.fixedWhere ?? {}),
+      ...(isRecord(where) ? where : {}),
+    } as Record<string, string | number | boolean | null>;
     const query: VirtualContextQuery = {
       id,
       op: op as McpOpaqueFlowOperation,
-      ...(isRecord(where) ? { where: where as VirtualContextQuery['where'] } : {}),
+      ...(Object.keys(effectiveWhere).length > 0 ? { where: effectiveWhere } : {}),
       ...(fields ? { fields } : {}),
       ...(typeof literalQuery === 'string' ? { query: literalQuery } : {}),
       ...(args.offset != null ? { offset: boundedInteger(args.offset, 'offset', 100_000_000) } : {}),
@@ -649,7 +678,7 @@ export class McpOpaqueFlowEngine {
     const queryProof = {
       id,
       op,
-      ...(isRecord(where) ? { where } : {}),
+      ...(Object.keys(effectiveWhere).length > 0 ? { where: effectiveWhere } : {}),
       ...(fields ? { fields } : {}),
       ...(typeof literalQuery === 'string' ? { query: literalQuery } : {}),
       ...(query.offset != null ? { offset: query.offset } : {}),

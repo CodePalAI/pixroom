@@ -17,7 +17,8 @@
     "url": "https://github.com/CodePalAI/pinpoint/issues"
   },
   "bin": {
-    "pinpoint": "bin/cli.js"
+    "pinpoint": "bin/cli.js",
+    "pinpoint-verify-receipt": "bin/verify-receipt.js"
   },
   "exports": {
     ".": {
@@ -88,6 +89,8 @@
     "benchmarks/results/mcp-gateway-cross-host.first-party-macos-arm64-20260715.json",
     "benchmarks/results/mcp-opaque-flow.first-party-macos-arm64-20260715.json",
     "benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json",
+    "benchmarks/results/opaque-flow-model-check.first-party-macos-arm64-20260715.json",
+    "benchmarks/results/mcp-oss-filesystem.first-party-macos-arm64-20260715.json",
     "benchmarks/traces/agent-gate/",
     "bin/",
     "dist/",
@@ -97,6 +100,9 @@
     "planning/query_backed_context.md",
     "planning/mcp_result_firewall.md",
     "planning/value_opaque_mcp_dataflow.md",
+    "planning/opaque_flow_formal_properties.md",
+    "planning/breakthrough_scorecard.md",
+    "formal/opaque_flow.pml",
     "README.md",
     "llms.txt",
     "CHANGELOG.md",
@@ -110,6 +116,8 @@
   "scripts": {
     "assets:readme": "node scripts/render-readme-assets.mjs",
     "docs:check": "node scripts/check-readme.mjs",
+    "formal:opaque-flow": "node scripts/check-opaque-flow-model.mjs",
+    "formal:opaque-flow:mutation": "node scripts/check-opaque-flow-model-mutation.mjs",
     "package:smoke": "node scripts/smoke-package.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc -p tsconfig.json",
@@ -138,6 +146,7 @@
     "bench:mcp-gateway:copilot": "npm run build && node benchmarks/v2/mcp_gateway_copilot_gate.mjs",
     "bench:mcp-opaque-flow": "npm run build && node benchmarks/v2/mcp_opaque_flow_gate.mjs",
     "bench:mcp-opaque-flow:cross-host": "npm run build && node benchmarks/v2/mcp_opaque_flow_cross_host_gate.mjs",
+    "bench:mcp-oss-filesystem": "npm run build && node benchmarks/v2/mcp_oss_filesystem_gate.mjs",
     "prepublishOnly": "npm run assets:readme && npm run docs:check && npm run typecheck && npm test && npm run build && npm run package:smoke"
   },
   "publishConfig": {

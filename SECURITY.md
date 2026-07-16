@@ -47,5 +47,6 @@ specific regulatory regime.
 
 Before a production deployment, review the full threat model in
 [`planning/value_opaque_mcp_dataflow.md`](./planning/value_opaque_mcp_dataflow.md),
-run the protocol gate against your own sanitized fixture, and obtain independent
-security review appropriate to your data and systems.
+the [bounded formal property map](./planning/opaque_flow_formal_properties.md), run
+the protocol and mutation gates against your own sanitized fixture, and obtain
+independent security review appropriate to your data and systems.

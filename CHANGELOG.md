@@ -16,7 +16,12 @@ All notable changes are documented here. This project follows semantic versionin
 - Operator-configured `pinpoint_flow` dataflow: exact local projections can enter a hidden unmodified destination tool without source or destination values crossing the client-facing MCP transcript.
 - Versioned flow-policy parsing with source/destination provenance, operation/filter/projection allowlists, fixed and dynamic destination-argument policy, and item/byte bounds.
 - Random session capability ids, per-sequence HMAC-SHA256 value commitments, Ed25519-signed hash-chained receipts, initialization-time verifier pinning, and a public receipt verifier.
-- A no-model protocol gate with 30/30 exact hidden destination acceptances, 7/7 denied bypasses, zero of 400 private canaries leaked, a 91.5% constructed visible-byte reduction, and sub-millisecond p95 local flow latency on the recorded run.
+- Operator-fixed `fixedWhere` predicates that are always applied locally and cannot be omitted or overridden by the model.
+- A Spin 6.5.2 bounded reference model covering 945,468 states and 1,381,379 transitions with zero assertion violations, plus a mutation gate that proves a deliberate late-output disclosure is detected.
+- A zero-dependency `pinpoint-verify-receipt` binary independent of the Pinpoint runtime module; valid, tampered, and wrong-session receipts are covered.
+- A pinned unmodified `@modelcontextprotocol/server-filesystem@2026.7.10` gate that exposed and repaired identical string-wrapper handling in structured MCP results.
+- A deterministic opaque-flow property suite covering fixed predicates, repeated projections, policy hashes, byte bounds, 1,000 random capabilities, receipt opacity, wrong-session verification, 50-link chains, and value-free destination errors.
+- A no-model protocol gate with 30/30 exact hidden destination acceptances, 8/8 denied bypasses, zero of 400 private canaries leaked, a 91.5% constructed visible-byte reduction, and measured local flow latency on the recorded run.
 - A live Claude Code and GitHub Copilot CLI gate in which both hosts completed the same exact 40-record hidden destination flow, emitted valid receipts, and exposed zero fixture values in retained event-stream grades.
 
 ### Changed

@@ -14,14 +14,14 @@
     "description": "Production gateway and an unmodified deterministic stdio MCP fixture; no model or provider call.",
     "persistedData": "Synthetic values are not persisted in this receipt. Only counts, byte sizes, source fingerprints, and commitment receipts are retained.",
     "fingerprints": {
-      "src/mcp/flow.ts": "f5d1d4ecdaab509f5dc97803e1bbabb4b88540c807a51699ba01c2a465ec5a72",
-      "src/mcp/gateway.ts": "82f9984b2df643780f2054706fd2b68388a19fdd420b51327cd83402f49c5c69",
+      "src/mcp/flow.ts": "cb5c40376f4bd9ad2f70dae5fa56f8506e6628b2c54739643c43612395f51e05",
+      "src/mcp/gateway.ts": "b3ea3566a2024f540e2cae6902580ba16dc525baf435c8bd8eaf81b687a7e6b6",
       "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
       "src/cli/main.ts": "c9d2677e188b197be550448073e8e02a49db04dd7642203d27372c198ba1f22b",
-      "benchmarks/v2/mcp_opaque_flow_gate.mjs": "c3b4de7451bcdcaca4acd236aecf74f81f70010c13cfd4e7ff629ede07405a04",
+      "benchmarks/v2/mcp_opaque_flow_gate.mjs": "9ef3aba7828999e73895741701877151e3968154992e135a1953930f2533f01c",
       "benchmarks/fixtures/opaque_flow_data.mjs": "af3b9cdde4f9a025acc1d8dade13dec080025072edd2d3483dbde7226d11b263",
       "benchmarks/fixtures/opaque_flow_server.mjs": "1a70a6162a7b30ae71f72616d611b7e3e0081806ee666ef64db1dc9bd006d603",
-      "benchmarks/fixtures/opaque_flow_config.json": "22932fa0db79f426e2e17ddc2258c05ddc9b7ec8738a7584fa9665d6ae9bc77c"
+      "benchmarks/fixtures/opaque_flow_config.json": "4fa07b38e09d0a70acdb9ca0c554850ac1d5f9dec2e41405e121604ee0aaee53"
     }
   },
   "fixture": {
@@ -35,8 +35,8 @@
   "summary": {
     "flowCalls": 30,
     "destinationAcceptedCalls": 30,
-    "bypassAttempts": 7,
-    "bypassesDenied": 7,
+    "bypassAttempts": 8,
+    "bypassesDenied": 8,
     "privateCanariesScanned": 400,
     "privateCanariesLeaked": 0,
     "publicValueHashesLeaked": false,
@@ -57,23 +57,23 @@
     "destinationAcceptedExactProjection": true,
     "receiptChain": {
       "count": 30,
-      "signingKeyId": "235c87cf025005bbefad93cb15f517cea3aa781b28a7816eebb38f07c275f705",
-      "firstReceiptHash": "92bf88ff119bde49ec7e596875b22aea011f32169b3bbc4ac46ae478e78f86a1",
-      "lastReceiptHash": "21283e8caf0195d07863f97a26ff4398e69ac2cdab458d318d97a74debf25bb1"
+      "signingKeyId": "eb51f280b9cf0eacdd579d0d5c50a1359478d55dc338ccc1617f996556ff097d",
+      "firstReceiptHash": "10b884866d0e9ae2c7d09422becfa857c658acf792fa111e3c717aa8c54127e2",
+      "lastReceiptHash": "e3c479776425ccf7b67d566bac21716d8e3eb6f29f14252f55c5e43418c6378e"
     }
   },
   "latencyMs": {
     "samples": 30,
-    "p50": 0.24304100000000517,
-    "p95": 0.9108750000000043,
-    "p99": 1.2150410000000136,
-    "max": 1.2150410000000136
+    "p50": 0.24237499999998136,
+    "p95": 0.4947080000000028,
+    "p99": 1.0112499999999898,
+    "max": 1.0112499999999898
   },
   "firstReceipt": {
     "receiptVersion": 1,
     "sequence": 1,
     "flow": "validate_renewal_projection",
-    "artifactId": "vctx_9a23fee150f50ac67cd0af1f9c814cf3",
+    "artifactId": "vctx_4ccdb8dce1b008be3ec139baeda40240",
     "sourceTool": "synthetic_accounts_list",
     "destinationTool": "synthetic_projection_validate",
     "destinationArgument": "projectedRecords",
@@ -87,7 +87,7 @@
     "destinationArgumentNames": [
       "testCase"
     ],
-    "policyShapeSha256": "5e4507e8357da59497d7d977213abf4fd08e4c127cd97a14f1dd601555a951f9",
+    "policyShapeSha256": "6568bb61c38b4b19b710492988886a1ee0d820fff3f47bd0d85b071488695ca7",
     "policyLimits": {
       "maxItems": 50,
       "maxBytes": 8192
@@ -95,20 +95,20 @@
     "items": 40,
     "payloadBytes": 1739,
     "commitmentAlgorithm": "HMAC-SHA256",
-    "payloadCommitment": "hmac-sha256:fa1c6b45294883049e36475538b26c6305e9e0ae74ebc07d2716aa96eea618b5",
-    "queryCommitment": "hmac-sha256:928e7c868f5648ec6922014f258fb899a965dec699c0d1975f3fe191831c963f",
+    "payloadCommitment": "hmac-sha256:403dcc5056bf1b73d2fb3aa3acbcda8f71e033f71ebce021205cb062ff9c07db",
+    "queryCommitment": "hmac-sha256:18a3ec0b9763b3f582e5f3ed2afc08ce533ff4363d5f456b2748951d2f628f33",
     "destinationSucceeded": true,
     "destinationResultBytes": 120,
-    "destinationResultCommitment": "hmac-sha256:f97cacadb7882464a54b179dbf52bd669850c96b1ab25ccf6c8287437ddee7cc",
+    "destinationResultCommitment": "hmac-sha256:149900602a1a81ffef693aef8cd7511b4ab8165db87e7cf6ae85d79ecfd1a3ae",
     "previousReceiptHash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "signingKeyId": "235c87cf025005bbefad93cb15f517cea3aa781b28a7816eebb38f07c275f705",
+    "signingKeyId": "eb51f280b9cf0eacdd579d0d5c50a1359478d55dc338ccc1617f996556ff097d",
     "disclosure": "receipt",
-    "receiptHash": "92bf88ff119bde49ec7e596875b22aea011f32169b3bbc4ac46ae478e78f86a1",
+    "receiptHash": "10b884866d0e9ae2c7d09422becfa857c658acf792fa111e3c717aa8c54127e2",
     "verifier": {
       "algorithm": "Ed25519",
-      "publicKey": "MCowBQYDK2VwAyEA28WN1dJHyxqbMei2LmtI6n7IV_Tib9XnNOf0NTBL3aw"
+      "publicKey": "MCowBQYDK2VwAyEA2XrVe4dhYlhDTELORom692-jHJFcrSRlm6ivfvwiy1I"
     },
-    "signature": "J3D1Qgso6bqUyXRiUrQGarD7SVjw4HhwsVx66QJmyxF2IGNXxgfniL7Fmi62EuBaKkgZyxRaNUwO07UDpctQBA"
+    "signature": "gUaFfQAh7gmlUxHKgEf8zocBj1M_VVDr210GMD_QsdGcrAglAfdf525iV_peyicetA0SKgpy3QNobGVKCVXzDw"
   },
   "limitations": [
     "This is a deterministic first-party protocol integration, not a model-quality or production-demand measurement.",

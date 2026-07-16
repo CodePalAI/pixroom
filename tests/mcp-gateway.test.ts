@@ -180,6 +180,36 @@ describe('McpResultFirewall', () => {
     });
   });
 
+  it('unwraps an identical single-string structured content wrapper', () => {
+    const firewall = new McpResultFirewall({ minChars: 100 });
+    const rows = Array.from({ length: 40 }, (_, accountId) => ({
+      accountId,
+      email: `wrapped-string-${accountId}@example.invalid`,
+    }));
+    const raw = JSON.stringify(rows);
+    const transformed = firewall.transformResult('read_text_file', {
+      content: [{ type: 'text', text: raw }],
+      structuredContent: { content: raw },
+    });
+
+    expect(transformed.virtualized).toBe(true);
+    expect(transformed.descriptor).toMatchObject({
+      kind: 'json-array',
+      items: 40,
+      fields: ['accountId', 'email'],
+    });
+    const queried = firewall.callTool(MCP_QUERY_TOOL_NAME, {
+      id: transformed.descriptor?.id,
+      op: 'json_select',
+      where: { accountId: 17 },
+      fields: ['email'],
+    });
+    expect(JSON.parse(queried.content[0]?.text ?? '{}')).toMatchObject({
+      count: 1,
+      matches: [{ email: 'wrapped-string-17@example.invalid' }],
+    });
+  });
+
   it('fails open when the exact artifact cannot fit in local storage', () => {
     const firewall = new McpResultFirewall({ minChars: 10, maxStoredBytes: 64 });
     const original = {

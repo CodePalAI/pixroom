@@ -1,6 +1,7 @@
 # Value-opaque MCP dataflow
 
-_Status: implemented experimental path with protocol and two-host evidence, 2026-07-15._
+_Status: implemented experimental path with protocol, bounded-model, published-OSS,
+and two-executed-host evidence, 2026-07-15._
 
 ## Contribution statement
 
@@ -13,8 +14,9 @@ required.
 The narrow contribution is the integrated protocol mechanism:
 
 1. an operator names a source tool, destination tool, destination argument,
-   deterministic operations, filter fields, projection fields, dynamic argument
-   names, and byte/item limits in a versioned JSON policy;
+  deterministic operations, operator-fixed predicates, dynamic filter fields,
+  projection fields, dynamic argument names, and byte/item limits in a versioned
+  JSON policy;
 2. the configured source becomes fail-closed at every result size, independent of
    the normal optimization threshold or profitability check;
 3. Pinpoint stores the exact result locally and returns a random 128-bit session
@@ -85,9 +87,11 @@ Pinpoint gateway
 MCP host / model
 ```
 
-The model controls which configured flow to use and may provide only the query
-dimensions and non-payload arguments named by that flow. The operator, not the
-model, controls source and destination authority.
+The model controls which configured flow to use and may provide only the dynamic query
+dimensions and non-payload arguments named by that flow. `fixedWhere` predicates are
+always merged locally and cannot be supplied, omitted, or overridden by the model. The
+operator, not the model, controls source, destination, and fixed business-rule
+authority.
 
 ## Strict defaults
 
@@ -113,10 +117,12 @@ The current deterministic operation set is `json_select`, `count`, `grep`, and
 name and validate both source provenances.
 
 For `json_select`, `allowedFields` is mandatory. Omitting `fields` cannot silently
-send a complete row. Filter fields and dynamic destination argument names default to
-empty allowlists. Fixed destination arguments are loaded from operator policy and
-cannot be overridden by the model. Item, selected-payload byte, and non-payload
-destination-argument byte limits are enforced before dispatch.
+send a complete row. `fixedWhere` supplies operator-owned primitive equality
+predicates; `allowedWhereFields` separately names fields the model may add. Fixed and
+dynamic where fields cannot overlap. Dynamic filter fields and dynamic destination
+argument names default to empty allowlists. Fixed destination arguments are loaded
+from operator policy and cannot be overridden by the model. Item, selected-payload
+byte, and non-payload destination-argument byte limits are enforced before dispatch.
 
 The source artifact records its originating tool. A capability produced by any other
 tool is rejected even if its shape and fields match. Source kind can also be bound to
@@ -206,9 +212,9 @@ to 100,000,000 characters. The 26,231-byte protected source is captured anyway.
 The committed run records:
 
 - 30/30 exact hidden destination acceptances;
-- 7/7 denied bypass attempts: direct query, resource read, direct destination,
-  forbidden projection, forbidden operation, forged capability, and fixed-argument
-  override;
+- 8/8 denied bypass attempts: direct query, resource read, direct destination,
+  forbidden projection, forbidden operation, forged capability, fixed-argument
+  override, and operator-fixed predicate override;
 - 400 exact private canaries scanned with zero client-transcript occurrences;
 - no public source or selected-payload hash occurrence;
 - 30/30 valid signatures and one valid receipt chain;
@@ -216,7 +222,7 @@ The committed run records:
 - identical payloads producing 30 distinct public commitments;
 - 31,013 constructed direct-transcript bytes versus 2,628 opaque-flow bytes, 91.5%
   lower for the same source and destination payload;
-- 0.91 ms p95 internal-flow latency over 30 local samples on the recorded machine.
+- 0.49 ms p95 internal-flow latency over 30 local samples on the recorded machine.
 
 This is protocol-integration evidence, not a provider token bill, model-quality test,
 production demand measurement, or formal noninterference proof.
@@ -229,7 +235,7 @@ called only the visible source and `pinpoint_flow`; neither model called the hid
 destination or `pinpoint_query`. Both signed receipts verified, both destinations
 accepted the exact 40-record projection, both clients returned exactly `VALIDATED`,
 and no fixture value or public value hash appeared in either retained event-stream
-grade. The aggregate scan covered 800 canaries. Claude observed $0.045451 in provider
+grade. The aggregate scan covered 800 canaries. Claude observed $0.046905 in provider
 cost; Copilot reported zero premium requests and zero file changes.
 
 This proves the same contract is usable by two host/model families for one synthetic
@@ -280,6 +286,13 @@ gates. Calling it a field-level breakthrough still requires independent work:
    another tool without model inspection;
 6. operator identity keys or external transparency-log anchoring for durable receipts;
 7. multi-server composition with explicit authentication and authority boundaries.
+
+Public blocking gates:
+
+- [Independent clean-machine reproduction #14](https://github.com/CodePalAI/pinpoint/issues/14)
+- [Independent security and confinement review #15](https://github.com/CodePalAI/pinpoint/issues/15)
+- [Comparative private-composition evaluation #16](https://github.com/CodePalAI/pinpoint/issues/16)
+- [Externally sourced workflow and retention demand #17](https://github.com/CodePalAI/pinpoint/issues/17)
 
 Until those gates pass, the accurate label is **groundbreaking candidate mechanism
 with first-party cross-host evidence**, not proven field breakthrough.

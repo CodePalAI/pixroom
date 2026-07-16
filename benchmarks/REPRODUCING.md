@@ -25,7 +25,7 @@ What they establish:
 
 They do not establish live model quality, provider-reported usage, real-agent savings, or production latency.
 
-The opaque-flow protocol gate starts the committed unmodified stdio fixture, runs 30 exact flows and seven adversarial calls, scans 400 generated canaries, verifies every receipt and chain link, mutates one receipt to prove rejection, and compares client-visible bytes with a constructed direct-MCP transcript. It makes no provider request. The committed receipt is `results/mcp-opaque-flow.first-party-macos-arm64-20260715.json`.
+The opaque-flow protocol gate starts the committed unmodified stdio fixture, runs 30 exact flows and eight adversarial calls, scans 400 generated canaries, verifies every receipt and chain link, mutates one receipt to prove rejection, and compares client-visible bytes with a constructed direct-MCP transcript. It makes no provider request. The committed receipt is `results/mcp-opaque-flow.first-party-macos-arm64-20260715.json`.
 
 ## Live cross-host opaque-flow gate
 

@@ -118,7 +118,6 @@ const deniedCalls = [
       flow: 'validate_renewal_projection',
       id: artifactId,
       op: 'json_select',
-      where: { segment: 'renewal' },
       fields: ['privateCode'],
     },
   }],
@@ -141,9 +140,18 @@ const deniedCalls = [
       flow: 'validate_renewal_projection',
       id: artifactId,
       op: 'json_select',
-      where: { segment: 'renewal' },
       fields: ['email'],
       destinationArguments: { testCase: 'override' },
+    },
+  }],
+  ['tools/call', {
+    name: MCP_FLOW_TOOL_NAME,
+    arguments: {
+      flow: 'validate_renewal_projection',
+      id: artifactId,
+      op: 'json_select',
+      where: { segment: 'standard' },
+      fields: ['email'],
     },
   }],
 ];
@@ -164,7 +172,6 @@ for (let iteration = 0; iteration < 30; iteration += 1) {
       flow: 'validate_renewal_projection',
       id: artifactId,
       op: 'json_select',
-      where: { segment: 'renewal' },
       fields: ['email'],
     },
   });
