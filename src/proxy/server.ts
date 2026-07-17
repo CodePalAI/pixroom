@@ -65,6 +65,12 @@ const STRIP_RESPONSE_HEADERS = new Set([
 
 const VIRTUAL_RESPONSE_LIMIT_BYTES = 4_000_000;
 
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) end -= 1;
+  return value.slice(0, end);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -566,7 +572,7 @@ export function createProxyServer(
     ccrEnabled: boolean,
     allowedCcrIds: ReadonlySet<string>,
   ): Promise<void> {
-    const target = new URL(`${config.upstreams.anthropic.replace(/\/+$/, '')}${pathAndQuery}`);
+    const target = new URL(`${trimTrailingSlashes(config.upstreams.anthropic)}${pathAndQuery}`);
     const headers = requestHeaders(req.headers);
     const responses: Record<string, unknown>[] = [];
     let requestBody = JSON.parse(new TextDecoder().decode(bodyBytes)) as Record<string, unknown>;
@@ -744,7 +750,7 @@ export function createProxyServer(
     exchangeId: string,
     allowedCcrIds: ReadonlySet<string>,
   ): Promise<void> {
-    const target = new URL(`${config.upstreams.openai.replace(/\/+$/, '')}${pathAndQuery}`);
+    const target = new URL(`${trimTrailingSlashes(config.upstreams.openai)}${pathAndQuery}`);
     const headers = requestHeaders(req.headers);
     const responses: Record<string, unknown>[] = [];
     let requestBody = JSON.parse(new TextDecoder().decode(bodyBytes)) as Record<string, unknown>;
@@ -899,7 +905,7 @@ export function createProxyServer(
     exchangeId: string,
     bodyPrefix?: Uint8Array,
   ): Promise<void> {
-    const base = config.upstreams[provider].replace(/\/+$/, '');
+    const base = trimTrailingSlashes(config.upstreams[provider]);
     const target = `${base}${pathAndQuery}`;
     const method = req.method ?? 'GET';
     const hasBody = method !== 'GET' && method !== 'HEAD';

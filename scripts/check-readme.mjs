@@ -138,11 +138,24 @@ const integer = new Intl.NumberFormat('en-US');
 const percentage = (value) => `${(value * 100).toFixed(1)}%`;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
+function removeDelimited(value, opening, closing) {
+  let result = '';
+  let cursor = 0;
+  while (cursor < value.length) {
+    const start = value.indexOf(opening, cursor);
+    if (start < 0) return result + value.slice(cursor);
+    result += value.slice(cursor, start);
+    const end = value.indexOf(closing, start + opening.length);
+    if (end < 0) return result + value.slice(start);
+    cursor = end + closing.length;
+  }
+  return result;
+}
+
 function githubSlug(heading) {
-  return heading
+  return removeDelimited(heading, '<', '>')
     .trim()
     .toLowerCase()
-    .replace(/<[^>]*>/g, '')
     .replace(/[^\p{L}\p{N}\s_-]/gu, '')
     .replace(/\s+/g, '-');
 }
@@ -519,7 +532,7 @@ for (const signal of endUserSignals) {
 if (/[]/.test(readme)) fail('README contains control characters');
 if (/[—–“”]/.test(readme)) fail('README contains non-ASCII dash or quote punctuation');
 
-const visibleReadme = readme.replace(/<!--[^]*?-->/g, '');
+const visibleReadme = removeDelimited(readme, '<!--', '-->');
 const npmStatusMatches = [...readme.matchAll(/<!-- PINPOINT_NPM_STATUS: (unpublished|candidate|published) -->/g)];
 if (npmStatusMatches.length !== 1) fail('README must declare exactly one PINPOINT_NPM_STATUS marker');
 const waitingForNpm = npmStatusMatches[0]?.[1] === 'unpublished';

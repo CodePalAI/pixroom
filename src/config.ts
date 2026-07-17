@@ -211,11 +211,17 @@ function envHeaders(name: string, fallbackName: string): Readonly<Record<string,
   return headers;
 }
 
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) end -= 1;
+  return value.slice(0, end);
+}
+
 function resolveOtlpEndpoint(): string {
   const direct = process.env.PINPOINT_OTLP_ENDPOINT ?? process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
   if (direct?.trim()) return direct.trim();
   const base = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
-  return base ? `${base.replace(/\/+$/, '')}/v1/traces` : '';
+  return base ? `${trimTrailingSlashes(base)}/v1/traces` : '';
 }
 
 /**

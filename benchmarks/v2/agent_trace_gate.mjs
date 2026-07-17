@@ -42,6 +42,22 @@ const PRICING = {
   anthropic: { input: 1, cacheWrite: 1.25, cachedInput: 0.1, output: 5 },
   openai: { input: 0.4, cachedInput: 0.1, output: 1.6 },
 };
+const PROVIDER_ORIGINS = {
+  anthropic: 'https://api.anthropic.com',
+  openai: 'https://api.openai.com',
+};
+
+function providerPath(provider, rawUrl) {
+  const parsed = new URL(rawUrl, 'http://pinpoint.invalid');
+  if (parsed.origin !== 'http://pinpoint.invalid') {
+    throw new Error('trace proxy accepts origin-relative provider paths only');
+  }
+  const allowed = provider === 'anthropic'
+    ? parsed.pathname === '/v1/messages'
+    : parsed.pathname === '/v1/chat/completions' || parsed.pathname === '/v1/responses';
+  if (!allowed) throw new Error(`trace proxy rejected provider path: ${parsed.pathname}`);
+  return `${parsed.pathname}${parsed.search}`;
+}
 
 function readOption(name) {
   const index = process.argv.indexOf(name);
@@ -523,7 +539,8 @@ async function startForwarder(provider, injectRetry, budget) {
         return;
       }
       budget.reserve(provider, body.length);
-      const root = provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com';
+      const root = PROVIDER_ORIGINS[provider];
+      const upstreamPath = providerPath(provider, request.url ?? '/');
       const headers = new Headers();
       const skippedHeaders = new Set([
         'connection',
@@ -541,7 +558,7 @@ async function startForwarder(provider, injectRetry, budget) {
         if (skippedHeaders.has(name) || value == null) continue;
         headers.set(name, Array.isArray(value) ? value.join(', ') : value);
       }
-      const upstream = await fetch(`${root}${request.url}`, {
+      const upstream = await fetch(new URL(upstreamPath, root), {
         method: request.method,
         headers,
         body: request.method === 'GET' || request.method === 'HEAD' ? undefined : body,

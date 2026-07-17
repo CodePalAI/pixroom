@@ -61,7 +61,17 @@ function mapOpenAIReason(reason: string | undefined): CompressionReason {
 }
 
 function baseModelId(model: string): string {
-  return model.replace(/\[[^\]]*\]/g, '');
+  let result = '';
+  let cursor = 0;
+  while (cursor < model.length) {
+    const opening = model.indexOf('[', cursor);
+    if (opening < 0) return result + model.slice(cursor);
+    result += model.slice(cursor, opening);
+    const closing = model.indexOf(']', opening + 1);
+    if (closing < 0) return result + model.slice(opening);
+    cursor = closing + 1;
+  }
+  return result;
 }
 
 function supportsModel(model: string | null, allowedModelBases: readonly string[]): boolean {
