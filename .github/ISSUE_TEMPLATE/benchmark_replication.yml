@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Fast path: run `pinpoint evidence reproduce --relationship unaffiliated --out pinpoint-opaque-flow-reproduction.json`, then `pinpoint evidence verify pinpoint-opaque-flow-reproduction.json`. Follow `benchmarks/REPRODUCING.md`, keep failed runs, remove credentials and private data, and attach labeled JSON bundles rather than screenshots alone. Relationship is self-declared and will be reviewed. Checksum and receipt-verifier success do not authenticate the operator.
+        Fast path: run `pinpoint evidence reproduce --relationship unaffiliated --out pinpoint-opaque-flow-reproduction.json`, then `pinpoint evidence verify pinpoint-opaque-flow-reproduction.json`. This packaged gate repeats one synthetic flow 30 times and exercises eight bypass classes; it is not 30 distinct workflows. Follow `benchmarks/REPRODUCING.md`, keep failed runs, remove credentials and private data, and attach labeled JSON bundles rather than screenshots alone. Relationship is self-declared and will be reviewed. Checksum and receipt-verifier success do not authenticate the operator.
   - type: input
     id: commit
     attributes:
@@ -70,4 +70,6 @@ body:
         - label: I disclosed whether this was a no-model protocol gate, first-party fixture, sanitized workload, or real production workload.
           required: true
         - label: I disclosed any relationship with CodePal or the Pinpoint maintainers.
+          required: true
+        - label: I understand that the self-declared relationship and bundle verification do not authenticate my identity; maintainers may request corroboration before counting this as independent evidence.
           required: true

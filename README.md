@@ -184,25 +184,27 @@ That is the basic integration.
 
 ## Install
 
-<!-- PINPOINT_NPM_STATUS: candidate -->
+<!-- PINPOINT_NPM_STATUS: development -->
 
-You need Node.js 22 or newer. Install the CLI globally:
+You need Node.js 22 or newer. The current npm release is `0.2.4`:
 
 ```bash
-npm install -g @codepalaiorg/pinpoint
+npm install -g @codepalaiorg/pinpoint@0.2.4
 pinpoint --version
 ```
 
-Or run the offline demo without a global install:
+Or run its historical QCV demo without a global install:
 
 ```bash
-npx @codepalaiorg/pinpoint demo
+npx @codepalaiorg/pinpoint@0.2.4 demo
 ```
 
 `npx` may contact npm to download Pinpoint. After installation, the demo itself uses
 only local stdio processes and configures no external service.
 
-Source-checkout fallback:
+The `0.2.5` candidate adds the MCP-first demo, doctor, and packaged reproduction
+commands described below. Evaluate those from this source checkout until `0.2.5` is
+published:
 
 ```bash
 git clone https://github.com/CodePalAI/pinpoint.git
@@ -213,7 +215,7 @@ pinpoint --version
 
 ### Fastest working demo
 
-Run the core product path directly from the installed package. It launches separate
+Run the core product path from the candidate source checkout. It launches separate
 synthetic source and destination stdio MCP processes through the production gateway,
 with no model, API key, sidecar, or configured external service:
 
@@ -389,6 +391,9 @@ pinpoint mcp gateway \
 
 Pinpoint creates the key and opening record with file mode `0600` and refuses to overwrite existing files. Protect both files.
 
+Persistent authority keys currently require POSIX permissions. Pinpoint fails closed on
+Windows until it can install and verify a restrictive file DACL.
+
 ## What you get
 
 ### Exact policy enforcement
@@ -483,7 +488,7 @@ The tests use synthetic data. They preserve failures and remove raw model event 
 |---|---:|---|
 | Cross-host opaque flow | **2/2 executed clients passed** | Claude Code and Copilot used the constrained flow; Codex was provider-401 before MCP initialization and is uncounted |
 | Client event scan | **0/800 canary occurrences** | Exact string scan across executed host traces |
-| Protocol gate | **30/30 destinations; 8/8 bypasses denied** | Exact same-server flow, strict source capture, signed chain |
+| Protocol gate | **30/30 repeated calls to one synthetic destination flow; 8/8 bypasses denied** | Exact same-server flow, strict source capture, signed chain |
 | Operator authority | **Exact opening valid; wrong root and tampering rejected** | Session key bound to a complete hidden policy commitment |
 | Bounded reference model | **2,270,040 states / 3,416,444 transitions / 0 violations** | Spin 6.5.2, ten actions per trace; abstract model, not a proof over TypeScript |
 | Mutation checks | **2 deliberate bugs detected** | Value-leak and credential-copy mutations each caused an assertion violation |
@@ -491,12 +496,13 @@ The tests use synthetic data. They preserve failures and remove raw model event 
 | Published OSS cross-server flow | **40/40 entities; 4/4 denials; 0/600 canaries** | Filesystem `2026.7.10` to memory `2026.7.4`; exact JSONL side effect |
 | Matched HCP comparison | **Pinpoint exact; HCP 30/30 exact; both 4/4 denials and 0/600 canaries** | Byte-identical fixture and native authority comparison; No scalar winner |
 | Constructed visible traffic | **31,013 -> 3,414 bytes, 89.0% lower** | Same synthetic source/destination payload with authority receipt |
-| Local flow latency | **1.03 ms p95** | 30 local protocol samples, not a production load test |
+| Local flow latency | **0.78 ms p95** | 30 local protocol samples, not a production load test |
 
 ### Reproduce the protocol gate independently
 
-The installed package can generate a content-free clean-machine bundle without a
-source checkout, model, API key, sidecar, or external service:
+The `0.2.5` candidate can generate a content-free clean-machine bundle without a model,
+API key, sidecar, or external service. Until `0.2.5` is published, run it from the
+source checkout above:
 
 ```bash
 pinpoint evidence reproduce \
@@ -658,7 +664,7 @@ Pinpoint also ships provider API wrappers. These are secondary to the MCP gatewa
 
 ```bash
 cd /path/to/your-app
-npm install @codepalaiorg/pinpoint
+npm install @codepalaiorg/pinpoint@0.2.4
 ```
 
 ```ts
@@ -746,7 +752,7 @@ Maintainers follow [RELEASING.md](./RELEASING.md) for signed tags, protected pub
 
 Pinpoint is experimental and available today for controlled local or VPC-side evaluation.
 
-Validated first-party: Claude Code and GitHub Copilot CLI passed the value-opaque flow; the protocol gate completed 30/30 destinations and denied 8/8 bypasses; the published cross-server gate persisted 40/40 exact entities with 0/600 canaries.
+Validated first-party: Claude Code and GitHub Copilot CLI passed the value-opaque flow; the protocol gate completed 30/30 repeated calls to one synthetic destination flow and denied 8/8 bypasses; the published cross-server gate persisted 40/40 exact entities with 0/600 canaries.
 
 Still being proved: independent security review, clean-machine reproduction, broader host replication, external workflows, remote or multi-destination authority, witnessed operator identity, and customer demand.
 

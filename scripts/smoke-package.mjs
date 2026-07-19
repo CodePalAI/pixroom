@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, constants as fileConstants, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,9 +9,24 @@ const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error('package smoke must run through npm so npm_execpath is available');
 const temporary = mkdtempSync(join(tmpdir(), 'pinpoint-package-smoke-'));
-const run = (command, args, cwd = temporary) =>
-  execFileSync(command, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+const run = (command, args, cwd = temporary, options = {}) =>
+  execFileSync(command, args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options,
+  });
 const runNpm = (args, cwd = temporary) => run(process.execPath, [npmCli, ...args], cwd);
+const capture = (command, args, cwd = temporary, options = {}) => {
+  const result = spawnSync(command, args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options,
+  });
+  if (result.error) throw result.error;
+  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+};
 
 function parseTrailingJsonArray(output, label) {
   const lines = output.split(/\r?\n/);
@@ -98,6 +113,7 @@ try {
     'THIRD_PARTY_NOTICES.md',
     'bin/cli.js',
     'bin/verify-receipt.js',
+    'bin/internal-evidence-reader.js',
     'examples/mcp-opaque-flow.json',
     'examples/mcp-opaque-flow.schema.json',
     'examples/mcp-opaque-destination.json',
@@ -197,19 +213,38 @@ try {
   }
   run(process.execPath, [cli, '--help']);
   const authorityKey = join(temporary, 'operator-authority.pem');
-  const authority = JSON.parse(run(process.execPath, [
-    cli,
-    'mcp',
-    'authority',
-    'init',
-    '--out',
-    authorityKey,
-  ]));
-  if (!/^[a-f0-9]{64}$/.test(authority.operatorKeyId)) {
-    throw new Error('installed authority initializer returned an invalid operator key id');
-  }
-  if (process.platform !== 'win32' && (statSync(authorityKey).mode & 0o777) !== 0o600) {
-    throw new Error('installed authority initializer did not create a mode-0600 key');
+  if (process.platform === 'win32') {
+    const authority = capture(process.execPath, [
+      cli,
+      'mcp',
+      'authority',
+      'init',
+      '--out',
+      authorityKey,
+    ]);
+    if (
+      authority.status !== 2 ||
+      authority.stdout !== '' ||
+      !/persistent authority keys are unsupported on Windows/.test(authority.stderr) ||
+      existsSync(authorityKey)
+    ) {
+      throw new Error('installed authority initializer did not fail closed on Windows');
+    }
+  } else {
+    const authority = JSON.parse(run(process.execPath, [
+      cli,
+      'mcp',
+      'authority',
+      'init',
+      '--out',
+      authorityKey,
+    ]));
+    if (!/^[a-f0-9]{64}$/.test(authority.operatorKeyId)) {
+      throw new Error('installed authority initializer returned an invalid operator key id');
+    }
+    if ((statSync(authorityKey).mode & 0o777) !== 0o600) {
+      throw new Error('installed authority initializer did not create a mode-0600 key');
+    }
   }
   const demo = run(process.execPath, [cli, 'demo']);
   for (const expected of [
@@ -259,12 +294,16 @@ try {
   if (process.platform !== 'win32' && (statSync(reproductionPath).mode & 0o777) !== 0o600) {
     throw new Error('installed evidence command did not create a mode-0600 bundle');
   }
-  const reproductionVerification = JSON.parse(run(process.execPath, [
+  const validVerification = capture(process.execPath, [
     cli,
     'evidence',
     'verify',
     reproductionPath,
-  ]));
+  ]);
+  if (validVerification.status !== 0 || validVerification.stderr !== '') {
+    throw new Error('installed evidence verifier emitted an invalid success status/channel');
+  }
+  const reproductionVerification = JSON.parse(validVerification.stdout);
   if (
     reproductionVerification.valid !== true ||
     reproductionVerification.repeatedFlowCalls !== 30 ||
@@ -281,61 +320,54 @@ try {
     throw new Error('installed evidence reproduction did not verify');
   }
   const originalReproduction = readFileSync(reproductionPath);
-  let overwriteRejected = false;
-  try {
-    run(process.execPath, [
-      cli,
-      'evidence',
-      'reproduce',
-      '--relationship',
-      'maintainer',
-      '--out',
-      reproductionPath,
-    ]);
-  } catch (cause) {
-    const stderr = cause != null && typeof cause === 'object' && 'stderr' in cause
-      ? String(cause.stderr)
-      : '';
-    overwriteRejected = /output already exists/.test(stderr);
+  const overwrite = capture(process.execPath, [
+    cli,
+    'evidence',
+    'reproduce',
+    '--relationship',
+    'maintainer',
+    '--out',
+    reproductionPath,
+  ]);
+  if (overwrite.status !== 2 || overwrite.stdout !== '' || !/output already exists/.test(overwrite.stderr)) {
+    throw new Error('installed evidence command did not reject existing output exactly');
   }
-  if (!overwriteRejected) throw new Error('installed evidence command did not reject existing output');
   if (!readFileSync(reproductionPath).equals(originalReproduction)) {
     throw new Error('installed evidence command changed an existing bundle');
   }
   const malformedBundle = join(temporary, 'malformed-reproduction.json');
   writeFileSync(malformedBundle, '{', 'utf8');
-  let malformedRejected = false;
-  try {
-    run(process.execPath, [cli, 'evidence', 'verify', malformedBundle]);
-  } catch (cause) {
-    const stderr = cause != null && typeof cause === 'object' && 'stderr' in cause
-      ? String(cause.stderr)
-      : '';
-    malformedRejected = /could not verify evidence bundle/.test(stderr);
+  const malformed = capture(process.execPath, [cli, 'evidence', 'verify', malformedBundle]);
+  if (malformed.status !== 2 || malformed.stdout !== '' || !/could not verify evidence bundle/.test(malformed.stderr)) {
+    throw new Error('installed evidence verifier did not reject malformed JSON exactly');
   }
-  if (!malformedRejected) throw new Error('installed evidence verifier accepted malformed JSON');
   const oversizedBundle = join(temporary, 'oversized-reproduction.json');
   writeFileSync(oversizedBundle, Buffer.alloc(256 * 1024 + 1));
-  let oversizedRejected = false;
-  try {
-    run(process.execPath, [cli, 'evidence', 'verify', oversizedBundle]);
-  } catch (cause) {
-    const stderr = cause != null && typeof cause === 'object' && 'stderr' in cause
-      ? String(cause.stderr)
-      : '';
-    oversizedRejected = /bundle exceeds 262144 bytes/.test(stderr);
+  const oversized = capture(process.execPath, [cli, 'evidence', 'verify', oversizedBundle]);
+  if (oversized.status !== 2 || oversized.stdout !== '' || !/bundle exceeds 262144 bytes/.test(oversized.stderr)) {
+    throw new Error('installed evidence verifier did not reject oversized input exactly');
   }
-  if (!oversizedRejected) throw new Error('installed evidence verifier accepted an oversized bundle');
-  let nonRegularRejected = false;
-  try {
-    run(process.execPath, [cli, 'evidence', 'verify', temporary]);
-  } catch (cause) {
-    const stderr = cause != null && typeof cause === 'object' && 'stderr' in cause
-      ? String(cause.stderr)
-      : '';
-    nonRegularRejected = /bundle must be a regular file/.test(stderr);
+  const nonRegular = capture(process.execPath, [cli, 'evidence', 'verify', temporary]);
+  if (nonRegular.status !== 2 || nonRegular.stdout !== '' || !/bundle must be a regular file/.test(nonRegular.stderr)) {
+    throw new Error('installed evidence verifier did not reject non-regular input exactly');
   }
-  if (!nonRegularRejected) throw new Error('installed evidence verifier accepted a non-regular file');
+  const usage = capture(process.execPath, [cli, 'evidence', 'reproduce']);
+  if (usage.status !== 2 || usage.stdout !== '' || !/--relationship is required/.test(usage.stderr)) {
+    throw new Error('installed evidence command did not enforce usage exactly');
+  }
+  if (process.platform !== 'win32') {
+    const fifoBundle = join(temporary, 'reproduction.fifo');
+    run('/usr/bin/mkfifo', [fifoBundle]);
+    const fifo = capture(
+      process.execPath,
+      [cli, 'evidence', 'verify', fifoBundle],
+      temporary,
+      { timeout: 2_000, killSignal: 'SIGKILL' },
+    );
+    if (fifo.status !== 2 || fifo.stdout !== '' || !/bundle must be a regular file/.test(fifo.stderr)) {
+      throw new Error('installed evidence verifier did not reject a FIFO exactly');
+    }
+  }
   const installedReadme = join(
     temporary,
     'node_modules',
@@ -379,6 +411,15 @@ try {
     'firstReceipt',
   ]));
   if (verification.valid !== true) throw new Error('installed standalone receipt verifier failed');
+
+  const retainedTarball = process.env.PINPOINT_PACKAGE_SMOKE_OUT;
+  if (retainedTarball) {
+    copyFileSync(
+      join(temporary, artifact.filename),
+      retainedTarball,
+      fileConstants.COPYFILE_EXCL,
+    );
+  }
 
   console.log(
     `package smoke: ok (${artifact.name}@${artifact.version}, ${publicEntries.length} exports, ` +

@@ -1,9 +1,10 @@
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { arch, platform, release } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 import {
   MCP_FLOW_TOOL_NAME,
@@ -34,10 +35,27 @@ const resultPath = join(
   'results',
   'mcp-opaque-flow.first-party-macos-arm64-20260715.json',
 );
+const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const flowConfig = parseMcpOpaqueFlowConfig(JSON.parse(readFileSync(configPath, 'utf8')));
 
 function sourceFingerprint(path) {
   return createHash('sha256').update(readFileSync(join(root, path))).digest('hex');
+}
+
+function javascriptManifest(directory) {
+  const files = [];
+  const visit = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const absolute = join(current, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile() && entry.name.endsWith('.js')) {
+        const path = relative(root, absolute).split('\\').join('/');
+        files.push({ path, sha256: sourceFingerprint(path) });
+      }
+    }
+  };
+  visit(join(root, directory));
+  return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function percentile(values, quantile) {
@@ -321,6 +339,13 @@ const result = {
       'benchmarks/fixtures/opaque_flow_server.mjs',
       'benchmarks/fixtures/opaque_flow_config.json',
     ].map((path) => [path, sourceFingerprint(path)])),
+    execution: {
+      package: { name: packageJson.name, version: packageJson.version },
+      gitBaseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+      worktreeDirty: execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0,
+      entryPoint: 'dist/mcp/index.js',
+      javascriptManifest: javascriptManifest('dist'),
+    },
   },
   fixture: {
     sourceRecords: rows.length,

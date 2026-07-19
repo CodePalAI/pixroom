@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import {
   parseDashboardArgs,
   parseEvidenceArgs,
+  initializeMcpAuthority,
+  loadMcpAuthorityKey,
   parseMcpArgs,
   parseProxyArgs,
   runMcpDemo,
@@ -94,6 +96,23 @@ describe('parseEvidenceArgs', () => {
       mode: 'verify',
       filePath: 'receipt.json',
     });
+  });
+});
+
+describe('persistent MCP authority platform boundary', () => {
+  it('fails closed on Windows before creating or loading private-key files', () => {
+    const platform = Object.getOwnPropertyDescriptor(process, 'platform');
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    try {
+      expect(() => initializeMcpAuthority('never-created.pem')).toThrow(
+        'persistent authority keys are unsupported on Windows',
+      );
+      expect(() => loadMcpAuthorityKey('never-read.pem')).toThrow(
+        'persistent authority keys are unsupported on Windows',
+      );
+    } finally {
+      if (platform) Object.defineProperty(process, 'platform', platform);
+    }
   });
 });
 

@@ -64,18 +64,20 @@ jobs:
         run: npm run formal:opaque-flow
       - name: Check opaque-flow asynchronous model
         run: npm run formal:opaque-flow:async
-      - run: npm run verify:release
+      - name: Prepare release artifact directory
+        run: mkdir -p release
+      - name: Verify release and retain exact package artifact
+        run: |
+          PACKAGE_VERSION=${RELEASE_TAG#v}
+          PINPOINT_PACKAGE_SMOKE_OUT="$PWD/release/codepalaiorg-pinpoint-$PACKAGE_VERSION.tgz" npm run verify:release
       - name: Install Chromium for dashboard E2E
         run: npx playwright install --with-deps chromium
       - name: Test dashboard in Chromium
         run: npm run test:dashboard:e2e
       - name: Verify generated files are committed
         run: git diff --exit-code
-      - name: Pack release artifact
-        run: |
-          mkdir -p release
-          npm pack --ignore-scripts --pack-destination release
-          test "$(find release -maxdepth 1 -name '*.tgz' | wc -l)" -eq 1
+      - name: Verify retained release artifact
+        run: test "$(find release -maxdepth 1 -name '*.tgz' | wc -l)" -eq 1
       - name: Generate production SBOM
         run: npm run sbom -- --out release/sbom.cdx.json
       - name: Checksum release artifact

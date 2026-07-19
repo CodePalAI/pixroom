@@ -164,6 +164,17 @@ describe('packaged opaque-flow reproduction bundle', () => {
     expect(verification.errors).toContain('summary.durationMs must be a finite non-negative number');
   });
 
+  it('rejects receipt bytes above the signed policy limit', async () => {
+    const bundle = await runMcpReproduction('maintainer');
+    const tampered = structuredClone(bundle) as McpReproductionBundle;
+    (tampered.receipts[0] as { payloadBytes: number }).payloadBytes = 4_097;
+    recomputeChecksum(tampered);
+
+    const verification = verifyMcpReproduction(tampered);
+    expect(verification.valid).toBe(false);
+    expect(verification.errors).toContain('receipt 1 has invalid payloadBytes');
+  });
+
   it('contains hostile depth without throwing', () => {
     let hostile: Record<string, unknown> = {};
     const root = hostile;

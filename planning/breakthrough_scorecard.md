@@ -32,7 +32,7 @@ gate.
 | L8 | Full regression and packaging | Full tests, docs/fingerprints, package smoke, audit, and CI formal gate pass | **PASS locally** | release validation commands; CI runs Spin on Node 24 |
 | L9 | Closest runnable mechanism comparison | Byte-identical source/projection/destination workflow runs through Pinpoint and pinned HCP; task success, native denials, disclosure, authority, TCB, timing scope, and audit are reported without one scalar score | **PASS locally** | [HCP comparison receipt](../benchmarks/results/hcp-comparison.first-party-macos-arm64-20260716.json) |
 | L10 | Async implementation conformance | Duplicate outstanding ids dispatch at most once; malformed error status cannot become signed success; a surviving gateway terminalizes post-dispatch child loss as unconfirmed; catalog authorization is complete and fresh; pre-aborted startup spawns no process | **PASS locally** | `npm run test:mcp-adversarial`; [async model receipt](../benchmarks/results/opaque-flow-async-model-check.first-party-macos-arm64-20260719.json) |
-| E1 | Independent reproduction | Unaffiliated operator submits clean-machine receipt with failures and relationship disclosed | **OPEN / BLOCKING** | `pinpoint evidence reproduce`; [Issue #14](https://github.com/CodePalAI/pinpoint/issues/14) |
+| E1 | Independent reproduction | Unaffiliated operator submits a passing clean-machine bundle for the exact reviewed version; every mechanical check passes; all failed attempts are retained; identity and affiliation are corroborated outside the self-declared bundle | **OPEN / BLOCKING** | `pinpoint evidence reproduce`; [Issue #14](https://github.com/CodePalAI/pinpoint/issues/14) |
 | E2 | Independent security review | Unaffiliated reviewer publishes findings; all high-severity findings resolved and rerun | **OPEN / BLOCKING** | [Issue #15](https://github.com/CodePalAI/pinpoint/issues/15) |
 | E3 | Real workflow demand | At least three external teams evaluate real bounded workflows and one requests continued deployment | **OPEN / BLOCKING** | [Issue #17](https://github.com/CodePalAI/pinpoint/issues/17) |
 | E4 | Independent comparative evaluation | An unaffiliated reviewer reproduces the matched HCP comparison or executes another faithful established alternative, preserving native strengths, failures, adapters, TCB, and incomparable dimensions | **PARTIAL / BLOCKING** | First-party HCP comparison passes; [Issue #16](https://github.com/CodePalAI/pinpoint/issues/16) remains open |
@@ -56,6 +56,12 @@ The remaining blockers require unaffiliated people, externally sourced workflows
 external identity/witness infrastructure. Calling the result "proven" before those gates close
 would be circular.
 
+An evidence bundle cannot close E1 by itself. Its checksum, embedded receipt verifier,
+and relationship field do not authenticate the operator. Closure requires maintainer
+review of the exact package/runtime manifest, a `passed:true` bundle with schema,
+checksum, receipt-chain, reported-results, runtime-manifest, and relationship checks all
+true, preservation of failed attempts, and corroborated external identity/affiliation.
+
 ## Re-evaluation procedure
 
 1. Link each new receipt or review to the relevant gate.
@@ -66,3 +72,9 @@ would be circular.
    `npm run package:smoke` after every security-relevant change.
 5. Change the current verdict only in a pull request that identifies exactly which
    blocking evidence closed.
+
+For E1, the reviewed artifact must report `passed:true`; schema, checksum,
+receipt-chain, reported-results, runtime-manifest, and relationship checks must all be
+true; failed attempts must be retained; and unaffiliated identity/relationship must be
+corroborated outside the self-declared bundle. A mechanically valid bundle alone never
+closes E1.

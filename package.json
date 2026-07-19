@@ -86,6 +86,7 @@
   },
   "files": [
     "assets/",
+    "!assets/pinpoint-social-preview.png",
     "comparisons/",
     "benchmarks/REPORT.md",
     "benchmarks/REPRODUCING.md",
@@ -143,10 +144,11 @@
     "typecheck:dashboard": "tsc -p tsconfig.dashboard.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck:dashboard",
     "release:check": "node scripts/check-release.mjs",
+    "publish:state-check": "node scripts/check-publish-state.mjs",
     "licenses:check": "node scripts/check-licenses.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
     "supply-chain:check": "npm run licenses:check && npm audit --audit-level=high && npm audit signatures",
-    "verify": "npm run package:manifest-check && npm run release:check && npm run supply-chain:check && npm run docs:check && npm run typecheck && npm test && npm run build && npm run package:smoke",
+    "verify": "npm run package:manifest-check && npm run release:check && npm run supply-chain:check && npm run build && npm run docs:check && npm run typecheck && npm test && npm run package:smoke",
     "verify:release": "npm run assets:readme && npm run verify",
     "dev": "tsx src/cli/main.ts",
     "demo:mcp": "npm run build && node bin/cli.js demo mcp",
@@ -178,7 +180,7 @@
     "bench:mcp-oss-cross-server": "npm run build && node benchmarks/v2/mcp_oss_cross_server_gate.mjs",
     "bench:mcp-common-workflows": "npm run build && node benchmarks/v2/mcp_common_workflows_gate.mjs",
     "bench:compare-hcp": "npm run build && node benchmarks/v2/hcp_comparison_gate.mjs",
-    "prepublishOnly": "npm run verify:release"
+    "prepublishOnly": "npm run publish:state-check && npm run verify:release"
   },
   "publishConfig": {
     "access": "public",

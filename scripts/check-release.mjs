@@ -31,7 +31,7 @@ if (packageJson.publishConfig?.access !== 'public' || packageJson.publishConfig?
 if (packageJson.types !== './dist/index.d.ts') fail('package root types must point to dist/index.d.ts');
 if (packageJson.sideEffects !== false) fail('package must declare sideEffects=false');
 if (packageJson.engines?.node !== '>=22') fail('Node.js support floor must remain >=22');
-for (const script of ['licenses:check', 'sbom', 'supply-chain:check', 'verify', 'verify:release']) {
+for (const script of ['licenses:check', 'sbom', 'supply-chain:check', 'verify', 'verify:release', 'publish:state-check']) {
   if (typeof packageJson.scripts?.[script] !== 'string') fail(`missing npm script: ${script}`);
 }
 
@@ -47,7 +47,7 @@ if (changelog.indexOf('## Unreleased') > changelog.search(new RegExp(`^## ${esca
   fail('CHANGELOG.md must keep Unreleased before the current version');
 }
 
-const npmStatus = [...readme.matchAll(/<!-- PINPOINT_NPM_STATUS: (unpublished|candidate|published) -->/g)];
+const npmStatus = [...readme.matchAll(/<!-- PINPOINT_NPM_STATUS: (unpublished|development|candidate|published) -->/g)];
 if (npmStatus.length !== 1) fail('README must declare exactly one PINPOINT_NPM_STATUS marker');
 
 const expectedSigner =
@@ -59,6 +59,8 @@ for (const required of [
   'git verify-tag "$RELEASE_TAG"',
   'npm run sbom',
   'npm run verify:release',
+  'PINPOINT_PACKAGE_SMOKE_OUT="$PWD/release/codepalaiorg-pinpoint-$PACKAGE_VERSION.tgz"',
+  'Verify retained release artifact',
   'npm run formal:opaque-flow:async',
   'npx playwright install --with-deps chromium',
   'npm run test:dashboard:e2e',
@@ -80,11 +82,15 @@ for (const required of [
 ]) {
   if (!releaseWorkflow.includes(required)) fail(`release workflow is missing: ${required}`);
 }
+if (releaseWorkflow.includes('npm pack')) fail('release workflow must publish the exact package-smoke tarball without repacking');
+if (!String(packageJson.scripts?.prepublishOnly ?? '').includes('npm run publish:state-check')) {
+  fail('prepublishOnly must enforce publish:state-check');
+}
 
 if (process.env.RELEASE_TAG && process.env.RELEASE_TAG !== `v${packageJson.version}`) {
   fail(`RELEASE_TAG must equal v${packageJson.version}`);
 }
-if (process.env.RELEASE_TAG && npmStatus[0]?.[1] === 'unpublished') {
+if (process.env.RELEASE_TAG && ['unpublished', 'development'].includes(npmStatus[0]?.[1])) {
   fail('a tagged release must use candidate or published npm README status');
 }
 

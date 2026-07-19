@@ -312,12 +312,25 @@ function validReceiptShape(value: unknown, index: number, errors: string[]): val
     check(receipt.policyLimits.maxItems === 40 && receipt.policyLimits.maxBytes === 4_096, 'has invalid policyLimits');
   } else valid = false;
   check(receipt.items === 40, 'has invalid item count');
-  check(typeof receipt.payloadBytes === 'number' && receipt.payloadBytes > 0, 'has invalid payloadBytes');
+  const payloadBytes = receipt.payloadBytes;
+  check(
+    typeof payloadBytes === 'number' &&
+    Number.isSafeInteger(payloadBytes) &&
+    payloadBytes > 0 &&
+    payloadBytes <= 4_096,
+    'has invalid payloadBytes',
+  );
   check(receipt.commitmentAlgorithm === 'HMAC-SHA256', 'has invalid commitmentAlgorithm');
   check(hash(receipt.payloadCommitment, 'hmac-sha256:'), 'has invalid payloadCommitment');
   check(hash(receipt.queryCommitment, 'hmac-sha256:'), 'has invalid queryCommitment');
   check(receipt.destinationSucceeded === true, 'reports destination failure');
-  check(typeof receipt.destinationResultBytes === 'number' && receipt.destinationResultBytes > 0, 'has invalid destinationResultBytes');
+  const destinationResultBytes = receipt.destinationResultBytes;
+  check(
+    typeof destinationResultBytes === 'number' &&
+    Number.isSafeInteger(destinationResultBytes) &&
+    destinationResultBytes > 0,
+    'has invalid destinationResultBytes',
+  );
   check(hash(receipt.destinationResultCommitment, 'hmac-sha256:'), 'has invalid destinationResultCommitment');
   check(hash(receipt.previousReceiptHash), 'has invalid previousReceiptHash');
   check(hash(receipt.signingKeyId), 'has invalid signingKeyId');

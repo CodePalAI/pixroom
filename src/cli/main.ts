@@ -9,17 +9,15 @@
  */
 
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import {
-  closeSync,
   existsSync,
-  fstatSync,
-  openSync,
   readFileSync,
-  readSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { createProxyServer } from '../proxy/server.js';
 import { createPinpoint } from '../pinpoint.js';
@@ -147,6 +145,21 @@ COMMON ENV
   PINPOINT_DASHBOARD_DIR              metadata history directory (default ~/.pinpoint/dashboard)
   PINPOINT_LOG                        silent|error|warn|info|debug
 `;
+
+function readEvidenceBundleInHelper(path: string): Buffer {
+  const helper = new URL('../../bin/internal-evidence-reader.js', import.meta.url);
+  return execFileSync(process.execPath, [
+    fileURLToPath(helper),
+    path,
+    String(MAX_REPRODUCTION_BUNDLE_BYTES),
+  ], {
+    encoding: 'buffer',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 3_000,
+    killSignal: 'SIGKILL',
+    maxBuffer: MAX_REPRODUCTION_BUNDLE_BYTES + 1,
+  });
+}
 
 export interface DashboardCliOptions {
   readonly port?: number;
@@ -432,7 +445,10 @@ function authorityKeyId(key: KeyObject): string {
   return createHash('sha256').update(publicDer).digest('hex');
 }
 
-function initializeMcpAuthority(outputPath: string): void {
+export function initializeMcpAuthority(outputPath: string): void {
+  if (process.platform === 'win32') {
+    throw new Error('persistent authority keys are unsupported on Windows until restrictive file ACLs can be enforced');
+  }
   const pair = generateKeyPairSync('ed25519');
   const privateKey = pair.privateKey.export({ type: 'pkcs8', format: 'pem' });
   writeFileSync(outputPath, privateKey, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
@@ -443,8 +459,11 @@ function initializeMcpAuthority(outputPath: string): void {
   }, null, 2));
 }
 
-function loadMcpAuthorityKey(keyPath: string): KeyObject {
-  if (process.platform !== 'win32' && (statSync(keyPath).mode & 0o077) !== 0) {
+export function loadMcpAuthorityKey(keyPath: string): KeyObject {
+  if (process.platform === 'win32') {
+    throw new Error('persistent authority keys are unsupported on Windows until restrictive file ACLs can be enforced');
+  }
+  if ((statSync(keyPath).mode & 0o077) !== 0) {
     throw new Error('authority private-key file must not be accessible by group or other users (chmod 600)');
   }
   const key = createPrivateKey(readFileSync(keyPath));
@@ -725,26 +744,7 @@ async function cmdEvidence(args: readonly string[]): Promise<void> {
   }
   if (parsed.mode === 'verify') {
     try {
-      const descriptor = openSync(parsed.filePath, 'r');
-      let serialized: Buffer;
-      try {
-        if (!fstatSync(descriptor).isFile()) throw new Error('bundle must be a regular file');
-        const chunks: Buffer[] = [];
-        let bytes = 0;
-        while (bytes <= MAX_REPRODUCTION_BUNDLE_BYTES) {
-          const chunk = Buffer.allocUnsafe(Math.min(64 * 1024, MAX_REPRODUCTION_BUNDLE_BYTES + 1 - bytes));
-          const count = readSync(descriptor, chunk, 0, chunk.length, null);
-          if (count === 0) break;
-          chunks.push(chunk.subarray(0, count));
-          bytes += count;
-        }
-        if (bytes > MAX_REPRODUCTION_BUNDLE_BYTES) {
-          throw new Error(`bundle exceeds ${MAX_REPRODUCTION_BUNDLE_BYTES} bytes`);
-        }
-        serialized = Buffer.concat(chunks, bytes);
-      } finally {
-        closeSync(descriptor);
-      }
+      const serialized = readEvidenceBundleInHelper(parsed.filePath);
       const bundle = JSON.parse(serialized.toString('utf8')) as unknown;
       const result = verifyMcpReproduction(bundle);
       console.log(JSON.stringify(result, null, 2));

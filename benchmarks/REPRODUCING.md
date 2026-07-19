@@ -102,6 +102,11 @@ the [internet research index](../comparisons/README.md), and the
 
 The opaque-flow protocol gate starts the committed unmodified stdio fixture, runs 30 exact flows and eight adversarial calls, scans 400 generated canaries, verifies every receipt and chain link, validates an operator delegation and exact policy opening, rejects receipt/authority tampering and a wrong operator root, and compares client-visible bytes with a constructed direct-MCP transcript. It makes no provider request. The committed receipt is `results/mcp-opaque-flow.first-party-macos-arm64-20260715.json`.
 
+The receipt records package identity, Git base commit and dirty-state flag, the executed
+`dist/mcp/index.js` entry point, a complete manifest of every built JavaScript file, and
+the source/fixture fingerprints. Exact manifests pin the bytes that ran; the base commit
+alone is not treated as proof of a clean tree.
+
 For security-sensitive runtime changes, run both bounded models and the real-process
 adversarial conformance slice:
 

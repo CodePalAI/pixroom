@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative as relativePath, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -148,6 +148,21 @@ const fail = (message) => failures.push(message);
 const integer = new Intl.NumberFormat('en-US');
 const percentage = (value) => `${(value * 100).toFixed(1)}%`;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+
+function recursiveFiles(directory, predicate) {
+  const files = [];
+  const visit = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const absolute = join(current, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile() && predicate(absolute)) {
+        files.push(relativePath(root, absolute).split(sep).join('/'));
+      }
+    }
+  };
+  visit(directory);
+  return files.sort();
+}
 
 function removeDelimited(value, opening, closing) {
   let result = '';
@@ -298,6 +313,51 @@ for (const [sourcePath, expectedHash] of Object.entries(opaqueFlowReceipt.source
   const actualHash = sha256(readFileSync(absolute));
   if (actualHash !== expectedHash) {
     fail(`opaque-flow receipt fingerprint is stale: ${sourcePath}`);
+  }
+}
+const protocolExecution = opaqueFlowReceipt.source.execution;
+if (
+  protocolExecution?.package?.name !== packageJson.name ||
+  protocolExecution?.package?.version !== packageJson.version
+) {
+  fail('opaque-flow receipt package identity is stale');
+}
+if (!/^[a-f0-9]{40}$/.test(String(protocolExecution?.gitBaseCommit ?? ''))) {
+  fail('opaque-flow receipt Git base commit is invalid');
+}
+if (typeof protocolExecution?.worktreeDirty !== 'boolean') {
+  fail('opaque-flow receipt worktree state is invalid');
+}
+if (protocolExecution?.entryPoint !== 'dist/mcp/index.js') {
+  fail('opaque-flow receipt entry point is invalid');
+}
+if (!Array.isArray(protocolExecution?.javascriptManifest) || protocolExecution.javascriptManifest.length === 0) {
+  fail('opaque-flow receipt JavaScript manifest is missing');
+} else {
+  const seen = new Set();
+  for (const [index, file] of protocolExecution.javascriptManifest.entries()) {
+    if (
+      file == null ||
+      typeof file !== 'object' ||
+      typeof file.path !== 'string' ||
+      typeof file.sha256 !== 'string' ||
+      !/^dist\/.+\.js$/.test(file.path) ||
+      !/^[a-f0-9]{64}$/.test(file.sha256) ||
+      seen.has(file.path)
+    ) {
+      fail(`opaque-flow receipt JavaScript manifest entry is invalid: ${index}`);
+      continue;
+    }
+    seen.add(file.path);
+    const absolute = join(root, file.path);
+    if (!existsSync(absolute) || sha256(readFileSync(absolute)) !== file.sha256) {
+      fail(`opaque-flow receipt JavaScript manifest is stale: ${file.path}`);
+    }
+  }
+  const currentJavaScript = recursiveFiles(join(root, 'dist'), (path) => path.endsWith('.js'));
+  const recordedJavaScript = [...seen].sort();
+  if (JSON.stringify(recordedJavaScript) !== JSON.stringify(currentJavaScript)) {
+    fail('opaque-flow receipt JavaScript manifest does not match the complete dist JavaScript set');
   }
 }
 for (const [sourcePath, expectedHash] of Object.entries(opaqueFlowModelReceipt.source.fingerprints)) {
@@ -555,9 +615,10 @@ if (/[]/.test(readme)) fail('README contains control characters');
 if (/[—–“”]/.test(readme)) fail('README contains non-ASCII dash or quote punctuation');
 
 const visibleReadme = removeDelimited(readme, '<!--', '-->');
-const npmStatusMatches = [...readme.matchAll(/<!-- PINPOINT_NPM_STATUS: (unpublished|candidate|published) -->/g)];
+const npmStatusMatches = [...readme.matchAll(/<!-- PINPOINT_NPM_STATUS: (unpublished|development|candidate|published) -->/g)];
 if (npmStatusMatches.length !== 1) fail('README must declare exactly one PINPOINT_NPM_STATUS marker');
-const waitingForNpm = npmStatusMatches[0]?.[1] === 'unpublished';
+const npmStatus = npmStatusMatches[0]?.[1];
+const waitingForNpm = npmStatus === 'unpublished';
 if (waitingForNpm) {
   if (!visibleReadme.includes('git clone https://github.com/CodePalAI/pinpoint.git')) {
     fail('pre-npm README is missing the verified public clone command');
@@ -577,6 +638,38 @@ if (waitingForNpm) {
   }
   if (visibleReadme.includes('git+https://github.com/CodePalAI/pinpoint.git')) {
     fail('README advertises the unreliable npm Git-dependency path');
+  }
+} else if (npmStatus === 'development') {
+  for (const required of [
+    'npm install -g @codepalaiorg/pinpoint@0.2.4',
+    'npm install @codepalaiorg/pinpoint@0.2.4',
+    'npx @codepalaiorg/pinpoint@0.2.4 demo',
+    'The `0.2.5` candidate adds the MCP-first demo, doctor, and packaged reproduction',
+    'Evaluate those from this source checkout until `0.2.5` is',
+  ]) {
+    if (!visibleReadme.includes(required)) fail(`development README is missing: ${required}`);
+  }
+  for (const misleading of [
+    'npm install -g @codepalaiorg/pinpoint\n',
+    'npm install @codepalaiorg/pinpoint\n',
+    'npx @codepalaiorg/pinpoint demo',
+    'Run the core product path directly from the installed package.',
+  ]) {
+    if (visibleReadme.includes(misleading)) fail(`development README advertises unpublished behavior: ${misleading.trim()}`);
+  }
+} else if (npmStatus === 'candidate') {
+  for (const required of [
+    'npm install -g @codepalaiorg/pinpoint@0.2.5',
+    'npm install @codepalaiorg/pinpoint@0.2.5',
+    'npx @codepalaiorg/pinpoint@0.2.5 demo',
+  ]) {
+    if (!visibleReadme.includes(required)) fail(`candidate README is missing release path: ${required}`);
+  }
+  for (const stale of [
+    '@codepalaiorg/pinpoint@0.2.4',
+    'Evaluate those from this source checkout until `0.2.5` is',
+  ]) {
+    if (visibleReadme.includes(stale)) fail(`candidate README retains development path: ${stale}`);
   }
 } else {
   for (const required of [

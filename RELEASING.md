@@ -9,8 +9,10 @@ version rather than moving a tag or replacing a registry artifact.
 1. Start from a clean `main` commit whose required CI checks passed.
 2. Update the version in `package.json` and `package-lock.json`.
 3. Move all relevant changelog entries under `## <version> - YYYY-MM-DD`.
-4. Change `PINPOINT_NPM_STATUS` in `README.md` from `unpublished` to `candidate`
-  and make the verified npm install commands primary. Keep a source-checkout fallback.
+4. Change `PINPOINT_NPM_STATUS` in `README.md` from `development` (or
+  `unpublished`) to `candidate` and make the exact release-version npm install
+  commands primary. Keep a source-checkout fallback. Tagged release validation rejects
+  `development` so the immutable tarball cannot ship stale install instructions.
 5. Update receipt fingerprints or generated README assets when their source changed.
 6. Run the complete local gates:
 
