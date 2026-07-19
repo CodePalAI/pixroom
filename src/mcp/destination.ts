@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 
 import type { McpCallToolResult } from './gateway.js';
+import { isValidMcpCallToolResult } from './tool-result.js';
 
 export interface McpDestinationStdioConfig {
   readonly id: string;
@@ -383,7 +384,8 @@ export class McpDestinationPeer {
   async callTool(name: string, args: Readonly<Record<string, unknown>>): Promise<McpCallToolResult> {
     if (this.currentState !== 'ready') throw new Error('destination is not ready');
     const result = await this.request('tools/call', { name, arguments: args }, this.requestTimeoutMs);
-    if (!isRecord(result) || !Array.isArray(result.content)) {
+    if (!isValidMcpCallToolResult(result)) {
+      this.fail('destination returned an invalid MCP tool result');
       throw new Error('destination returned an invalid MCP tool result');
     }
     return result as unknown as McpCallToolResult;

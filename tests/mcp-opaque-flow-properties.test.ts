@@ -10,7 +10,7 @@ import {
   verifyMcpOpaqueFlowReceipt,
   type McpOpaqueFlowPolicy,
 } from '../src/mcp/flow.js';
-import { McpResultFirewall } from '../src/mcp/gateway.js';
+import { McpResultFirewall, type McpCallToolResult } from '../src/mcp/gateway.js';
 import { VirtualContextStore, type VirtualContextQuery } from '../src/virtual-context/store.js';
 
 const rows = Array.from({ length: 40 }, (_, id) => ({
@@ -258,6 +258,18 @@ describe('opaque-flow safety properties', () => {
     expect(value.destinationSucceeded).toBe(false);
     expect(JSON.stringify(result)).not.toContain('destination-error-private-value');
     expect(verifyMcpOpaqueFlowReceipt(value, engine.receiptVerifier)).toBe(true);
+  });
+
+  it('rejects a malformed destination error status instead of signing success', () => {
+    const { descriptor, engine } = harness();
+    const malformed = {
+      content: [{ type: 'text', text: 'destination-error-private-value' }],
+      isError: 'true',
+    } as unknown as McpCallToolResult;
+
+    expect(() => engine.complete(prepare(engine, descriptor.id), malformed)).toThrow(
+      'destination returned an invalid MCP tool result',
+    );
   });
 
   it('rejects invalid fixed-predicate policy shapes and overlaps', () => {

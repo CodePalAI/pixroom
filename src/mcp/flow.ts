@@ -11,6 +11,7 @@ import {
 
 import type { VirtualContextDescriptor, VirtualContextQuery } from '../virtual-context/store.js';
 import type { McpCallToolResult } from './gateway.js';
+import { isValidMcpCallToolResult } from './tool-result.js';
 
 export const MCP_FLOW_TOOL_NAME = 'pinpoint_flow';
 
@@ -934,6 +935,9 @@ export class McpOpaqueFlowEngine {
   }
 
   complete(plan: PreparedMcpOpaqueFlow, result: McpCallToolResult): McpCallToolResult {
+    if (!isValidMcpCallToolResult(result)) {
+      throw new TypeError('destination returned an invalid MCP tool result');
+    }
     const resultText = canonicalJson(result);
     const sequence = ++this.sequence;
     const attestation: Omit<McpOpaqueFlowReceipt, 'receiptHash' | 'verifier' | 'signature'> = {

@@ -21,6 +21,7 @@ import {
   McpDestinationPeer,
   type McpDestinationStdioConfig,
 } from './destination.js';
+import { isValidMcpCallToolResult } from './tool-result.js';
 import {
   DASHBOARD_SCHEMA_VERSION,
   sanitizeDashboardLabel,
@@ -705,7 +706,7 @@ function mergeResourceTemplates(
 }
 
 function asToolResult(result: unknown): McpCallToolResult | undefined {
-  if (!isRecord(result) || !Array.isArray(result.content)) return undefined;
+  if (!isValidMcpCallToolResult(result)) return undefined;
   return result as unknown as McpCallToolResult;
 }
 
@@ -824,6 +825,7 @@ export async function runMcpGateway(
     throw cause;
   }
   const pending = new Map<string, PendingRequest>();
+  const activeFlowClientIds = new Set<string>();
   const shutdownGraceMs = Math.max(0, Math.trunc(options.shutdownGraceMs ?? 2_000));
   let upstreamHasResources = false;
   let clientQueue = Promise.resolve();
@@ -912,6 +914,12 @@ export async function runMcpGateway(
       }
       if (call?.name === MCP_FLOW_TOOL_NAME && flowEngine) {
         const started = performance.now();
+        const clientKey = rpcKey(message.id);
+        if (pending.has(clientKey) || activeFlowClientIds.has(clientKey)) {
+          writeRpc(output, rpcError(message.id, -32600, 'duplicate outstanding JSON-RPC request id'));
+          return;
+        }
+        activeFlowClientIds.add(clientKey);
         try {
           const plan = flowEngine.prepare(call.arguments);
           protectedDataHandled = true;
@@ -924,6 +932,7 @@ export async function runMcpGateway(
             void destinationCall.then(
               (destinationResult) => {
                 destinationQueue = queueLine(destinationQueue, () => {
+                  activeFlowClientIds.delete(clientKey);
                   activeOpaqueFlows = Math.max(0, activeOpaqueFlows - 1);
                   resetSensitiveStderr();
                   const result = flowEngine.complete(plan, destinationResult);
@@ -935,6 +944,7 @@ export async function runMcpGateway(
                 destinationCatalogValidated = false;
                 flowPoliciesValidated = false;
                 destinationQueue = queueLine(destinationQueue, () => {
+                  activeFlowClientIds.delete(clientKey);
                   activeOpaqueFlows = Math.max(0, activeOpaqueFlows - 1);
                   resetSensitiveStderr();
                   const destinationResult = errorResult('destination execution status unavailable');
@@ -966,6 +976,7 @@ export async function runMcpGateway(
             })}\n`);
           }
         } catch (cause) {
+          activeFlowClientIds.delete(clientKey);
           activeOpaqueFlows = Math.max(0, activeOpaqueFlows - 1);
           resetSensitiveStderr();
           writeRpc(output, rpcResult(message.id, flowEngine.error(cause)));
@@ -1032,7 +1043,7 @@ export async function runMcpGateway(
       const call = message.method === 'tools/call' ? callParams(message.params) : undefined;
       const protectedSource = call != null && firewall.isProtectedSourceTool(call.name);
       const key = rpcKey(message.id);
-      if (pending.has(key)) {
+      if (pending.has(key) || activeFlowClientIds.has(key)) {
         writeRpc(output, rpcError(message.id, -32600, 'duplicate outstanding JSON-RPC request id'));
         return;
       }
@@ -1083,6 +1094,7 @@ export async function runMcpGateway(
     }
     pending.delete(rpcKey(message.id));
     if (request.opaqueFlow) {
+      activeFlowClientIds.delete(rpcKey(request.opaqueFlow.clientId));
       activeOpaqueFlows = Math.max(0, activeOpaqueFlows - 1);
       resetSensitiveStderr();
       const destinationResult = message.error != null
@@ -1265,6 +1277,24 @@ export async function runMcpGateway(
   clientLines.close();
   upstreamLines.close();
   await Promise.all([clientQueue, upstreamQueue, destinationQueue]);
+  if (flowEngine) {
+    for (const [key, request] of pending) {
+      if (!request.opaqueFlow) continue;
+      pending.delete(key);
+      activeFlowClientIds.delete(rpcKey(request.opaqueFlow.clientId));
+      activeOpaqueFlows = Math.max(0, activeOpaqueFlows - 1);
+      resetSensitiveStderr();
+      const destinationResult = errorResult('destination execution status unavailable');
+      const result = flowEngine.complete(request.opaqueFlow.plan, destinationResult);
+      observe(flowEvent(
+        request.opaqueFlow.plan,
+        destinationResult,
+        result,
+        request.startedAt ?? performance.now(),
+      ));
+      writeRpc(output, rpcResult(request.opaqueFlow.clientId, result));
+    }
+  }
   const failed = destinationPeer?.state === 'failed';
   observe({
     schemaVersion: DASHBOARD_SCHEMA_VERSION,

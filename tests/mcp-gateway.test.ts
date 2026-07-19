@@ -674,13 +674,14 @@ describe('McpResultFirewall', () => {
             });
           } else if (message.params.name === 'campaign_deliver') {
             const recipients = message.params.arguments.recipients;
+            if (message.params.arguments.campaign === 'crash-after-dispatch') process.exit(7);
             const payloadHash = createHash('sha256').update(JSON.stringify(recipients)).digest('hex');
             const valid = payloadHash === '${selectedHash}' && message.params.arguments.campaign === 'renewal';
-            reply(message.id, {
+            setTimeout(() => reply(message.id, {
               content: [{ type: 'text', text: JSON.stringify({ accepted: recipients.length, valid }) }],
               structuredContent: { accepted: recipients.length, valid },
               ...(valid ? {} : { isError: true }),
-            });
+            }), 20);
           }
         }
       }
@@ -916,6 +917,72 @@ describe('McpResultFirewall', () => {
     ]).size).toBe(3);
     expect(concurrentReceipts.every((candidate) => verifyMcpOpaqueFlowReceipt(candidate))).toBe(true);
 
+    const duplicateFlow = {
+      jsonrpc: '2.0',
+      id: 7,
+      method: 'tools/call',
+      params: {
+        name: MCP_FLOW_TOOL_NAME,
+        arguments: {
+          flow: 'deliver_active_accounts',
+          id: artifactId,
+          op: 'json_select',
+          where: { active: true },
+          fields: ['email'],
+          destinationArguments: { campaign: 'renewal' },
+        },
+      },
+    };
+    send(input, duplicateFlow);
+    send(input, duplicateFlow);
+    expect(await next()).toMatchObject({
+      id: 7,
+      error: { code: -32600, message: 'duplicate outstanding JSON-RPC request id' },
+    });
+    const uniqueDuplicateResponse = await next();
+    const uniqueDuplicateText = (uniqueDuplicateResponse.result as {
+      content: Array<{ text: string }>;
+    }).content[0]?.text ?? '';
+    const uniqueDuplicateReceipt = JSON.parse(uniqueDuplicateText).pinpointFlow;
+    expect(uniqueDuplicateReceipt).toMatchObject({
+      sequence: 4,
+      previousReceiptHash: concurrentReceipts[1].receiptHash,
+      destinationSucceeded: true,
+    });
+
+    send(input, {
+      jsonrpc: '2.0',
+      id: 8,
+      method: 'tools/call',
+      params: {
+        name: MCP_FLOW_TOOL_NAME,
+        arguments: {
+          flow: 'deliver_active_accounts',
+          id: artifactId,
+          op: 'json_select',
+          where: { active: true },
+          fields: ['email'],
+          destinationArguments: { campaign: 'crash-after-dispatch' },
+        },
+      },
+    });
+    expect(await running).toBe(7);
+    const crashResponse = visible
+      .join('')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+      .find(({ id }) => id === 8);
+    expect(crashResponse).toBeDefined();
+    const crashReceiptText = crashResponse?.result?.content?.[0]?.text ?? '';
+    const crashReceipt = JSON.parse(crashReceiptText).pinpointFlow;
+    expect(crashReceipt).toMatchObject({
+      sequence: 5,
+      previousReceiptHash: uniqueDuplicateReceipt.receiptHash,
+      destinationSucceeded: false,
+    });
+    expect(verifyMcpOpaqueFlowReceipt(crashReceipt)).toBe(true);
+
     const clientVisible = visible.join('');
     for (const row of secretRows) {
       expect(clientVisible).not.toContain(row.email);
@@ -925,6 +992,5 @@ describe('McpResultFirewall', () => {
     expect(clientVisible).not.toContain(selectedHash);
 
     input.end();
-    expect(await running).toBe(0);
   });
 });
