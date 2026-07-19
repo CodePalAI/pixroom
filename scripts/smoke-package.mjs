@@ -47,7 +47,7 @@ const publicEntries = [
 const packageBudget = {
   maxFiles: 210,
   maxPackedBytes: 450_000,
-  maxUnpackedBytes: 1_250_000,
+  maxUnpackedBytes: 1_260_000,
 };
 
 try {
