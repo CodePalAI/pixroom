@@ -506,11 +506,13 @@ pinpoint evidence reproduce \
 pinpoint evidence verify pinpoint-opaque-flow-reproduction.json
 ```
 
-The bundle contains environment and package metadata, runtime fingerprints, all 30
-signed chain-linked receipts, eight denial outcomes, process/side-effect checks, explicit
-limitations, and a canonical bundle hash. It excludes fixture values and is created with
-mode `0600` on POSIX. Keep failed bundles too. Relationship is operator-declared and
-does not become independent evidence until an unaffiliated submission is reviewed.
+The bundle contains environment and package metadata, a nine-file runtime manifest, all
+30 signed chain-linked receipts from repeated calls of one synthetic flow, eight retained
+denial records, process/side-effect checks, explicit limitations, and an accidental-
+corruption checksum. It excludes fixture values and is created with mode `0600` on
+POSIX. Keep failed bundles too. The checksum and embedded receipt verifier do not
+authenticate the human operator. Relationship is operator-declared and does not become
+independent evidence until an unaffiliated submission is reviewed.
 
 Submit the JSON through the
 [Evidence replication form](https://github.com/CodePalAI/pinpoint/issues/new?template=benchmark_replication.yml).

@@ -9,7 +9,7 @@
  */
 
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from 'node:crypto';
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 
 import { createProxyServer } from '../proxy/server.js';
@@ -42,6 +42,7 @@ import { openDashboardInBrowser } from '../dashboard/browser.js';
 import { closeDashboardSession } from '../dashboard/lifecycle.js';
 import { runMcpDemo } from './mcp-demo.js';
 import {
+  MAX_REPRODUCTION_BUNDLE_BYTES,
   REPRODUCTION_RELATIONSHIPS,
   runMcpReproduction,
   verifyMcpReproduction,
@@ -713,6 +714,10 @@ async function cmdEvidence(args: readonly string[]): Promise<void> {
   }
   if (parsed.mode === 'verify') {
     try {
+      const bytes = statSync(parsed.filePath).size;
+      if (bytes > MAX_REPRODUCTION_BUNDLE_BYTES) {
+        throw new Error(`bundle exceeds ${MAX_REPRODUCTION_BUNDLE_BYTES} bytes`);
+      }
       const bundle = JSON.parse(readFileSync(parsed.filePath, 'utf8')) as unknown;
       const result = verifyMcpReproduction(bundle);
       console.log(JSON.stringify(result, null, 2));
@@ -721,6 +726,11 @@ async function cmdEvidence(args: readonly string[]): Promise<void> {
       console.error(`could not verify evidence bundle: ${cause instanceof Error ? cause.message : String(cause)}`);
       process.exitCode = 2;
     }
+    return;
+  }
+  if (parsed.outputPath && existsSync(parsed.outputPath)) {
+    console.error(`could not write evidence bundle: output already exists: ${parsed.outputPath}`);
+    process.exitCode = 2;
     return;
   }
   const bundle = await runMcpReproduction(parsed.relationship);

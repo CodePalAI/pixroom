@@ -253,12 +253,21 @@ try {
   ]));
   if (
     reproductionVerification.valid !== true ||
-    reproductionVerification.flowCalls !== 30 ||
+    reproductionVerification.repeatedFlowCalls !== 30 ||
     reproductionVerification.bypassesDenied !== 8 ||
-    reproductionVerification.privateValuesVisible !== 0
+    reproductionVerification.privateValuesVisible !== 0 ||
+    reproductionVerification.checks?.schema !== true ||
+    reproductionVerification.checks?.checksum !== true ||
+    reproductionVerification.checks?.receiptChain !== true ||
+    reproductionVerification.checks?.reportedResults !== true ||
+    reproductionVerification.checks?.runtimeManifest !== true ||
+    reproductionVerification.checks?.relationshipDeclared !== true ||
+    reproductionVerification.checks?.operatorAuthenticated !== false
   ) {
     throw new Error('installed evidence reproduction did not verify');
   }
+  const originalReproduction = readFileSync(reproductionPath);
+  let overwriteRejected = false;
   try {
     run(process.execPath, [
       cli,
@@ -269,12 +278,15 @@ try {
       '--out',
       reproductionPath,
     ]);
-    throw new Error('installed evidence command overwrote an existing bundle');
   } catch (cause) {
-    if (
-      cause instanceof Error &&
-      cause.message === 'installed evidence command overwrote an existing bundle'
-    ) throw cause;
+    const stderr = cause != null && typeof cause === 'object' && 'stderr' in cause
+      ? String(cause.stderr)
+      : '';
+    overwriteRejected = /output already exists/.test(stderr);
+  }
+  if (!overwriteRejected) throw new Error('installed evidence command did not reject existing output');
+  if (!readFileSync(reproductionPath).equals(originalReproduction)) {
+    throw new Error('installed evidence command changed an existing bundle');
   }
   const installedReadme = join(
     temporary,

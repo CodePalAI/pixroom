@@ -17,10 +17,12 @@ pinpoint evidence verify pinpoint-opaque-flow-reproduction.json
 
 Use `maintainer`, `contracted`, or `other` instead of `unaffiliated` when appropriate.
 The relationship field is self-declared and must be checked with the submission. The
-bundle runs 30 exact hidden destination calls and eight bypass classes through the
-production gateway, retains every signed receipt for chain verification, scans 401
-synthetic private values, and records runtime file fingerprints plus package identity.
-It contains no fixture values, credentials, prompts, or raw event stream.
+bundle runs 30 repeated exact calls of one synthetic hidden destination flow and eight
+bypass classes through the production gateway, retains every signed receipt and denial
+record, scans 401 synthetic private values, and records a nine-file runtime manifest plus
+package identity. It contains no fixture values, credentials, prompts, or raw event
+stream. Its SHA-256 checksum detects accidental corruption; neither that checksum nor
+the embedded receipt verifier authenticates the operator.
 
 Keep failed bundles and disclose every attempt. Submit through the
 [Evidence replication issue form](../.github/ISSUE_TEMPLATE/benchmark_replication.yml)

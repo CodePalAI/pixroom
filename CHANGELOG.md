@@ -15,10 +15,12 @@ All notable changes are documented here. This project follows semantic versionin
 - `pinpoint doctor` now validates the core MCP gateway by default without probing
 	optional compression services. Legacy pxpipe/Headroom checks moved to
 	`pinpoint doctor optimizer`; Copilot readiness remains `pinpoint doctor copilot`.
-- `pinpoint evidence reproduce` now runs the packaged 30-flow/8-bypass no-model
-	protocol gate and writes a content-free, relationship-labeled, mode-0600 JSON
-	bundle. `pinpoint evidence verify` checks its canonical hash, summary, receipt
-	signatures, initialized verifier, and complete chain.
+- `pinpoint evidence reproduce` now runs 30 repeated calls of one packaged
+	synthetic flow plus eight bypass classes as a no-model protocol gate, then writes
+	a content-free, relationship-labeled, mode-0600 JSON
+	bundle. `pinpoint evidence verify` separately checks strict schema, accidental-
+	corruption checksum, reported results, runtime manifest, receipt signatures,
+	initialized verifier, and complete chain without claiming operator authentication.
 
 ### Fixed
 

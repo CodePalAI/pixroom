@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { arch, platform, release } from 'node:os';
+import { sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -9,7 +10,22 @@ import {
   type McpOpaqueFlowReceipt,
   type McpOpaqueFlowReceiptVerifier,
 } from '../mcp/flow.js';
-import { runMcpScenario } from './mcp-demo.js';
+import {
+  runMcpScenario,
+  type McpScenarioDenial,
+} from './mcp-demo.js';
+
+export const MAX_REPRODUCTION_BUNDLE_BYTES = 256 * 1024;
+
+const REPRODUCTION_LIMITATIONS = [
+  'This runs 30 repeated calls of one synthetic flow; it is not 30 distinct workflows.',
+  'This is a no-model protocol reproduction, not a production workflow or demand signal.',
+  'The source, destination, policy, fixture, and harness ship in the same npm package under test.',
+  'Relationship is operator-declared and must be reviewed with the submission.',
+  'The SHA-256 checksum detects accidental corruption; it is not a signature or operator authentication.',
+  'Distinct commitments across repetitions are an observed smoke check, not a standalone unlinkability proof.',
+  'The operating system, Node runtime, cryptography, and package registry remain trusted.',
+] as const;
 
 export const REPRODUCTION_RELATIONSHIPS = [
   'unaffiliated',
@@ -19,6 +35,28 @@ export const REPRODUCTION_RELATIONSHIPS = [
 ] as const;
 
 export type ReproductionRelationship = typeof REPRODUCTION_RELATIONSHIPS[number];
+
+export type ReproductionFailureCode =
+  | 'PACKAGE_METADATA_UNAVAILABLE'
+  | 'RUNTIME_MANIFEST_UNAVAILABLE'
+  | 'GATEWAY_INITIALIZATION_FAILED'
+  | 'CATALOG_VALIDATION_FAILED'
+  | 'CAPABILITY_CAPTURE_FAILED'
+  | 'BYPASS_DENIAL_FAILED'
+  | 'UNAUTHORIZED_SIDE_EFFECT'
+  | 'RECEIPT_CHAIN_FAILED'
+  | 'PRIVATE_VALUE_VISIBLE'
+  | 'GATEWAY_EXIT_FAILED'
+  | 'SELF_CHECK_FAILED'
+  | 'INTERNAL_ERROR';
+
+export interface ReproductionRuntimeManifest {
+  readonly executionForm: 'compiled-javascript' | 'typescript-source';
+  readonly files: readonly {
+    readonly path: string;
+    readonly sha256: string;
+  }[];
+}
 
 export interface McpReproductionBundle {
   readonly schemaVersion: 1;
@@ -37,41 +75,55 @@ export interface McpReproductionBundle {
     readonly node: string;
   };
   readonly package: {
-    readonly name: string;
-    readonly version: string;
+    readonly name: string | null;
+    readonly version: string | null;
   };
-  readonly source: {
-    readonly fingerprints: Readonly<Record<string, string>>;
-  };
+  readonly runtime: ReproductionRuntimeManifest | null;
   readonly summary: {
-    readonly flowCalls: number;
-    readonly destinationAcceptedCalls: number;
-    readonly bypassAttempts: number;
-    readonly bypassesDenied: number;
-    readonly privateValuesScanned: number;
-    readonly privateValuesVisible: number;
+    readonly repeatedFlowCalls: number | null;
+    readonly destinationAcceptedCalls: number | null;
+    readonly bypassAttempts: number | null;
+    readonly bypassesDenied: number | null;
+    readonly privateValuesScanned: number | null;
+    readonly privateValuesVisible: number | null;
     readonly durationMs: number;
   };
+  readonly denials: readonly McpScenarioDenial[];
   readonly security: {
-    readonly exactPersistedProjection: boolean;
-    readonly processSeparationValid: boolean;
-    readonly oneDispatchPerFlow: boolean;
-    readonly receiptChainValid: boolean;
-    readonly commitmentsUnlinkable: boolean;
+    readonly exactPersistedProjection: boolean | null;
+    readonly processSeparationValid: boolean | null;
+    readonly oneDispatchPerFlow: boolean | null;
+    readonly receiptChainValid: boolean | null;
+    readonly commitmentsDistinctAcrossRepetitions: boolean | null;
   };
   readonly receiptVerifier: McpOpaqueFlowReceiptVerifier | null;
   readonly receipts: readonly McpOpaqueFlowReceipt[];
-  readonly failure: string | null;
+  readonly failure: { readonly code: ReproductionFailureCode } | null;
   readonly limitations: readonly string[];
-  readonly bundleSha256: string;
+  readonly integrity: {
+    readonly algorithm: 'SHA-256';
+    readonly scope: 'canonical-bundle-without-integrity';
+    readonly checksum: string;
+    readonly authenticated: false;
+  };
 }
 
 export interface ReproductionVerification {
   readonly valid: boolean;
   readonly errors: readonly string[];
-  readonly flowCalls: number;
-  readonly bypassesDenied: number;
-  readonly privateValuesVisible: number;
+  readonly warnings: readonly string[];
+  readonly checks: {
+    readonly schema: boolean;
+    readonly checksum: boolean;
+    readonly receiptChain: boolean;
+    readonly reportedResults: boolean;
+    readonly runtimeManifest: boolean;
+    readonly relationshipDeclared: boolean;
+    readonly operatorAuthenticated: false;
+  };
+  readonly repeatedFlowCalls: number | null;
+  readonly bypassesDenied: number | null;
+  readonly privateValuesVisible: number | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -92,39 +144,179 @@ function packageIdentity(): { name: string; version: string } {
   return { name: value.name, version: value.version };
 }
 
-function fingerprint(relativeJs: string, relativeTs: string): string {
-  const candidates = [
-    fileURLToPath(new URL(relativeJs, import.meta.url)),
-    fileURLToPath(new URL(relativeTs, import.meta.url)),
-  ];
-  const path = candidates.find(existsSync);
-  if (!path) throw new Error(`runtime evidence source is unavailable: ${relativeJs}`);
-  return sha256(readFileSync(path));
-}
+const RUNTIME_COMPONENTS = [
+  ['src/cli/evidence.ts', 'dist/cli/evidence.js'],
+  ['src/cli/mcp-demo.ts', 'dist/cli/mcp-demo.js'],
+  ['src/mcp/gateway.ts', 'dist/mcp/gateway.js'],
+  ['src/mcp/flow.ts', 'dist/mcp/flow.js'],
+  ['src/mcp/destination.ts', 'dist/mcp/destination.js'],
+  ['src/mcp/tool-result.ts', 'dist/mcp/tool-result.js'],
+  ['src/virtual-context/store.ts', 'dist/virtual-context/store.js'],
+] as const;
 
-function runtimeFingerprints(): Readonly<Record<string, string>> {
+function runtimeManifest(): ReproductionRuntimeManifest {
+  const modulePath = fileURLToPath(import.meta.url);
+  const compiled = modulePath.includes(`${sep}dist${sep}cli${sep}`);
+  const root = new URL('../../', import.meta.url);
+  const paths = [
+    ...RUNTIME_COMPONENTS.map(([source, built]) => compiled ? built : source),
+    'bin/cli.js',
+    'package.json',
+  ];
+  const files = paths.map((path) => {
+    const absolute = fileURLToPath(new URL(path, root));
+    if (!existsSync(absolute)) throw new Error(`runtime manifest file is unavailable: ${path}`);
+    return { path, sha256: sha256(readFileSync(absolute)) };
+  });
   return {
-    'runtime/mcp/gateway': fingerprint('../mcp/gateway.js', '../mcp/gateway.ts'),
-    'runtime/mcp/flow': fingerprint('../mcp/flow.js', '../mcp/flow.ts'),
-    'runtime/mcp/destination': fingerprint('../mcp/destination.js', '../mcp/destination.ts'),
-    'runtime/cli/mcp-demo': fingerprint('./mcp-demo.js', './mcp-demo.ts'),
-    'runtime/cli/evidence': fingerprint('./evidence.js', './evidence.ts'),
+    executionForm: compiled ? 'compiled-javascript' : 'typescript-source',
+    files,
   };
 }
 
 function finalizeBundle(
-  value: Omit<McpReproductionBundle, 'bundleSha256'>,
+  value: Omit<McpReproductionBundle, 'integrity'>,
 ): McpReproductionBundle {
-  return { ...value, bundleSha256: sha256(canonicalJson(value)) };
+  return {
+    ...value,
+    integrity: {
+      algorithm: 'SHA-256',
+      scope: 'canonical-bundle-without-integrity',
+      checksum: sha256(canonicalJson(value)),
+      authenticated: false,
+    },
+  };
 }
 
-function safeFailure(cause: unknown): string {
+function failureCode(cause: unknown): ReproductionFailureCode {
   const message = cause instanceof Error ? cause.message : String(cause);
-  return message.replace(/[\r\n]+/g, ' ').slice(0, 240);
+  if (message.includes('package metadata')) return 'PACKAGE_METADATA_UNAVAILABLE';
+  if (message.includes('runtime manifest')) return 'RUNTIME_MANIFEST_UNAVAILABLE';
+  if (message.includes('initialization')) return 'GATEWAY_INITIALIZATION_FAILED';
+  if (message.includes('catalog validation')) return 'CATALOG_VALIDATION_FAILED';
+  if (message.includes('capability')) return 'CAPABILITY_CAPTURE_FAILED';
+  if (message.includes('bypass') && message.includes('denial')) return 'BYPASS_DENIAL_FAILED';
+  if (message.includes('unauthorized destination side effect')) return 'UNAUTHORIZED_SIDE_EFFECT';
+  if (message.includes('receipt chain')) return 'RECEIPT_CHAIN_FAILED';
+  if (message.includes('private fixture value')) return 'PRIVATE_VALUE_VISIBLE';
+  if (message.includes('gateway exited')) return 'GATEWAY_EXIT_FAILED';
+  if (message.includes('self-check')) return 'SELF_CHECK_FAILED';
+  return 'INTERNAL_ERROR';
+}
+
+function boundedJsonShape(value: unknown): boolean {
+  const stack: Array<{ value: unknown; depth: number }> = [{ value, depth: 0 }];
+  let nodes = 0;
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    nodes += 1;
+    if (nodes > 50_000 || current.depth > 16) return false;
+    if (typeof current.value === 'string') {
+      if (current.value.length > 16_384) return false;
+    } else if (Array.isArray(current.value)) {
+      if (current.value.length > 1_000) return false;
+      for (const child of current.value) stack.push({ value: child, depth: current.depth + 1 });
+    } else if (isRecord(current.value)) {
+      const entries = Object.entries(current.value);
+      if (entries.length > 100 || entries.some(([key]) => key.length > 128)) return false;
+      for (const [, child] of entries) stack.push({ value: child, depth: current.depth + 1 });
+    }
+  }
+  return true;
+}
+
+function exactKeys(
+  value: unknown,
+  required: readonly string[],
+  optional: readonly string[],
+  label: string,
+  errors: string[],
+): value is Record<string, unknown> {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object`);
+    return false;
+  }
+  const allowed = new Set([...required, ...optional]);
+  const unknown = Object.keys(value).filter((key) => !allowed.has(key));
+  const missing = required.filter((key) => !(key in value));
+  if (unknown.length > 0) errors.push(`${label} has unknown field: ${unknown[0]}`);
+  if (missing.length > 0) errors.push(`${label} is missing field: ${missing[0]}`);
+  return unknown.length === 0 && missing.length === 0;
+}
+
+function stringArray(value: unknown, expected?: readonly string[]): boolean {
+  return Array.isArray(value) &&
+    value.every((item) => typeof item === 'string' && item.length <= 128) &&
+    (expected == null || canonicalJson(value) === canonicalJson(expected));
+}
+
+function hash(value: unknown, prefix = ''): boolean {
+  return typeof value === 'string' && new RegExp(`^${prefix}[a-f0-9]{64}$`).test(value);
+}
+
+const RECEIPT_KEYS = [
+  'receiptVersion', 'sequence', 'flow', 'artifactId', 'sourceTool', 'destinationTool',
+  'destinationServer', 'destinationArgument', 'op', 'whereFields', 'projectionFields',
+  'destinationArgumentNames', 'policyShapeSha256', 'policyLimits', 'items', 'payloadBytes',
+  'commitmentAlgorithm', 'payloadCommitment', 'queryCommitment', 'destinationSucceeded',
+  'destinationResultBytes', 'destinationResultCommitment', 'previousReceiptHash',
+  'signingKeyId', 'disclosure', 'receiptHash', 'verifier', 'signature',
+] as const;
+
+function validReceiptShape(value: unknown, index: number, errors: string[]): value is McpOpaqueFlowReceipt {
+  const label = `receipt ${index + 1}`;
+  if (!exactKeys(value, RECEIPT_KEYS, [], label, errors)) return false;
+  const receipt = value as Record<string, unknown>;
+  let valid = true;
+  const check = (condition: boolean, message: string): void => {
+    if (!condition) {
+      valid = false;
+      errors.push(`${label} ${message}`);
+    }
+  };
+  check(receipt.receiptVersion === 1, 'has invalid receiptVersion');
+  check(receipt.sequence === index + 1, 'has invalid sequence');
+  check(receipt.flow === 'deliver_active_accounts', 'has invalid flow');
+  check(typeof receipt.artifactId === 'string' && /^vctx_[a-f0-9]{32}$/.test(receipt.artifactId), 'has invalid artifactId');
+  check(receipt.sourceTool === 'accounts_list', 'has invalid sourceTool');
+  check(receipt.destinationTool === 'campaign_deliver', 'has invalid destinationTool');
+  check(receipt.destinationServer === 'demo-destination', 'has invalid destinationServer');
+  check(receipt.destinationArgument === 'recipients', 'has invalid destinationArgument');
+  check(receipt.op === 'json_select', 'has invalid operation');
+  check(stringArray(receipt.whereFields, ['active']), 'has invalid whereFields');
+  check(stringArray(receipt.projectionFields, ['email']), 'has invalid projectionFields');
+  check(stringArray(receipt.destinationArgumentNames, ['campaign']), 'has invalid destinationArgumentNames');
+  check(hash(receipt.policyShapeSha256), 'has invalid policyShapeSha256');
+  if (exactKeys(receipt.policyLimits, ['maxItems', 'maxBytes'], [], `${label}.policyLimits`, errors)) {
+    check(receipt.policyLimits.maxItems === 40 && receipt.policyLimits.maxBytes === 4_096, 'has invalid policyLimits');
+  } else valid = false;
+  check(receipt.items === 40, 'has invalid item count');
+  check(typeof receipt.payloadBytes === 'number' && receipt.payloadBytes > 0, 'has invalid payloadBytes');
+  check(receipt.commitmentAlgorithm === 'HMAC-SHA256', 'has invalid commitmentAlgorithm');
+  check(hash(receipt.payloadCommitment, 'hmac-sha256:'), 'has invalid payloadCommitment');
+  check(hash(receipt.queryCommitment, 'hmac-sha256:'), 'has invalid queryCommitment');
+  check(receipt.destinationSucceeded === true, 'reports destination failure');
+  check(typeof receipt.destinationResultBytes === 'number' && receipt.destinationResultBytes > 0, 'has invalid destinationResultBytes');
+  check(hash(receipt.destinationResultCommitment, 'hmac-sha256:'), 'has invalid destinationResultCommitment');
+  check(hash(receipt.previousReceiptHash), 'has invalid previousReceiptHash');
+  check(hash(receipt.signingKeyId), 'has invalid signingKeyId');
+  check(receipt.disclosure === 'receipt', 'has invalid disclosure');
+  check(hash(receipt.receiptHash), 'has invalid receiptHash');
+  if (exactKeys(receipt.verifier, ['algorithm', 'publicKey'], [], `${label}.verifier`, errors)) {
+    check(
+      receipt.verifier.algorithm === 'Ed25519' &&
+      typeof receipt.verifier.publicKey === 'string' &&
+      /^[A-Za-z0-9_-]{40,128}$/.test(receipt.verifier.publicKey),
+      'has invalid verifier',
+    );
+  } else valid = false;
+  check(typeof receipt.signature === 'string' && /^[A-Za-z0-9_-]{80,128}$/.test(receipt.signature), 'has invalid signature');
+  return valid;
 }
 
 export async function runMcpReproduction(
   relationship: ReproductionRelationship,
+  options: { readonly scenarioRunner?: typeof runMcpScenario } = {},
 ): Promise<McpReproductionBundle> {
   if (!REPRODUCTION_RELATIONSHIPS.includes(relationship)) {
     throw new TypeError('invalid reproduction relationship');
@@ -144,27 +336,72 @@ export async function runMcpReproduction(
       architecture: arch(),
       node: process.version,
     },
-    package: packageIdentity(),
-    source: { fingerprints: runtimeFingerprints() },
-    limitations: [
-      'This is a synthetic no-model protocol reproduction, not a production workflow or demand signal.',
-      'The source, destination, policy, fixture, and harness ship in the same npm package under test.',
-      'Relationship is operator-declared and must be reviewed with the submission.',
-      'The operating system, Node runtime, cryptography, and package registry remain trusted.',
-    ],
+    limitations: REPRODUCTION_LIMITATIONS,
   };
+  let identity: { name: string; version: string } | null = null;
+  let runtime: ReproductionRuntimeManifest | null = null;
+  let setupFailure: ReproductionFailureCode | undefined;
   try {
-    const scenario = await runMcpScenario({ flowCalls: 30, extendedBypasses: true });
-    const commitmentsUnlinkable = new Set(
+    identity = packageIdentity();
+  } catch (cause) {
+    setupFailure = failureCode(cause);
+  }
+  if (!setupFailure) {
+    try {
+      runtime = runtimeManifest();
+    } catch (cause) {
+      setupFailure = failureCode(cause);
+    }
+  }
+  const failedBundle = (code: ReproductionFailureCode): McpReproductionBundle => {
+    const completedAt = new Date().toISOString();
+    return finalizeBundle({
+      ...base,
+      package: identity ?? { name: null, version: null },
+      runtime,
+      startedAt: fallbackStartedAt,
+      completedAt,
+      passed: false,
+      summary: {
+        repeatedFlowCalls: null,
+        destinationAcceptedCalls: null,
+        bypassAttempts: null,
+        bypassesDenied: null,
+        privateValuesScanned: null,
+        privateValuesVisible: null,
+        durationMs: Math.max(0, Date.parse(completedAt) - Date.parse(fallbackStartedAt)),
+      },
+      denials: [],
+      security: {
+        exactPersistedProjection: null,
+        processSeparationValid: null,
+        oneDispatchPerFlow: null,
+        receiptChainValid: null,
+        commitmentsDistinctAcrossRepetitions: null,
+      },
+      receiptVerifier: null,
+      receipts: [],
+      failure: { code },
+    });
+  };
+  if (setupFailure) return failedBundle(setupFailure);
+  try {
+    const scenario = await (options.scenarioRunner ?? runMcpScenario)({
+      flowCalls: 30,
+      extendedBypasses: true,
+    });
+    const commitmentsDistinctAcrossRepetitions = new Set(
       scenario.receipts.map(({ payloadCommitment }) => payloadCommitment),
     ).size === scenario.receipts.length;
     return finalizeBundle({
       ...base,
+      package: identity!,
+      runtime: runtime!,
       startedAt: scenario.startedAt,
       completedAt: scenario.completedAt,
       passed: true,
       summary: {
-        flowCalls: scenario.receipts.length,
+        repeatedFlowCalls: scenario.receipts.length,
         destinationAcceptedCalls: scenario.destinationDispatches,
         bypassAttempts: scenario.bypassAttempts,
         bypassesDenied: scenario.bypassesDenied,
@@ -172,102 +409,204 @@ export async function runMcpReproduction(
         privateValuesVisible: scenario.privateValuesVisible,
         durationMs: scenario.durationMs,
       },
+      denials: scenario.denials,
       security: {
         exactPersistedProjection: scenario.projectionExact,
         processSeparationValid: scenario.processSeparationValid,
         oneDispatchPerFlow: scenario.destinationDispatches === scenario.receipts.length,
         receiptChainValid: true,
-        commitmentsUnlinkable,
+        commitmentsDistinctAcrossRepetitions,
       },
       receiptVerifier: scenario.receiptVerifier,
       receipts: scenario.receipts,
       failure: null,
     });
   } catch (cause) {
-    const completedAt = new Date().toISOString();
-    return finalizeBundle({
-      ...base,
-      startedAt: fallbackStartedAt,
-      completedAt,
-      passed: false,
-      summary: {
-        flowCalls: 0,
-        destinationAcceptedCalls: 0,
-        bypassAttempts: 8,
-        bypassesDenied: 0,
-        privateValuesScanned: 401,
-        privateValuesVisible: 0,
-        durationMs: Math.max(0, Date.parse(completedAt) - Date.parse(fallbackStartedAt)),
-      },
-      security: {
-        exactPersistedProjection: false,
-        processSeparationValid: false,
-        oneDispatchPerFlow: false,
-        receiptChainValid: false,
-        commitmentsUnlinkable: false,
-      },
-      receiptVerifier: null,
-      receipts: [],
-      failure: safeFailure(cause),
-    });
+    return failedBundle(failureCode(cause));
   }
 }
 
 export function verifyMcpReproduction(value: unknown): ReproductionVerification {
   const errors: string[] = [];
-  if (!isRecord(value)) {
-    return { valid: false, errors: ['bundle must be an object'], flowCalls: 0, bypassesDenied: 0, privateValuesVisible: 0 };
-  }
-  const bundle = value as unknown as McpReproductionBundle;
-  if (bundle.schemaVersion !== 1) errors.push('unsupported schemaVersion');
-  if (bundle.evidenceLevel !== 'self-contained-protocol-reproduction') errors.push('invalid evidenceLevel');
-  if (bundle.kind !== 'mcp-value-opaque-flow-reproduction') errors.push('invalid kind');
-  if (!REPRODUCTION_RELATIONSHIPS.includes(bundle.relationship)) errors.push('invalid relationship');
-  if (bundle.passed !== true) errors.push('reproduction did not pass');
-  if (bundle.failure !== null) errors.push('bundle contains a failure');
-  if (!Array.isArray(bundle.receipts)) errors.push('receipts must be an array');
-  if (!isRecord(bundle.receiptVerifier)) errors.push('receiptVerifier is missing');
-  const receipts = Array.isArray(bundle.receipts) ? bundle.receipts : [];
-  const verifier = isRecord(bundle.receiptVerifier)
-    ? bundle.receiptVerifier as unknown as McpOpaqueFlowReceiptVerifier
-    : undefined;
-  let previousReceiptHash = '0'.repeat(64);
-  for (const [index, receipt] of receipts.entries()) {
-    if (!verifyMcpOpaqueFlowReceipt(receipt, verifier)) {
-      errors.push(`receipt ${index + 1} failed signature or verifier validation`);
-      continue;
+  const warnings = [
+    'Checksum and embedded receipt verifier do not authenticate the human operator or relationship.',
+  ];
+  const checks = {
+    schema: false,
+    checksum: false,
+    receiptChain: false,
+    reportedResults: false,
+    runtimeManifest: false,
+    relationshipDeclared: false,
+    operatorAuthenticated: false as const,
+  };
+  let repeatedFlowCalls: number | null = null;
+  let bypassesDenied: number | null = null;
+  let privateValuesVisible: number | null = null;
+  const result = (): ReproductionVerification => ({
+    valid: Object.values(checks).slice(0, -1).every(Boolean) && errors.length === 0,
+    errors,
+    warnings,
+    checks,
+    repeatedFlowCalls,
+    bypassesDenied,
+    privateValuesVisible,
+  });
+  try {
+    if (!boundedJsonShape(value)) {
+      errors.push('bundle exceeds JSON depth, node, string, or collection bounds');
+      return result();
     }
-    if (receipt.sequence !== index + 1 || receipt.previousReceiptHash !== previousReceiptHash) {
-      errors.push(`receipt ${index + 1} breaks sequence linkage`);
+    const topKeys = [
+      'schemaVersion', 'evidenceLevel', 'kind', 'runId', 'date', 'startedAt', 'completedAt',
+      'passed', 'relationship', 'environment', 'package', 'runtime', 'summary', 'denials',
+      'security', 'receiptVerifier', 'receipts', 'failure', 'limitations', 'integrity',
+    ] as const;
+    if (!exactKeys(value, topKeys, [], 'bundle', errors)) return result();
+    const bundle = value as unknown as McpReproductionBundle;
+    const schemaErrors = errors.length;
+    if (bundle.schemaVersion !== 1) errors.push('unsupported schemaVersion');
+    if (bundle.evidenceLevel !== 'self-contained-protocol-reproduction') errors.push('invalid evidenceLevel');
+    if (bundle.kind !== 'mcp-value-opaque-flow-reproduction') errors.push('invalid kind');
+    if (typeof bundle.runId !== 'string' || !/^[a-f0-9-]{36}$/i.test(bundle.runId)) errors.push('invalid runId');
+    for (const [label, dateValue] of [
+      ['date', bundle.date], ['startedAt', bundle.startedAt], ['completedAt', bundle.completedAt],
+    ] as const) {
+      if (typeof dateValue !== 'string' || !Number.isFinite(Date.parse(dateValue))) errors.push(`invalid ${label}`);
     }
-    if (receipt.destinationSucceeded !== true) errors.push(`receipt ${index + 1} reports destination failure`);
-    previousReceiptHash = receipt.receiptHash;
+    if (bundle.passed !== true || bundle.failure !== null) errors.push('reproduction did not pass');
+    checks.relationshipDeclared = REPRODUCTION_RELATIONSHIPS.includes(bundle.relationship);
+    if (!checks.relationshipDeclared) errors.push('invalid relationship');
+
+    if (exactKeys(bundle.environment, ['platform', 'release', 'architecture', 'node'], [], 'environment', errors)) {
+      for (const key of ['platform', 'release', 'architecture', 'node'] as const) {
+        if (typeof bundle.environment[key] !== 'string' || bundle.environment[key].length > 128) {
+          errors.push(`invalid environment.${key}`);
+        }
+      }
+    }
+    if (exactKeys(bundle.package, ['name', 'version'], [], 'package', errors)) {
+      if (bundle.package.name !== '@codepalaiorg/pinpoint' || typeof bundle.package.version !== 'string') {
+        errors.push('invalid package identity');
+      }
+    }
+    if (exactKeys(bundle.runtime, ['executionForm', 'files'], [], 'runtime', errors)) {
+      if (!['compiled-javascript', 'typescript-source'].includes(String(bundle.runtime.executionForm))) {
+        errors.push('invalid runtime.executionForm');
+      }
+      if (!Array.isArray(bundle.runtime.files) || bundle.runtime.files.length !== 9) {
+        errors.push('runtime manifest must contain exactly 9 files');
+      } else {
+        for (const [index, file] of bundle.runtime.files.entries()) {
+          if (!exactKeys(file, ['path', 'sha256'], [], `runtime.files[${index}]`, errors)) continue;
+          if (typeof file.path !== 'string' || file.path.length > 128 || !hash(file.sha256)) {
+            errors.push(`runtime.files[${index}] is invalid`);
+          }
+        }
+      }
+    }
+    if (exactKeys(bundle.summary, [
+      'repeatedFlowCalls', 'destinationAcceptedCalls', 'bypassAttempts', 'bypassesDenied',
+      'privateValuesScanned', 'privateValuesVisible', 'durationMs',
+    ], [], 'summary', errors)) {
+      repeatedFlowCalls = typeof bundle.summary.repeatedFlowCalls === 'number'
+        ? bundle.summary.repeatedFlowCalls : null;
+      bypassesDenied = typeof bundle.summary.bypassesDenied === 'number'
+        ? bundle.summary.bypassesDenied : null;
+      privateValuesVisible = typeof bundle.summary.privateValuesVisible === 'number'
+        ? bundle.summary.privateValuesVisible : null;
+    }
+    const expectedDenials = [
+      'direct-destination', 'direct-query', 'artifact-read', 'forged-capability',
+      'operation-override', 'projection-override', 'fixed-predicate-override',
+      'destination-argument-override',
+    ];
+    if (!Array.isArray(bundle.denials) || bundle.denials.length !== expectedDenials.length) {
+      errors.push('bundle must contain exactly 8 denial records');
+    } else {
+      for (const [index, denial] of bundle.denials.entries()) {
+        if (!exactKeys(denial, ['id', 'outcome'], [], `denials[${index}]`, errors)) continue;
+        if (denial.id !== expectedDenials[index] || denial.outcome !== 'denied') {
+          errors.push(`denials[${index}] is invalid`);
+        }
+      }
+    }
+    if (exactKeys(bundle.security, [
+      'exactPersistedProjection', 'processSeparationValid', 'oneDispatchPerFlow',
+      'receiptChainValid', 'commitmentsDistinctAcrossRepetitions',
+    ], [], 'security', errors)) {
+      for (const field of Object.keys(bundle.security) as Array<keyof typeof bundle.security>) {
+        if (bundle.security[field] !== true) errors.push(`security check failed: ${field}`);
+      }
+    }
+    if (!stringArray(bundle.limitations, REPRODUCTION_LIMITATIONS)) errors.push('limitations do not match the reviewed boundary');
+    if (exactKeys(bundle.receiptVerifier, ['algorithm', 'publicKey', 'signingKeyId'], [], 'receiptVerifier', errors)) {
+      if (
+        bundle.receiptVerifier.algorithm !== 'Ed25519' ||
+        typeof bundle.receiptVerifier.publicKey !== 'string' ||
+        !hash(bundle.receiptVerifier.signingKeyId)
+      ) errors.push('invalid receiptVerifier');
+    }
+    if (exactKeys(bundle.integrity, ['algorithm', 'scope', 'checksum', 'authenticated'], [], 'integrity', errors)) {
+      if (
+        bundle.integrity.algorithm !== 'SHA-256' ||
+        bundle.integrity.scope !== 'canonical-bundle-without-integrity' ||
+        bundle.integrity.authenticated !== false ||
+        !hash(bundle.integrity.checksum)
+      ) errors.push('invalid integrity block');
+    }
+    checks.schema = errors.length === schemaErrors;
+
+    const { integrity, ...unsigned } = bundle;
+    checks.checksum = isRecord(integrity) &&
+      integrity.checksum === sha256(canonicalJson(unsigned));
+    if (!checks.checksum) errors.push('bundle checksum does not match content');
+
+    try {
+      checks.runtimeManifest = canonicalJson(bundle.runtime) === canonicalJson(runtimeManifest()) &&
+        bundle.package.name === packageIdentity().name &&
+        bundle.package.version === packageIdentity().version;
+    } catch {
+      checks.runtimeManifest = false;
+    }
+    if (!checks.runtimeManifest) errors.push('runtime manifest does not match this verifier package');
+
+    const receipts = Array.isArray(bundle.receipts) ? bundle.receipts : [];
+    if (receipts.length !== 30) {
+      errors.push('expected exactly 30 receipts before cryptographic verification');
+    } else {
+      const shapeErrors = errors.length;
+      const shaped = receipts.every((receipt, index) => validReceiptShape(receipt, index, errors));
+      if (shaped && errors.length === shapeErrors && isRecord(bundle.receiptVerifier)) {
+        const verifier = bundle.receiptVerifier as McpOpaqueFlowReceiptVerifier;
+        let previousReceiptHash = '0'.repeat(64);
+        checks.receiptChain = receipts.every((receipt, index) => {
+          const valid = verifyMcpOpaqueFlowReceipt(receipt, verifier) &&
+            receipt.sequence === index + 1 &&
+            receipt.previousReceiptHash === previousReceiptHash;
+          previousReceiptHash = receipt.receiptHash;
+          return valid;
+        });
+      }
+      if (!checks.receiptChain) errors.push('receipt signature or chain verification failed');
+    }
+
+    checks.reportedResults = repeatedFlowCalls === 30 &&
+      bundle.summary.destinationAcceptedCalls === 30 &&
+      bundle.summary.bypassAttempts === 8 &&
+      bypassesDenied === 8 &&
+      bundle.summary.privateValuesScanned === 401 &&
+      privateValuesVisible === 0 &&
+      bundle.denials.length === 8 &&
+      bundle.security.exactPersistedProjection === true &&
+      bundle.security.processSeparationValid === true &&
+      bundle.security.oneDispatchPerFlow === true &&
+      bundle.security.receiptChainValid === true &&
+      bundle.security.commitmentsDistinctAcrossRepetitions === true;
+    if (!checks.reportedResults) errors.push('reported reproduction checks do not pass');
+    return result();
+  } catch {
+    errors.push('bundle validation raised an internal error');
+    return result();
   }
-  const summary: Record<string, unknown> = isRecord(bundle.summary) ? bundle.summary : {};
-  const security: Record<string, unknown> = isRecord(bundle.security) ? bundle.security : {};
-  const flowCalls = typeof summary.flowCalls === 'number' ? summary.flowCalls : 0;
-  const bypassesDenied = typeof summary.bypassesDenied === 'number' ? summary.bypassesDenied : 0;
-  const privateValuesVisible = typeof summary.privateValuesVisible === 'number'
-    ? summary.privateValuesVisible
-    : 0;
-  if (flowCalls !== 30 || receipts.length !== 30) errors.push('expected 30 flow calls and receipts');
-  if (summary.destinationAcceptedCalls !== 30) errors.push('expected 30 destination acceptances');
-  if (summary.bypassAttempts !== 8 || bypassesDenied !== 8) errors.push('expected 8/8 bypass denials');
-  if (summary.privateValuesScanned !== 401 || privateValuesVisible !== 0) {
-    errors.push('private-value scan did not pass');
-  }
-  for (const field of [
-    'exactPersistedProjection',
-    'processSeparationValid',
-    'oneDispatchPerFlow',
-    'receiptChainValid',
-    'commitmentsUnlinkable',
-  ]) {
-    if (security[field] !== true) errors.push(`security check failed: ${field}`);
-  }
-  const { bundleSha256, ...unsigned } = bundle;
-  if (typeof bundleSha256 !== 'string' || bundleSha256 !== sha256(canonicalJson(unsigned))) {
-    errors.push('bundleSha256 does not match bundle content');
-  }
-  return { valid: errors.length === 0, errors, flowCalls, bypassesDenied, privateValuesVisible };
 }
