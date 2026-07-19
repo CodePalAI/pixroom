@@ -40,6 +40,9 @@ import {
 } from '../dashboard/server.js';
 import { openDashboardInBrowser } from '../dashboard/browser.js';
 import { closeDashboardSession } from '../dashboard/lifecycle.js';
+import { runMcpDemo } from './mcp-demo.js';
+
+export { runMcpDemo } from './mcp-demo.js';
 
 function version(): string {
   try {
@@ -51,7 +54,7 @@ function version(): string {
   }
 }
 
-const HELP = `pinpoint ${version()} — exact-context optimization runtime for agents
+const HELP = `pinpoint ${version()} — policy-controlled MCP dataflow for AI agents
 
 USAGE
   pinpoint <command> [options]
@@ -63,14 +66,15 @@ COMMANDS
                    --dashboard-port, --no-open.
                    Point your agent's
                    ANTHROPIC_BASE_URL / OPENAI_BASE_URL at it.
-  demo             Run an exact QCV transformation locally. No model, API key,
-                   sidecar, or network request.
+  demo [mcp|qcv]   Run the value-opaque MCP demo (default) or legacy exact QCV
+                   demo locally. No model, API key, sidecar, or external service.
   export <paths>   Offline: compress the given files and print an honest,
                    per-stage savings report. No upstream calls.
   replay <jsonl>   Re-run body-enabled capture records through the current
                    optimizer stack. No provider calls.
-  doctor [copilot] Check the toolchain, pxpipe, and the headroom sidecar.
-                   'doctor copilot' checks GitHub Copilot readiness.
+  doctor [mcp|optimizer|copilot]
+                   Check core MCP readiness (default), optional legacy optimizer
+                   dependencies, or GitHub Copilot wrapper readiness.
   stats            Query a running proxy's session savings (GET /stats).
   dashboard        Open the optional local session recorder. Options:
                    --port, --no-open.
@@ -529,8 +533,14 @@ export async function runQcvDemo(): Promise<string> {
   }
 }
 
-async function cmdDemo(): Promise<void> {
-  console.log(await runQcvDemo());
+async function cmdDemo(args: string[]): Promise<void> {
+  const mode = args[0] ?? 'mcp';
+  if (args.length > 1 || !['mcp', 'qcv'].includes(mode)) {
+    console.error('usage: pinpoint demo [mcp|qcv]');
+    process.exitCode = 2;
+    return;
+  }
+  console.log(await (mode === 'qcv' ? runQcvDemo() : runMcpDemo()));
 }
 
 export async function runCaptureReplay(
@@ -559,13 +569,23 @@ async function cmdReplay(paths: string[]): Promise<void> {
   console.log(await runCaptureReplay(paths[0]!));
 }
 
-async function cmdDoctor(rest: string[]): Promise<void> {
-  if (rest[0] === 'copilot') {
-    cmdDoctorCopilot();
-    return;
-  }
+export async function runMcpDoctor(): Promise<string> {
+  const demo = await runMcpDemo();
+  return [
+    `pinpoint ${version()} doctor: mcp`,
+    '',
+    `node: ${process.version}`,
+    'core gateway self-test: PASS',
+    '',
+    demo,
+    '',
+    'ready: pinpoint mcp gateway -- <your-server> [args...]',
+  ].join('\n');
+}
+
+async function cmdDoctorOptimizer(): Promise<void> {
   const cfg = loadConfig();
-  const lines: string[] = [`pinpoint ${version()} doctor`, ''];
+  const lines: string[] = [`pinpoint ${version()} doctor: optimizer`, ''];
   lines.push(`node:            ${process.version}`);
 
   let pxpipeOk = false;
@@ -600,6 +620,26 @@ async function cmdDoctor(rest: string[]): Promise<void> {
   );
   console.log(lines.join('\n'));
   await pinpoint.shutdown();
+}
+
+async function cmdDoctor(rest: string[]): Promise<void> {
+  const mode = rest[0] ?? 'mcp';
+  if (rest.length > 1 || !['mcp', 'optimizer', 'copilot'].includes(mode)) {
+    console.error('usage: pinpoint doctor [mcp|optimizer|copilot]');
+    process.exitCode = 2;
+    return;
+  }
+  if (mode === 'copilot') {
+    cmdDoctorCopilot();
+    return;
+  }
+  if (mode === 'optimizer') return cmdDoctorOptimizer();
+  try {
+    console.log(await runMcpDoctor());
+  } catch (cause) {
+    console.error(`core MCP self-test failed: ${cause instanceof Error ? cause.message : String(cause)}`);
+    process.exitCode = 1;
+  }
 }
 
 async function cmdStats(): Promise<void> {
@@ -894,7 +934,7 @@ export async function main(argv: string[]): Promise<void> {
     case 'export':
       return cmdExport(rest);
     case 'demo':
-      return cmdDemo();
+      return cmdDemo(rest);
     case 'replay':
       return cmdReplay(rest);
     case 'doctor':

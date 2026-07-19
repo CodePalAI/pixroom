@@ -589,6 +589,20 @@ if (waitingForNpm) {
   if (visibleReadme.includes('git+https://github.com/CodePalAI/pinpoint.git')) {
     fail('release README still advertises Git installation');
   }
+  if (npmStatusMatches[0]?.[1] === 'published') {
+    for (const required of [
+      'https://www.npmjs.com/package/@codepalaiorg/pinpoint',
+      'https://img.shields.io/npm/v/%40codepalaiorg%2Fpinpoint.svg',
+      'https://img.shields.io/npm/dw/%40codepalaiorg%2Fpinpoint.svg',
+      'private values in client transcript: 0/401',
+      'destination dispatches: 1 authorized; 0 bypass side effects',
+      'wrong verifier rejected',
+      'pinpoint demo qcv',
+      'pinpoint doctor optimizer',
+    ]) {
+      if (!visibleReadme.includes(required)) fail(`published README is missing: ${required}`);
+    }
+  }
 }
 
 if (failures.length > 0) {

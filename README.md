@@ -7,6 +7,8 @@
 <p align="center">
   <a href="LICENSE"><img alt="Apache 2.0 license" src="https://img.shields.io/badge/license-Apache%202.0-1f6feb.svg"></a>
   <a href="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/CodePalAI/pinpoint/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://www.npmjs.com/package/@codepalaiorg/pinpoint"><img alt="npm version" src="https://img.shields.io/npm/v/%40codepalaiorg%2Fpinpoint.svg"></a>
+  <a href="https://www.npmjs.com/package/@codepalaiorg/pinpoint"><img alt="npm weekly downloads" src="https://img.shields.io/npm/dw/%40codepalaiorg%2Fpinpoint.svg"></a>
   <img alt="Node.js 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-2f855a.svg">
   <a href="./benchmarks/results/mcp-opaque-flow-cross-host.first-party-macos-arm64-20260715.json"><img alt="Opaque flow gate passed on two clients for one synthetic flow" src="https://img.shields.io/badge/opaque%20flow%20gate-2%20clients%20%2F%201%20synthetic%20flow-2ea44f.svg"></a>
   <img alt="Experimental status" src="https://img.shields.io/badge/status-experimental-c2410c.svg">
@@ -103,8 +105,8 @@
     </tr>
     <tr>
       <td><a href="./comparisons/timezone-conversion.md"><strong>Convert a meeting time to Tokyo</strong></a></td>
-      <td align="right">452 B<br><sub>already bounded</sub></td>
-      <td align="right">452 B<br><sub>no artifact created</sub></td>
+      <td align="right">450 B<br><sub>already bounded</sub></td>
+      <td align="right">450 B<br><sub>no artifact created</sub></td>
       <td><strong>Byte-identical</strong><br><sub>same exact +9.0h answer</sub></td>
     </tr>
   </tbody>
@@ -149,7 +151,9 @@ Customer database -> Pinpoint applies active=true and selects email
 
 Your operator owns the policy. The agent may invoke the approved workflow, but it cannot change the source, destination, fixed filter, selected fields, or payload limits.
 
-This customer example is a template for your own tool names. The fastest runnable demo below uses the same 200-to-40 shape with two published filesystem and memory MCP servers.
+This customer example is a template for your own tool names. The fastest runnable demo
+below uses the same 200-to-40 shape with two local synthetic stdio MCP processes. The
+separate published-server evidence uses the official filesystem and memory packages.
 
 ### What changes?
 
@@ -195,6 +199,9 @@ Or run the offline demo without a global install:
 npx @codepalaiorg/pinpoint demo
 ```
 
+`npx` may contact npm to download Pinpoint. After installation, the demo itself uses
+only local stdio processes and configures no external service.
+
 Source-checkout fallback:
 
 ```bash
@@ -206,38 +213,39 @@ pinpoint --version
 
 ### Fastest working demo
 
-From the source checkout above, run the real two-server demo. It does not call a
-model or require an API key:
-
-```bash
-npm run bench:mcp-oss-cross-server
-```
-
-This benchmark requires the source checkout and is not shipped as an executable npm
-command. After the npm release, the installed runtime smoke is:
+Run the core product path directly from the installed package. It launches separate
+synthetic source and destination stdio MCP processes through the production gateway,
+with no model, API key, sidecar, or configured external service:
 
 ```bash
 pinpoint demo
 ```
 
-It reads 200 synthetic records through the official filesystem MCP server, moves the exact 40-row approved projection into the official memory MCP server, denies four bypass attempts, and verifies that 0/600 private fixture values entered the client transcript.
+It captures 200 account records, applies the operator-owned `active=true` predicate,
+moves only 40 email projections into the hidden destination, denies four bypass
+attempts, verifies the signed receipt, and scans the client transcript for all 401
+private source and destination values.
 
-Look for these fields in the final JSON:
+Look for this summary:
 
-```json
-{
-  "passed": true,
-  "summary": {
-    "bypassAttempts": 4,
-    "bypassesDenied": 4,
-    "exactPersistedProjection": true,
-    "persistedEntities": 40,
-    "privateCanariesLeaked": 0
-  }
-}
+```text
+destination: 40/40 exact recipients persisted
+bypass attempts denied: 4/4
+private values in client transcript: 0/401
+destination dispatches: 1 authorized; 0 bypass side effects
+signed receipt: valid against initialized verifier; wrong verifier rejected
+passed: true
 ```
 
-The exact gate is `benchmarks/v2/mcp_oss_cross_server_gate.mjs`; the [reproduction guide](./benchmarks/REPRODUCING.md) explains the command. Its retained result is the [cross-server receipt](./benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json).
+For the heavier integration against two pinned published MCP packages, use a source
+checkout and run `npm run bench:mcp-oss-cross-server`. The
+[reproduction guide](./benchmarks/REPRODUCING.md) explains the command, and the retained
+[cross-server receipt](./benchmarks/results/mcp-oss-cross-server.first-party-macos-arm64-20260716.json)
+records the exact 40-entity side effect and 0/600 canary scan.
+
+The historical provider-wire optimizer demo remains available as `pinpoint demo qcv`.
+Run `pinpoint doctor` for the same core MCP self-test plus runtime readiness. Legacy
+pxpipe/Headroom diagnostics are available explicitly as `pinpoint doctor optimizer`.
 
 ### Optional local session recorder
 
@@ -483,7 +491,7 @@ The tests use synthetic data. They preserve failures and remove raw model event 
 | Published OSS cross-server flow | **40/40 entities; 4/4 denials; 0/600 canaries** | Filesystem `2026.7.10` to memory `2026.7.4`; exact JSONL side effect |
 | Matched HCP comparison | **Pinpoint exact; HCP 30/30 exact; both 4/4 denials and 0/600 canaries** | Byte-identical fixture and native authority comparison; No scalar winner |
 | Constructed visible traffic | **31,013 -> 3,414 bytes, 89.0% lower** | Same synthetic source/destination payload with authority receipt |
-| Local flow latency | **2.30 ms p95** | 30 local protocol samples, not a production load test |
+| Local flow latency | **1.02 ms p95** | 30 local protocol samples, not a production load test |
 
 <details>
 <summary><strong>Detailed receipt measurements</strong></summary>

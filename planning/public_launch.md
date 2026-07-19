@@ -45,16 +45,16 @@ Recommended tools: VHS for deterministic terminal capture, or Screen Studio/Quic
 
 - [x] Make `CodePalAI/pinpoint` public before publishing npm so provenance and repository links resolve. Verified public on 2026-07-14.
 - [ ] Confirm Apache-2.0 ownership, `NOTICE`, upstream attribution, and the security contact with counsel or the responsible owner.
-- [ ] Replace `NPM_TOKEN` in the `release` environment with a granular token for npm user `codepalaiorg` that can publish to its `@codepalaiorg` scope.
+- [x] Replace `NPM_TOKEN` in the `release` environment with a granular token for npm user `codepalaiorg` that can publish to its `@codepalaiorg` scope. Verified by protected publication 2026-07-19.
 - [x] Preserve signed source-only `v0.1.0`; its npm publication failed before registry upload and it is superseded by the reviewed patch release. Verified 2026-07-15.
-- [ ] After required CI passes, create and push a signed annotated `v0.2.4` tag from the final reviewed commit.
-- [ ] Create draft GitHub Release `v0.2.4`; dispatch the protected release workflow with tag `v0.2.4`; verify it publishes npm with provenance, attaches checksummed assets, and only then publishes the GitHub Release.
+- [x] After required CI passes, create and push a signed annotated `v0.2.4` tag from the final reviewed commit. Verified 2026-07-19.
+- [x] Create draft GitHub Release `v0.2.4`; dispatch the protected release workflow with tag `v0.2.4`; verify it publishes npm with provenance, attaches checksummed assets, and only then publishes the GitHub Release. Verified 2026-07-19.
 - [ ] On clean Node 22 and 24 environments across Linux, macOS, and Windows, run `npx @codepalaiorg/pinpoint@0.2.4 demo`, import every public subpath, and test `pinpoint --help`.
-- [ ] Confirm `npm view @codepalaiorg/pinpoint version repository.url dist.integrity` points to this repository.
+- [x] Confirm `npm view @codepalaiorg/pinpoint version repository.url dist.integrity` points to this repository. Verified 2026-07-19.
 - [ ] After the registry confirms `@codepalaiorg/pinpoint@0.2.4`, configure npm Trusted Publisher, verify one manual `oidc` release, then remove `NPM_TOKEN`.
 - [ ] Verify the prepared `npx @codepalaiorg/pinpoint demo`, `npm install -g @codepalaiorg/pinpoint`, and `npm install @codepalaiorg/pinpoint` commands from clean environments.
-- [ ] Add npm version and weekly-download badges only after the registry data exists.
-- [ ] Record the published npm tarball SHA-512/integrity value in the release notes and verify it against the attached checksum assets.
+- [x] Add npm version and weekly-download badges only after the registry data exists. Verified 2026-07-19.
+- [x] Record the published npm tarball SHA-512/integrity value in the release notes and verify it against the attached checksum assets. Verified by protected workflow and independent download 2026-07-19.
 
 ## Gate 4: GitHub conversion surface
 

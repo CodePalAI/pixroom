@@ -1,6 +1,6 @@
 {
   "name": "@codepalaiorg/pinpoint",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Policy-controlled MCP dataflow for AI agents, with exact local projections and signed receipts.",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -149,7 +149,8 @@
     "verify": "npm run package:manifest-check && npm run release:check && npm run supply-chain:check && npm run docs:check && npm run typecheck && npm test && npm run build && npm run package:smoke",
     "verify:release": "npm run assets:readme && npm run verify",
     "dev": "tsx src/cli/main.ts",
-    "demo:qcv": "npm run build && node bin/cli.js demo",
+    "demo:mcp": "npm run build && node bin/cli.js demo mcp",
+    "demo:qcv": "npm run build && node bin/cli.js demo qcv",
     "pretest": "npm run build",
     "test": "vitest run",
     "test:dashboard:e2e": "npm run build && playwright test --config playwright.dashboard.config.ts",

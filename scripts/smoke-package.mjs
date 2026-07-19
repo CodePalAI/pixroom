@@ -6,11 +6,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
+const npmCli = process.env.npm_execpath;
+if (!npmCli) throw new Error('package smoke must run through npm so npm_execpath is available');
 const temporary = mkdtempSync(join(tmpdir(), 'pinpoint-package-smoke-'));
 const run = (command, args, cwd = temporary) =>
   execFileSync(command, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-const npmCli = process.env.npm_execpath;
-if (!npmCli) throw new Error('package smoke must run through npm so npm_execpath is available');
 const runNpm = (args, cwd = temporary) => run(process.execPath, [npmCli, ...args], cwd);
 
 function parseTrailingJsonArray(output, label) {
@@ -47,7 +47,7 @@ const publicEntries = [
 const packageBudget = {
   maxFiles: 210,
   maxPackedBytes: 450_000,
-  maxUnpackedBytes: 1_260_000,
+  maxUnpackedBytes: 1_275_000,
 };
 
 try {
@@ -212,8 +212,25 @@ try {
     throw new Error('installed authority initializer did not create a mode-0600 key');
   }
   const demo = run(process.execPath, [cli, 'demo']);
-  for (const expected of ['exact answer materialized: user733@example.com', 'network requests: 0']) {
+  for (const expected of [
+    'destination: 40/40 exact recipients persisted',
+    'bypass attempts denied: 4/4',
+    'private values in client transcript: 0/401',
+    'destination dispatches: 1 authorized; 0 bypass side effects',
+    'signed receipt: valid against initialized verifier; wrong verifier rejected',
+    'processes: source and destination PIDs are separate from the CLI',
+    'transport: local stdio only; external services configured: none',
+    'passed: true',
+  ]) {
     if (!demo.includes(expected)) throw new Error(`installed demo is missing: ${expected}`);
+  }
+  const doctor = run(process.execPath, [cli, 'doctor']);
+  for (const expected of [
+    'doctor: mcp',
+    'core gateway self-test: PASS',
+    'ready: pinpoint mcp gateway -- <your-server> [args...]',
+  ]) {
+    if (!doctor.includes(expected)) throw new Error(`installed doctor is missing: ${expected}`);
   }
   const installedReadme = join(
     temporary,

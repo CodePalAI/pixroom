@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseDashboardArgs, parseMcpArgs, parseProxyArgs, runQcvDemo } from '../src/cli/main.js';
+import {
+  parseDashboardArgs,
+  parseMcpArgs,
+  parseProxyArgs,
+  runMcpDemo,
+  runMcpDoctor,
+  runQcvDemo,
+} from '../src/cli/main.js';
 import { parseMcpOpaqueFlowConfig } from '../src/mcp/flow.js';
 import { parseMcpOpaqueFlowDestinationConfig } from '../src/mcp/destination.js';
 
@@ -70,6 +77,32 @@ describe('runQcvDemo', () => {
     expect(output).toContain('exact answer materialized: user733@example.com');
     expect(output).toContain('model-driven fallback: not needed');
     expect(output).toContain('network requests: 0');
+  });
+});
+
+describe('runMcpDemo', () => {
+  it('executes the core value-opaque product path over local stdio', async () => {
+    const output = await runMcpDemo();
+
+    expect(output).toContain('destination: 40/40 exact recipients persisted');
+    expect(output).toContain('bypass attempts denied: 4/4');
+    expect(output).toContain('private values in client transcript: 0/401');
+    expect(output).toContain('destination dispatches: 1 authorized; 0 bypass side effects');
+    expect(output).toContain('signed receipt: valid against initialized verifier; wrong verifier rejected');
+    expect(output).toContain('processes: source and destination PIDs are separate from the CLI');
+    expect(output).toContain('transport: local stdio only; external services configured: none');
+    expect(output).toContain('passed: true');
+  });
+});
+
+describe('runMcpDoctor', () => {
+  it('makes core MCP readiness the default health check', async () => {
+    const output = await runMcpDoctor();
+
+    expect(output).toContain('doctor: mcp');
+    expect(output).toContain('core gateway self-test: PASS');
+    expect(output).toContain('destination dispatches: 1 authorized; 0 bypass side effects');
+    expect(output).toContain('ready: pinpoint mcp gateway -- <your-server> [args...]');
   });
 });
 

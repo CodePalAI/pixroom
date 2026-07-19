@@ -4,6 +4,23 @@ All notable changes are documented here. This project follows semantic versionin
 
 ## Unreleased
 
+## 0.2.5 - 2026-07-19
+
+### Changed
+
+- `pinpoint demo` now runs the core value-opaque MCP flow through separate
+	synthetic source and destination processes, with exact side-effect, bypass,
+	transcript-opacity, and signed-receipt self-checks. The previous QCV demo remains
+	available as `pinpoint demo qcv`.
+- `pinpoint doctor` now validates the core MCP gateway by default without probing
+	optional compression services. Legacy pxpipe/Headroom checks moved to
+	`pinpoint doctor optimizer`; Copilot readiness remains `pinpoint doctor copilot`.
+
+### Fixed
+
+- Public onboarding now reflects the published npm package and no longer describes
+	the QCV-only demo as the two-server opaque-flow product path.
+
 ## 0.2.4 - 2026-07-19
 
 ### Changed
