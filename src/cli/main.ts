@@ -14,10 +14,8 @@ import {
   closeSync,
   constants as fileConstants,
   existsSync,
-  fchmodSync,
   fstatSync,
   fsyncSync,
-  lstatSync,
   openSync,
   readFileSync,
   readSync,
@@ -456,35 +454,9 @@ function authorityKeyId(key: KeyObject): string {
 
 const MAX_AUTHORITY_KEY_BYTES = 64 * 1024;
 
-function sameFile(
-  left: { dev: number | bigint; ino: number | bigint },
-  right: { dev: number | bigint; ino: number | bigint },
-): boolean {
-  return left.dev === right.dev && left.ino === right.ino;
-}
-
-function verifyMacAcl(path: string, opened: ReturnType<typeof fstatSync>): void {
-  if (process.platform !== 'darwin') return;
-  const before = lstatSync(path);
-  if (before.isSymbolicLink() || !sameFile(before, opened)) {
-    throw new Error('authority private-key path changed during validation');
-  }
-  const listing = execFileSync('/bin/ls', ['-lde', path], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const after = lstatSync(path);
-  if (after.isSymbolicLink() || !sameFile(after, opened)) {
-    throw new Error('authority private-key path changed during validation');
-  }
-  if (listing.split(/\r?\n/).slice(1).some((line) => /^\s*\d+:/.test(line))) {
-    throw new Error('authority private-key file must not contain macOS ACL entries');
-  }
-}
-
 function writePrivateFileExclusive(path: string, value: string | Uint8Array): void {
-  if (process.platform === 'win32') {
-    throw new Error('persistent authority keys are unsupported on Windows until restrictive file ACLs can be enforced');
+  if (process.platform !== 'linux') {
+    throw new Error('persistent authority keys currently require Linux file-permission semantics');
   }
   const nofollow = typeof fileConstants.O_NOFOLLOW === 'number' ? fileConstants.O_NOFOLLOW : 0;
   let descriptor: number | undefined;
@@ -496,12 +468,6 @@ function writePrivateFileExclusive(path: string, value: string | Uint8Array): vo
       0o600,
     );
     created = true;
-    fchmodSync(descriptor, 0o600);
-    if (process.platform === 'darwin') {
-      execFileSync('/bin/chmod', ['-N', '/dev/fd/3'], {
-        stdio: ['ignore', 'pipe', 'pipe', descriptor],
-      });
-    }
     const bytes = Buffer.from(value);
     let offset = 0;
     while (offset < bytes.length) offset += writeSync(descriptor, bytes, offset);
@@ -510,7 +476,6 @@ function writePrivateFileExclusive(path: string, value: string | Uint8Array): vo
     if (!metadata.isFile() || (metadata.mode & 0o777) !== 0o600) {
       throw new Error('authority file permissions could not be secured');
     }
-    verifyMacAcl(path, metadata);
   } catch (cause) {
     if (descriptor != null) closeSync(descriptor);
     descriptor = undefined;
@@ -524,8 +489,8 @@ function writePrivateFileExclusive(path: string, value: string | Uint8Array): vo
 }
 
 function readPrivateAuthorityKey(path: string): Buffer {
-  if (process.platform === 'win32') {
-    throw new Error('persistent authority keys are unsupported on Windows until restrictive file ACLs can be enforced');
+  if (process.platform !== 'linux') {
+    throw new Error('persistent authority keys currently require Linux file-permission semantics');
   }
   const nonblock = typeof fileConstants.O_NONBLOCK === 'number' ? fileConstants.O_NONBLOCK : 0;
   const nofollow = typeof fileConstants.O_NOFOLLOW === 'number' ? fileConstants.O_NOFOLLOW : 0;
@@ -542,7 +507,6 @@ function readPrivateAuthorityKey(path: string): Buffer {
     if (metadata.size > MAX_AUTHORITY_KEY_BYTES) {
       throw new Error(`authority private-key file exceeds ${MAX_AUTHORITY_KEY_BYTES} bytes`);
     }
-    verifyMacAcl(path, metadata);
     const chunks: Buffer[] = [];
     let bytes = 0;
     while (bytes <= MAX_AUTHORITY_KEY_BYTES) {

@@ -103,20 +103,23 @@ describe('parseEvidenceArgs', () => {
 });
 
 describe('persistent MCP authority platform boundary', () => {
-  it('fails closed on Windows before creating or loading private-key files', () => {
+  it.each(['darwin', 'win32'] as const)(
+    'fails closed on %s before creating or loading private-key files',
+    (targetPlatform) => {
     const platform = Object.getOwnPropertyDescriptor(process, 'platform');
-    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    Object.defineProperty(process, 'platform', { value: targetPlatform, configurable: true });
     try {
       expect(() => initializeMcpAuthority('never-created.pem')).toThrow(
-        'persistent authority keys are unsupported on Windows',
+        'persistent authority keys currently require Linux file-permission semantics',
       );
       expect(() => loadMcpAuthorityKey('never-read.pem')).toThrow(
-        'persistent authority keys are unsupported on Windows',
+        'persistent authority keys currently require Linux file-permission semantics',
       );
     } finally {
       if (platform) Object.defineProperty(process, 'platform', platform);
     }
-  });
+    },
+  );
 });
 
 describe('runQcvDemo', () => {

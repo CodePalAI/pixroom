@@ -213,7 +213,7 @@ try {
   }
   run(process.execPath, [cli, '--help']);
   const authorityKey = join(temporary, 'operator-authority.pem');
-  if (process.platform === 'win32') {
+  if (process.platform !== 'linux') {
     const authority = capture(process.execPath, [
       cli,
       'mcp',
@@ -225,10 +225,10 @@ try {
     if (
       authority.status !== 2 ||
       authority.stdout !== '' ||
-      !/persistent authority keys are unsupported on Windows/.test(authority.stderr) ||
+      !/persistent authority keys currently require Linux file-permission semantics/.test(authority.stderr) ||
       existsSync(authorityKey)
     ) {
-      throw new Error('installed authority initializer did not fail closed on Windows');
+      throw new Error('installed authority initializer did not fail closed outside Linux');
     }
   } else {
     const authority = JSON.parse(run(process.execPath, [

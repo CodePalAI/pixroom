@@ -391,8 +391,10 @@ pinpoint mcp gateway \
 
 Pinpoint creates the key and opening record with file mode `0600` and refuses to overwrite existing files. Protect both files.
 
-Persistent authority keys currently require POSIX permissions. Pinpoint fails closed on
-Windows until it can install and verify a restrictive file DACL.
+Persistent authority keys currently require Linux file-permission semantics. Pinpoint
+fails closed on macOS and Windows until it can install and verify restrictive ACLs
+through the same opened file descriptor. Ephemeral per-session receipt keys remain
+portable.
 
 ## What you get
 
