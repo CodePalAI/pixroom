@@ -1,6 +1,6 @@
 # Pinpoint product assessment
 
-_Evidence snapshot: 2026-07-16._
+_Evidence snapshot: 2026-07-19._
 
 ## Executive verdict
 
@@ -17,6 +17,21 @@ Pinpoint now also supports **value-opaque MCP dataflow**. An operator can predec
 Verdict: this is a credible new integrated MCP mechanism and a stronger breakthrough candidate than result virtualization alone, but it is not yet a proven field breakthrough or product. Anthropic and Cloudflare already established private intermediate tool composition through generated code; Fides established IFC and selective hiding; NetworkNT established gateway tokenization; Proof-Carrying Agent Actions and enclawed established receipt/governance and gateway-hardening categories. The candidate contribution is narrower: declarative exact dataflow between unmodified tools through a transparent host-independent MCP gateway, with fail-closed capture and signed disclosure-bounded receipts, without generated code or a sandbox.
 
 Recommendation: make value-opaque MCP dataflow plus the result firewall the product center. Stop expanding the generic model gateway. The next cycle must seek independent security review, external review of the formal mapping and implemented multi-process boundary, witnessed organizational identity, and external workflows that genuinely need hidden tool-to-tool values. Do not add remote/multi-destination protocol breadth until those workflows demand it, and do not create more all-eligible synthetic prompts.
+
+### Adversarial challenge update
+
+A 2026-07-19 maintainer-authored concurrency and failure review found three serious
+implementation defects before publication: duplicate outstanding flow ids could dispatch
+twice, string-valued destination error status could be signed as success, and a
+same-process destination exit after dispatch could omit its terminal receipt. The same
+pass also found stale or paginated catalog authorization and pre-aborted process startup.
+All five classes now have deterministic real-process regressions in
+`npm run test:mcp-adversarial`.
+
+This materially improves implementation conformance to the model, but it does not change
+the breakthrough verdict. The review was not independent, the gateway still cannot
+guarantee exactly-once side effects or receipt retention across its own crash, and no
+external workflow demand or retained deployment was established.
 
 ## What the evidence says
 

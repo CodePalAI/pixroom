@@ -110,7 +110,7 @@
   </tbody>
 </table>
 
-<p align="center"><sub>1,259,328 bytes without Pinpoint vs 12,251 bytes with Pinpoint across seven pinned published MCP servers. Eight oversized results improved; two already-bounded controls stayed unchanged. Data-bearing response bytes, not token estimates. <a href="./benchmarks/results/mcp-common-workflows.first-party-macos-arm64-20260716.json">Receipt</a> · <a href="./comparisons/README.md">Research and method</a></sub></p>
+<p align="center"><sub>1,259,326 bytes without Pinpoint vs 12,249 bytes with Pinpoint across seven pinned published MCP servers. Eight oversized results improved; two already-bounded controls stayed unchanged. Data-bearing response bytes, not token estimates. <a href="./benchmarks/results/mcp-common-workflows.first-party-macos-arm64-20260716.json">Receipt</a> · <a href="./comparisons/README.md">Research and method</a></sub></p>
 
 ## Start here
 
@@ -483,7 +483,7 @@ The tests use synthetic data. They preserve failures and remove raw model event 
 | Published OSS cross-server flow | **40/40 entities; 4/4 denials; 0/600 canaries** | Filesystem `2026.7.10` to memory `2026.7.4`; exact JSONL side effect |
 | Matched HCP comparison | **Pinpoint exact; HCP 30/30 exact; both 4/4 denials and 0/600 canaries** | Byte-identical fixture and native authority comparison; No scalar winner |
 | Constructed visible traffic | **31,013 -> 3,414 bytes, 89.0% lower** | Same synthetic source/destination payload with authority receipt |
-| Local flow latency | **0.61 ms p95** | 30 local protocol samples, not a production load test |
+| Local flow latency | **2.30 ms p95** | 30 local protocol samples, not a production load test |
 
 <details>
 <summary><strong>Detailed receipt measurements</strong></summary>

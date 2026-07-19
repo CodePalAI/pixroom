@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "evidenceLevel": "paired-oss-protocol-integration",
   "kind": "mcp-common-workflows-gate",
-  "date": "2026-07-17",
+  "date": "2026-07-19",
   "passed": true,
   "environment": {
     "platform": "darwin",
@@ -28,9 +28,9 @@
       "native-filter",
       "timezone-conversion"
     ],
-    "directVisibleBytes": 1259328,
-    "pinpointVisibleBytes": 12251,
-    "aggregateVisibleByteReduction": 0.9902717957513849,
+    "directVisibleBytes": 1259326,
+    "pinpointVisibleBytes": 12249,
+    "aggregateVisibleByteReduction": 0.9902733684526485,
     "unrelatedCanariesAvoided": 11992
   },
   "workflows": [
@@ -269,7 +269,7 @@
         "exitCode": 0,
         "exactAnswer": true,
         "answer": "+9.0h",
-        "visibleBytes": 452,
+        "visibleBytes": 450,
         "unrelatedCanariesVisible": 0
       },
       "pinpoint": {
@@ -277,7 +277,7 @@
         "exactAnswer": true,
         "answer": "+9.0h",
         "artifactCapabilities": 0,
-        "visibleBytes": 452,
+        "visibleBytes": 450,
         "unrelatedCanariesVisible": 0
       },
       "comparison": {
@@ -347,7 +347,7 @@
   },
   "source": {
     "fingerprints": {
-      "src/mcp/gateway.ts": "ac3faaccee257d57f48c7dbea7fceffa78445039ea608198388a39d0c1787d4e",
+      "src/mcp/gateway.ts": "64cb1ce13f7077d6c8b49abe413a293d8841c3aaccfec57d7425c4c7b3433e17",
       "src/virtual-context/store.ts": "7b0bbc2de4e400b7cb85a23d926bf5ec2c898c7242df57b220026bf3cbc36783",
       "benchmarks/v2/mcp_common_workflows_gate.mjs": "c63a16a1f58b88fb4b519c707966ac6204c380b475bb1604ca3ac67af2457aaf"
     }

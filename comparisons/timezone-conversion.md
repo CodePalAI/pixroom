@@ -22,7 +22,7 @@ local and no reason to add an artifact query.
 | Measurement | Without Pinpoint | With Pinpoint |
 |---|---:|---:|
 | Correct answer | **+9.0h** | **+9.0h** |
-| Client-visible response | **452 bytes** | **452 bytes** |
+| Client-visible response | **450 bytes** | **450 bytes** |
 | Unrelated fixture values visible | **0** | **0** |
 | Artifact created | N/A | **No** |
 

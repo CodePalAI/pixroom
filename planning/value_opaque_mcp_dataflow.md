@@ -198,6 +198,9 @@ the pinned key identity, receipt hash, and signature. Omitting the second argume
 checks only the receipt's self-contained signature. A receipt chain verifier must
 additionally check monotonically
 increasing sequence numbers and each `previousReceiptHash`.
+Sequence numbers record serialized terminal receipt emission order, not destination
+dispatch start time. Concurrent flows may therefore complete in a different order than
+they were dispatched while still forming one valid chain.
 
 Authority mode proves that the configured operator key authorized the fresh session
 key and exact hidden policy/deployment commitment. It does not prove who owns that
@@ -213,6 +216,12 @@ Trusted components:
 - the operator-supplied flow policy;
 - the source and destination processes as recipients of their respective values;
 - the operating system process boundary.
+
+The wrapped process is also trusted to preserve JSON-RPC request/response identity.
+Pinpoint rejects duplicate outstanding client ids but cannot distinguish a malicious
+upstream that deliberately returns one valid outstanding id for another request; such a
+process can already exfiltrate through its own trusted network, filesystem, and tool
+results.
 
 Protected boundary:
 

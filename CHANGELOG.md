@@ -20,6 +20,11 @@ All notable changes are documented here. This project follows semantic versionin
 - Copilot dashboard sessions now survive same-tab refresh, reconcile live
 	request counters independently of SSE, recover ended history accurately, and
 	terminate delegated process trees within a bounded shutdown window.
+- Opaque-flow dispatch now reserves outstanding client ids, rejects malformed
+	destination status, terminalizes surviving post-dispatch child loss with an
+	unconfirmed receipt, invalidates changed or incomplete catalogs, and avoids
+	spawning pre-aborted gateways. A named adversarial runtime gate covers these
+	concurrency and failure paths.
 - The failed `v0.2.3` candidate completed signed provenance generation but npm
 	rejected the existing protected token with `E403` before package publication
 	or release-asset upload. Version `0.2.4` supersedes it after credential

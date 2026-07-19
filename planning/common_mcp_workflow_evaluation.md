@@ -50,7 +50,7 @@ three Pinpoint query operations, and two passthrough controls:
 | Browser automation | Inline accessibility snapshot | `grep` | Pass |
 | Utility | Timezone conversion | passthrough | Pass |
 
-Aggregate data-bearing bytes were 1,259,328 direct and 12,251 with Pinpoint, a
+Aggregate data-bearing bytes were 1,259,326 direct and 12,249 with Pinpoint, a
 99.0% reduction. All exact answers matched. The eight artifact workflows avoided
 11,992 unrelated fixture-canary occurrences. Both passthrough controls emitted zero
 artifacts and were byte-identical between arms.
